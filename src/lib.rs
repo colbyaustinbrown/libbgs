@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 mod factorization;
 mod quad_field;
 mod util;
@@ -14,7 +15,8 @@ mod tests {
     fn fact_works() {
         let fact = Factorization {
             value: 8,
-            primepowers: vec![(2, 3, 8)]
+            factors: vec![8],
+            primepowers: vec![(2, 3)]
         };
         assert_eq!(fact.value, 8);
     }
