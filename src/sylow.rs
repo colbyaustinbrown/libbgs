@@ -19,6 +19,7 @@ pub trait SylowDecomposable: SemigroupElem + Copy {
     }
 }
 
+#[derive(Debug)]
 pub struct SylowDecomp<T: SylowDecomposable> {
     length: usize,
     order: Factorization,
@@ -46,6 +47,7 @@ impl<T: SylowDecomposable> Semigroup for SylowDecomp<T> {
     }
 }
 
+#[derive(Debug)]
 pub struct SylowElem<T: SylowDecomposable> {
     group: Rc<SylowDecomp<T>>,
     coords: Vec<u128>

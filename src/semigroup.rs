@@ -1,10 +1,11 @@
 use std::rc::Rc;
+use std::fmt::Debug;
 
 pub trait Semigroup {
     fn order(&self) -> u128;
 }
 
-pub trait SemigroupElem {
+pub trait SemigroupElem: Debug {
     type Group: Semigroup;
     fn one(param: &Rc<Self::Group>) -> Self;
     fn is_one(&self) -> bool;
@@ -14,14 +15,17 @@ pub trait SemigroupElem {
 
     fn pow(&mut self, mut n: u128) where Self: Sized {
         let mut y = Self::one(self.param());
-        while n > 0 {
+        while n > 1 {
+            // println!("{n} {:?} {:?}", &self, y);
             if n % 2 == 1 {
                 y.multiply(self);
             }
             self.square();
             n >>= 1;
         }
+        // println!("{:?} {:?}", &self, y);
         self.multiply(&y);
+        // println!("{:?} {:?}", &self, y);
     }
 }
 

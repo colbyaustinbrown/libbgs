@@ -4,12 +4,11 @@ mod quad_field;
 mod util;
 mod semigroup;
 mod sylow;
+mod fp;
 
 #[cfg(test)]
 mod tests {
     use crate::factorization::*;
-    use crate::quad_field::*;
-    use crate::sylow::*;
 
     #[test]
     fn fact_works() {
