@@ -4,42 +4,38 @@ use std::fmt;
 use crate::util::*;
 use crate::semigroup::*;
 use crate::factorization::*;
-use crate::fp::*;
-use crate::quad_field::*;
 
 pub trait SylowDecomposable: Semigroup {
-    type Iter: IntoIterator<Item = Self::Elem>;
-    fn candidates(self: &Rc<Self>) -> Self::Iter;
-    fn find_sylow_generator(self: &Rc<Self>, d: (u128, u128)) -> Self::Elem {
+    fn is_sylow_generator(self: &Rc<Self>, candidate: &Self::Elem, d: &(u128, u128)) -> Option<Self::Elem> {
         let respow = self.order() / intpow(d.0, d.1, 0);
         let checkpow = respow * intpow(d.0, d.1 - 1, 0);
-        let pred = |candidate: &Self::Elem| {
-            let mut can = candidate.clone();
-            can.pow(checkpow);
-            !can.is_one()
-        };
-        let mut res = self.candidates()
-            .into_iter()
-            .find(pred)
-            .unwrap();
-        res.pow(respow);
-        res
+        let mut mut_can = candidate.clone();
+        mut_can.pow(checkpow);
+        if !mut_can.is_one() { 
+            mut_can.pow(respow);
+            Some(mut_can) 
+        } else { None }
     }
+    fn find_sylow_generator(self: &Rc<Self>, d: &(u128, u128)) -> Self::Elem;
 }
 
 #[derive(Debug)]
 pub struct SylowDecomp<G: SylowDecomposable> {
-    parent: Rc<G>,
-    order_factors: Factorization,
-    generators: Vec<G::Elem>
+    pub parent: Rc<G>,
+    pub order_factors: Factorization,
+    pub generators: Vec<G::Elem>
 }
 
 impl<G: SylowDecomposable> SylowDecomp<G> {
-    fn new(parent: &Rc<G>, order_factors: Factorization) -> SylowDecomp<G> {
+    pub fn new(parent: &Rc<G>, order_factors: Factorization) -> SylowDecomp<G> {
+        println!("Beginning search for generators.");
+        println!("Group of order {:?}.", parent.order());
         let length = order_factors.len();
         let mut gen = vec![parent.one(); length];
         for i in 0..length {
-            gen[i] = parent.find_sylow_generator(order_factors.prime_powers[i]);
+            println!("Searching for generator of order {:?}", order_factors.prime_powers[i]);
+            gen[i] = parent.find_sylow_generator(&order_factors.prime_powers[i]);
+            println!("Found it! {:?}", gen[i]);
         }
         SylowDecomp {
             parent: Rc::clone(parent),
@@ -118,84 +114,6 @@ impl<G: SylowDecomposable> SylowElem<G> {
             }
         }
         x
-    }
-}
-
-impl SylowDecomposable for Fp {
-    type Iter = Vec<FpNumber>;
-    fn candidates(self: &Rc<Self>) -> Self::Iter {
-        let mut res = Vec::new();
-        for i in 2..**self {
-            res.push((i, Rc::clone(self)));
-        }
-        res
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn one_is_one() {
-        let fp = Rc::new(13);
-        let g = Rc::new(SylowDecomp::new(&fp, Factorization {
-            value: 12,
-            factors: vec![4, 3],
-            prime_powers: vec![(2,2), (3,1)]
-        }));
-        let one = g.one();
-        assert!(one.is_one());
-    }
-
-    #[test]
-    fn finds_generators() {
-        let fp = Rc::new(13);
-        let g = Rc::new(SylowDecomp::new(&fp, Factorization {
-            value: 12,
-            factors: vec![4, 3],
-            prime_powers: vec![(2,2), (3,1)]
-        }));
-        for i in 0..g.generators.len() {
-            let gen = &g.generators[i];
-            let mut x = gen.clone();
-            for _ in 1..g.order_factors.factors[i] {
-                println!("{:?}", x);
-                assert!(!x.is_one());
-                x.multiply(gen);
-            }
-            println!("{:?}", x);
-            assert!(x.is_one());
-        }
-    }
-
-    #[test]
-    fn finds_generators_big() {
-        let pplusone = Factorization {
-            value: 1_000_000_000_000_000_124_400,
-            factors: vec![16, 3, 25, 121, 17, 19, 23, 97, 757, 1453, 8689],
-            prime_powers: vec![(2, 4), (3, 1), (5, 2), (11, 2), (17, 1), (19, 1), (23, 1), (97, 1), (757, 1), (1453, 1), (8689, 1)]
-        };
-        let fp = Rc::new(QuadFieldExt::new(
-            Factorization {
-                value: 1_000_000_000_000_000_124_398,
-                factors: vec![2, 7, 13, 841, 43, 705737, 215288719],
-                prime_powers: vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
-            },
-            pplusone
-        ));
-        let g = Rc::new(SylowDecomp::new(&fp, pplusone));
-        for i in 0..g.generators.len() {
-            let gen = &g.generators[i];
-            let mut x = gen.clone();
-            for _ in 1..g.order_factors.factors[i] {
-                println!("{:?}", x);
-                assert!(!x.is_one());
-                x.multiply(gen);
-            }
-            println!("{:?}", x);
-            assert!(x.is_one());
-        }
     }
 }
 

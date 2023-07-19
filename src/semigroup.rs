@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::fmt;
 
 pub trait Semigroup {
     type Elem: SemigroupElem<Group = Self>;
@@ -6,7 +7,7 @@ pub trait Semigroup {
     fn one(self: &Rc<Self>) -> Self::Elem;
 }
 
-pub trait SemigroupElem: Clone {
+pub trait SemigroupElem: Clone + fmt::Debug {
     type Group: Semigroup<Elem = Self>;
     fn is_one(&self) -> bool;
     fn group(&self) -> &Rc<Self::Group>;
