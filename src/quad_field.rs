@@ -19,10 +19,18 @@ impl Semigroup for QuadSubgroup {
     fn order(&self) -> u128 {
         self.pplusone.value
     }
+    fn one(self: &Rc<Self>) -> QuadNumber {
+        QuadNumber {
+            subgroup: Rc::clone(self),
+            a0: 1,
+            a1: 0
+        }
+    }
+
 }
 
 impl QuadFieldExt {
-    fn new(pminusone: Factorization, pplusone: Factorization) -> QuadFieldExt {
+    pub fn new(pminusone: Factorization, pplusone: Factorization) -> QuadFieldExt {
         let p = pplusone.value - 1;
         let r = if p % 4 == 3 {
             p - 1
@@ -79,19 +87,11 @@ impl QuadNumber {
 
 impl SemigroupElem for QuadNumber {
     type Group = QuadSubgroup;
-    fn one(param: &Rc<QuadSubgroup>) -> QuadNumber {
-        QuadNumber {
-            subgroup: Rc::clone(param),
-            a0: 1,
-            a1: 0
-        }
-    }
-
     fn is_one(&self) -> bool {
         self.a0 == 1 && self.a1 == 0
     }
 
-    fn param(&self) -> &Rc<QuadSubgroup> {
+    fn group(&self) -> &Rc<QuadSubgroup> {
         &self.subgroup
     }
 
@@ -119,19 +119,19 @@ mod tests {
             Factorization {
                 value: 6, 
                 factors: vec![2, 3], 
-                primepowers: vec![(2,1), (3,1)]
+                prime_powers: vec![(2,1), (3,1)]
             },
             Factorization { 
                 value: 8,
                 factors: vec![8],
-                primepowers: vec![(2,3)]
+                prime_powers: vec![(2,3)]
             }
         )
     }
 
     #[test]
     fn one_is_one() {
-        let one = QuadNumber::one(&Rc::new(p7()));
+        let one = Rc::new(p7()).one();
         assert!(one.is_one());
     }
 
@@ -160,12 +160,12 @@ mod tests {
             Factorization {
                 value: 1_000_000_000_000_000_124_398,
                 factors: vec![2, 7, 13, 841, 43, 705737, 215288719],
-                primepowers: vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
+                prime_powers: vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
             },
             Factorization {
                 value: 1_000_000_000_000_000_124_400,
                 factors: vec![16, 3, 25, 121, 17, 19, 23, 97, 757, 1453, 8689],
-                primepowers: vec![(2, 4), (3, 1), (5, 2), (11, 2), (17, 1), (19, 1), (23, 1), (97, 1), (757, 1), (1453, 1), (8689, 1)]
+                prime_powers: vec![(2, 4), (3, 1), (5, 2), (11, 2), (17, 1), (19, 1), (23, 1), (97, 1), (757, 1), (1453, 1), (8689, 1)]
             }
         ));
         let mut x = QuadNumber {

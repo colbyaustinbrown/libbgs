@@ -3,26 +3,26 @@ use std::rc::Rc;
 use crate::semigroup::*;
 use crate::util::long_multiply;
 
-type Fp = u128;
-type FpNumber = (u128, Rc<Fp>);
+pub type Fp = u128;
+pub type FpNumber = (u128, Rc<Fp>);
 
 impl Semigroup for Fp {
     type Elem = FpNumber;
     fn order(&self) -> u128 {
         *self
     }
+    fn one(self: &Rc<Self>) -> FpNumber {
+        (1, Rc::clone(self))
+    }
 }
 
 impl SemigroupElem for FpNumber {
     type Group = Fp;
-    fn one(param: &Rc<Fp>) -> FpNumber {
-        (1, Rc::clone(param))
-    }
     fn is_one(&self) -> bool {
         self.0 == 1
     }
 
-    fn param(&self) -> &Rc<Fp> {
+    fn group(&self) -> &Rc<Fp> {
         &self.1
     }
 
@@ -42,7 +42,7 @@ mod tests {
     #[test]
     fn one_is_one() {
         let p = Rc::new(7);
-        let one = FpNumber::one(&p);
+        let one = p.one();
         assert!(one.is_one());
     }
 

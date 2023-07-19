@@ -2,7 +2,7 @@
 pub struct Factorization {
     pub value: u128,
     pub factors: Vec<u128>,
-    pub primepowers: Vec<(u128, u128)>,
+    pub prime_powers: Vec<(u128, u128)>,
 }
 
 impl Factorization {
@@ -11,7 +11,7 @@ impl Factorization {
         let mut res = Factorization {
             value: n,
             factors: Vec::new(),
-            primepowers: Vec::new()
+            prime_powers: Vec::new()
         };
         let mut i = 2;
         while n > 1 {
@@ -22,14 +22,14 @@ impl Factorization {
             }
             if pow > 0 {
                 res.factors.push(n.pow(pow));
-                res.primepowers.push((n, pow as u128));
+                res.prime_powers.push((n, pow as u128));
             }
             i += 1;
         }
     }
 
     pub fn len(&self) -> usize {
-        self.primepowers.len()
+        self.prime_powers.len()
     }
 }
 

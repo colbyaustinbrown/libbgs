@@ -1,21 +1,20 @@
 use std::rc::Rc;
-use std::fmt::Debug;
 
 pub trait Semigroup {
-    type Elem: SemigroupElem;
+    type Elem: SemigroupElem<Group = Self>;
     fn order(&self) -> u128;
+    fn one(self: &Rc<Self>) -> Self::Elem;
 }
 
-pub trait SemigroupElem: Debug + Clone {
-    type Group: Semigroup;
-    fn one(param: &Rc<Self::Group>) -> Self;
+pub trait SemigroupElem: Clone {
+    type Group: Semigroup<Elem = Self>;
     fn is_one(&self) -> bool;
-    fn param(&self) -> &Rc<Self::Group>;
+    fn group(&self) -> &Rc<Self::Group>;
     fn multiply(&mut self, other: &Self);
     fn square(&mut self);
 
     fn pow(&mut self, mut n: u128) where Self: Sized {
-        let mut y = Self::one(self.param());
+        let mut y = Self::Group::one(self.group());
         while n > 1 {
             // println!("{n} {:?} {:?}", &self, y);
             if n % 2 == 1 {

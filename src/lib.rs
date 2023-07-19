@@ -15,7 +15,7 @@ mod tests {
         let fact = Factorization {
             value: 8,
             factors: vec![8],
-            primepowers: vec![(2, 3)]
+            prime_powers: vec![(2, 3)]
         };
         assert_eq!(fact.value, 8);
     }
