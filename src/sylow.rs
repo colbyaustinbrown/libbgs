@@ -4,14 +4,13 @@ use crate::util::*;
 use crate::semigroup::*;
 use crate::factorization::*;
 
-pub trait SylowDecomposable: SemigroupElem + Copy {
-    type Iter: IntoIterator<Item = Self>;
+pub trait SylowDecomposable: Semigroup {
+    type Iter: IntoIterator<Item = Self::Elem>;
     fn candidates() -> Self::Iter;
-    fn sylow_generator(param: &Rc<Self::Group>, d: (u128, u128)) -> Self 
-    where Self: Sized {
-        let pred = |candidate: &Self| {
+    fn find_sylow_generator(param: &Rc<Self>, d: (u128, u128)) -> Self::Elem {
+        let pred = |candidate: &Self::Elem| {
             let power = intpow(d.0, d.1 - 1, 0);
-            let mut can = *candidate;
+            let mut can = candidate.clone();
             can.pow(param.order() / (power * d.1));
             !can.is_one()
         };
@@ -21,17 +20,17 @@ pub trait SylowDecomposable: SemigroupElem + Copy {
 
 #[derive(Debug)]
 pub struct SylowDecomp<T: SylowDecomposable> {
-    length: usize,
-    order: Factorization,
+    orders: Factorization,
     generators: Vec<T>
 }
 
+/*
 impl<T: SylowDecomposable + Clone> SylowDecomp<T> {
     fn new(param: &Rc<T::Group>, order: Factorization) -> SylowDecomp<T> {
         let length = order.len();
         let mut gen = vec![T::one(&param); length];
         for i in 0..length {
-            gen[i] = T::sylow_generator(param, order.primepowers[i]);
+            gen[i] = T::find_sylow_generator(param, order.primepowers[i]);
         }
         SylowDecomp {
             length: length,
@@ -42,6 +41,7 @@ impl<T: SylowDecomposable + Clone> SylowDecomp<T> {
 }
 
 impl<T: SylowDecomposable> Semigroup for SylowDecomp<T> {
+    type Elem = T;
     fn order(&self) -> u128 {
         self.order.value
     }
@@ -97,3 +97,12 @@ impl<T: SylowDecomposable + Copy> SylowElem<T> {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn one_is_one() {
+    }
+}
+*/

@@ -15,13 +15,14 @@ pub struct QuadFieldExt {
 type QuadSubgroup = QuadFieldExt;
 
 impl Semigroup for QuadSubgroup {
+    type Elem = QuadNumber;
     fn order(&self) -> u128 {
         self.pplusone.value
     }
 }
 
 impl QuadFieldExt {
-    fn new(pplusone: Factorization, pminusone: Factorization) -> QuadFieldExt {
+    fn new(pminusone: Factorization, pplusone: Factorization) -> QuadFieldExt {
         let p = pplusone.value - 1;
         let r = if p % 4 == 3 {
             p - 1
@@ -31,7 +32,6 @@ impl QuadFieldExt {
             let mut res = 0;
             for i in 0..p {
                 let a = standard_affine_shift(p, i);
-                println!("{:?} {:?}", a, p);
                 if intpow(a, (p - 1) / 2, p) == p - 1 {
                     res = a;
                     break;
@@ -97,15 +97,16 @@ impl SemigroupElem for QuadNumber {
 
     fn multiply(&mut self, other: &QuadNumber) {
         let f = &self.subgroup;
-        self.a0 = long_multiply(self.a0, other.a0, f.p) + long_multiply(self.a1, other.a1 * f.r, f.p) % f.p;
-        self.a1 = long_multiply(self.a1, other.a0, f.p) + long_multiply(self.a0, other.a1, f.p) % f.p;
+        let a0_old = self.a0;
+        self.a0 = (long_multiply(self.a0, other.a0, f.p) + long_multiply(self.a1, long_multiply(other.a1, f.r, f.p), f.p)) % f.p;
+        self.a1 = (long_multiply(self.a1, other.a0, f.p) + long_multiply(a0_old, other.a1, f.p)) % f.p;
     }
 
     fn square(&mut self) {
             let f = &self.subgroup;
             let a0_old = self.a0;
-            self.a0 = long_multiply(self.a0, self.a0, f.p) + long_multiply(self.a1, self.a1 * f.r, f.p) % f.p;
-            self.a1 = long_multiply(self.a1, a0_old, f.p) + long_multiply(a0_old, self.a1, f.p) % f.p;
+            self.a0 = (long_multiply(self.a0, self.a0, f.p) + long_multiply(self.a1, long_multiply(self.a1, f.r, f.p), f.p)) % f.p;
+            self.a1 = (long_multiply(self.a1, a0_old, f.p) + long_multiply(a0_old, self.a1, f.p)) % f.p;
     }
 }
 
@@ -116,14 +117,14 @@ mod tests {
     fn p7() -> QuadFieldExt {
         QuadFieldExt::new(
             Factorization {
-                value: 8,
-                factors: vec![8],
-                primepowers: vec![(2,3)]
-            },
-            Factorization { 
                 value: 6, 
                 factors: vec![2, 3], 
                 primepowers: vec![(2,1), (3,1)]
+            },
+            Factorization { 
+                value: 8,
+                factors: vec![8],
+                primepowers: vec![(2,3)]
             }
         )
     }
@@ -147,7 +148,7 @@ mod tests {
         let mut x = QuadNumber {
             subgroup: Rc::new(p7()),
             a0: 3,
-            a1: 3
+            a1: 4
         };
         x.pow(48);
         assert!(x.is_one());
@@ -167,15 +168,13 @@ mod tests {
                 primepowers: vec![(2, 4), (3, 1), (5, 2), (11, 2), (17, 1), (19, 1), (23, 1), (97, 1), (757, 1), (1453, 1), (8689, 1)]
             }
         ));
-        println!("{:x}", fp.pminusone.value);
         let mut x = QuadNumber {
             subgroup: Rc::clone(&fp),
             a0: 3,
-            a1: 0
+            a1: 5
         };
         x.pow(fp.pminusone.value);
         x.pow(fp.pplusone.value);
-        print!("{:?}", x);
         assert!(x.is_one());
     }
 }

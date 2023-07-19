@@ -2,10 +2,11 @@ use std::rc::Rc;
 use std::fmt::Debug;
 
 pub trait Semigroup {
+    type Elem: SemigroupElem;
     fn order(&self) -> u128;
 }
 
-pub trait SemigroupElem: Debug {
+pub trait SemigroupElem: Debug + Clone {
     type Group: Semigroup;
     fn one(param: &Rc<Self::Group>) -> Self;
     fn is_one(&self) -> bool;

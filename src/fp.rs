@@ -4,12 +4,14 @@ use crate::semigroup::*;
 use crate::util::long_multiply;
 
 type Fp = u128;
+type FpNumber = (u128, Rc<Fp>);
+
 impl Semigroup for Fp {
+    type Elem = FpNumber;
     fn order(&self) -> u128 {
         *self
     }
 }
-type FpNumber = (u128, Rc<u128>);
 
 impl SemigroupElem for FpNumber {
     type Group = Fp;
