@@ -1,6 +1,5 @@
 use std::rc::Rc;
 use std::fmt;
-use std::iter::successors;
 
 use crate::util::*;
 use crate::semigroup::*;
@@ -47,13 +46,22 @@ impl<G: SylowDecomposable> SylowDecomp<G> {
         }
     }
 
-    pub fn get_of_p_order(self: &Rc<Self>, i: usize, mut d: u128) -> impl Iterator {
+    /*
+    pub fn get_of_p_order<'a>(self: &'a Rc<Self>, i: usize, mut d: u128) -> impl Iterator<Item = Box<SylowElem<G>>> + 'a {
         let p = self.size.prime_powers[i].0;
-        successors(Some(p), move |x| if *x == 1 {None} else {Some(x / p)})
-            .fold(vec![0].into_iter(), |it, step| {
-                it.flat_map(|x| vec![x, x + step]) 
-            })
+        successors(Some(self.size.factor(i)), move |n| {
+            if *n == 1 {None} 
+            else {Some(n / self.size.prime_powers[i].0)}
+        }).fold(vec![(0,true)].into_iter(), |it, step| {
+            it.map(|x| x)
+        }).filter_map(|(x,b)| if b {Some(x)} else {None})
+        .map(move |x| {
+            let mut coords = vec![0 ; self.size.prime_powers.len()];
+            coords[i] = x;
+            Box::new(SylowElem { group: Rc::clone(self), coords })
+        })
     }
+    */
 }
 
 impl<G: SylowDecomposable> Semigroup for SylowDecomp<G> {
@@ -151,6 +159,7 @@ impl<G: SylowDecomposable> SylowElem<G> {
 pub mod tests {
     use super::*;
 
+    // utility method for external tests
     pub fn test_is_generator_small<G: SylowDecomposable> (g: &G::Elem, d: u128) -> bool {
         let mut x = g.clone();
         for _ in 1..d {
@@ -160,6 +169,7 @@ pub mod tests {
         x.is_one()
     }
 
+    // utility method for external tests
     pub fn test_is_generator_big<G: SylowDecomposable>(g: &G::Elem, d: (u128, u128)) {
         let mut x = g.clone();
         for _ in 0..d.1 {

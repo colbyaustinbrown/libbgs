@@ -5,6 +5,7 @@ mod util;
 mod semigroup;
 mod sylow;
 mod fp;
+mod sylow_factory;
 
 #[cfg(test)]
 mod tests {
