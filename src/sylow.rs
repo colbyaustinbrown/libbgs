@@ -7,7 +7,7 @@ use crate::factorization::*;
 
 pub trait SylowDecomposable: Semigroup {
     fn is_sylow_generator(self: &Rc<Self>, candidate: &Self::Elem, d: &(u128, u128)) -> Option<Self::Elem> {
-        let pow = self.size() / intpow(d.0, d.1, 0);
+        let pow = self.size().value / intpow(d.0, d.1, 0);
         let mut res = candidate.clone();
         res.pow(pow);
         let mut check = res.clone();
@@ -49,8 +49,8 @@ impl<G: SylowDecomposable> SylowDecomp<G> {
 
 impl<G: SylowDecomposable> Semigroup for SylowDecomp<G> {
     type Elem = SylowElem<G>;
-    fn size(&self) -> u128 {
-        self.parent.size() 
+    fn size(&self) -> &Factorization {
+        self.parent.size()
     }
     fn one(self: &Rc<Self>) -> SylowElem<G> {
         SylowElem {

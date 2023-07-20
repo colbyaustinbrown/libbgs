@@ -17,8 +17,8 @@ type QuadSubgroup = QuadFieldExt;
 
 impl Semigroup for QuadSubgroup {
     type Elem = QuadNumber;
-    fn size(&self) -> u128 {
-        self.pplusone.value
+    fn size(&self) -> &Factorization {
+        &self.pplusone
     }
     fn one(self: &Rc<Self>) -> QuadNumber {
         QuadNumber {

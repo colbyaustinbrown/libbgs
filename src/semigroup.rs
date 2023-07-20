@@ -1,9 +1,11 @@
 use std::rc::Rc;
 use std::fmt;
 
+use crate::factorization::*;
+
 pub trait Semigroup: Eq {
     type Elem: SemigroupElem<Group = Self>;
-    fn size(&self) -> u128;
+    fn size(&self) -> &Factorization;
     fn one(self: &Rc<Self>) -> Self::Elem;
 }
 
