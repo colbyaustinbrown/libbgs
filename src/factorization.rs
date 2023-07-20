@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Factorization {
     pub value: u128,
     pub factors: Vec<u128>,

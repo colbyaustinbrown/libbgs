@@ -56,6 +56,7 @@ impl SylowDecomposable for Fp {
 mod tests {
     use super::*;
     use crate::factorization::Factorization;
+    use crate::sylow::tests::*;
 
     #[test]
     fn one_is_one() {
@@ -137,12 +138,8 @@ mod tests {
         }));
         for i in 0..g.generators.len() {
             let gen = &g.generators[i];
-            let mut x = gen.clone();
-            for _ in 1..g.order_factors.factors[i] {
-                assert!(!x.is_one());
-                x.multiply(gen);
-            }
-            assert!(x.is_one());
+            let d = g.order_factors.factors[i];
+            test_is_generator_small::<Fp>(gen, d);
         }
     }
 
@@ -156,16 +153,24 @@ mod tests {
         }));
         for i in 0..g.generators.len() {
             let gen = &g.generators[i];
-            let mut x = gen.clone();
-            println!("testing if {:?} has order {}", x, g.order_factors.factors[i]);
-            for j in 1..g.order_factors.factors[i] {
-                println!("{}th power is {:?}", j, x);
-                assert!(!x.is_one());
-                x.multiply(gen);
-            }
-            println!("{:?}", x);
-            assert!(x.is_one());
+            let d = g.order_factors.prime_powers[i];
+            test_is_generator_big::<Fp>(gen, d);
         }
+    }
+
+    #[test]
+    fn decomposes() {
+        let fp = Rc::new(13);
+        let g = Rc::new(SylowDecomp::new(&fp, Factorization {
+            value: 12,
+            factors: vec![4, 3],
+            prime_powers: vec![(2,2), (3,1)]
+        }));
+        println!("generators are {:?}", g.generators);
+        let x = (2, Rc::clone(&fp));
+        let decomp = g.decompose(&x);
+        println!("{:?}", decomp);
+        assert_eq!(x, decomp.to_product());
     }
 }
 

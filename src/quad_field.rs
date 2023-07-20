@@ -3,12 +3,13 @@ use std::rc::Rc;
 use crate::factorization::*;
 use crate::util::*;
 use crate::semigroup::*;
+use crate::sylow::*;
 
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct QuadFieldExt {
     p: u128,
-    pub pplusone: Factorization,
     pub pminusone: Factorization,
+    pub pplusone: Factorization,
     r: u128
 }
 
@@ -49,14 +50,22 @@ impl QuadFieldExt {
         };
         QuadFieldExt {
             p: p,
-            pplusone,
             pminusone,
+            pplusone,
             r: r
+        }
+    }
+
+    fn steinitz(self: &Rc<Self>, i: u128) -> QuadNumber {
+        QuadNumber {
+            subgroup: Rc::clone(self),
+            a0: i % self.p,
+            a1: i / self.p
         }
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct QuadNumber {
     subgroup: Rc<QuadSubgroup>,
     a0: u128,
@@ -73,14 +82,6 @@ impl QuadNumber {
             subgroup,
             a0,
             a1: 0
-        }
-    }
-
-    fn steinitz(subgroup: &Rc<QuadSubgroup>, i: u128) -> QuadNumber {
-        QuadNumber {
-            subgroup: Rc::clone(subgroup),
-            a0: i % subgroup.p,
-            a1: i / subgroup.p
         }
     }
 }
@@ -110,9 +111,26 @@ impl SemigroupElem for QuadNumber {
     }
 }
 
+impl SylowDecomposable for QuadSubgroup {
+    fn find_sylow_generator(self: &Rc<Self>, d: &(u128, u128)) -> QuadNumber {
+        let pow = self.pminusone.value;
+        // should be self.p * self.p, but maybe this works?
+        (1..self.p * 2)
+            .map(|i| standard_affine_shift(self.p * 2, i))
+            .map(|j| {
+                let mut p = self.steinitz(j);
+                p.pow(pow);
+                p
+            })
+            .find_map(|c| self.is_sylow_generator(&c, d))
+            .unwrap()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::sylow::tests::*;
 
     fn p7() -> QuadFieldExt {
         QuadFieldExt::new(
@@ -177,7 +195,30 @@ mod tests {
         x.pow(fp.pplusone.value);
         assert!(x.is_one());
     }
-    /*
+
+    #[test]
+    fn sylow_finds_generators() {
+        let pplusone = Factorization {
+            value: 18,
+            factors: vec![2, 9],
+            prime_powers: vec![(2, 1), (3, 2)]
+        };
+        let f = Rc::new(QuadFieldExt::new(
+            Factorization {
+                value: 16,
+                factors: vec![16],
+                prime_powers: vec![(2, 4)]
+            },
+            pplusone.clone()
+        ));
+        let g = Rc::new(SylowDecomp::new(&f, pplusone.clone()));
+        for i in 0..g.generators.len() {
+            let gen = &g.generators[i];
+            let d = g.order_factors.factors[i];
+            test_is_generator_small::<QuadFieldExt>(gen, d);
+        }
+    }
+
     #[test]
     fn sylow_finds_generators_big() {
         let pplusone = Factorization {
@@ -191,21 +232,14 @@ mod tests {
                 factors: vec![2, 7, 13, 841, 43, 705737, 215288719],
                 prime_powers: vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
             },
-            pplusone
+            pplusone.clone()
         ));
-        let g = Rc::new(SylowDecomp::new(&fp, pplusone));
+        let g = Rc::new(SylowDecomp::new(&fp, pplusone.clone()));
         for i in 0..g.generators.len() {
             let gen = &g.generators[i];
-            let mut x = gen.clone();
-            for _ in 1..g.order_factors.factors[i] {
-                println!("{:?}", x);
-                assert!(!x.is_one());
-                x.multiply(gen);
-            }
-            println!("{:?}", x);
-            assert!(x.is_one());
+            let d = g.order_factors.prime_powers[i];
+            test_is_generator_big::<QuadFieldExt>(gen, d);
         }
     }
-    */
 }
 

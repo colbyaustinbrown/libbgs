@@ -1,13 +1,13 @@
 use std::rc::Rc;
 use std::fmt;
 
-pub trait Semigroup {
+pub trait Semigroup: Eq {
     type Elem: SemigroupElem<Group = Self>;
     fn order(&self) -> u128;
     fn one(self: &Rc<Self>) -> Self::Elem;
 }
 
-pub trait SemigroupElem: Clone + fmt::Debug {
+pub trait SemigroupElem: Clone + Eq + fmt::Debug {
     type Group: Semigroup<Elem = Self>;
     fn is_one(&self) -> bool;
     fn group(&self) -> &Rc<Self::Group>;

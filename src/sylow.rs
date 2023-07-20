@@ -7,19 +7,19 @@ use crate::factorization::*;
 
 pub trait SylowDecomposable: Semigroup {
     fn is_sylow_generator(self: &Rc<Self>, candidate: &Self::Elem, d: &(u128, u128)) -> Option<Self::Elem> {
-        let respow = self.order() / intpow(d.0, d.1, 0);
-        let checkpow = respow * intpow(d.0, d.1 - 1, 0);
-        let mut mut_can = candidate.clone();
-        mut_can.pow(checkpow);
-        if !mut_can.is_one() { 
-            mut_can.pow(respow);
-            Some(mut_can) 
+        let pow = self.order() / intpow(d.0, d.1, 0);
+        let mut res = candidate.clone();
+        res.pow(pow);
+        let mut check = res.clone();
+        check.pow(intpow(d.0, d.1 - 1, 0));
+        if !check.is_one() { 
+            Some(res) 
         } else { None }
     }
     fn find_sylow_generator(self: &Rc<Self>, d: &(u128, u128)) -> Self::Elem;
 }
 
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct SylowDecomp<G: SylowDecomposable> {
     pub parent: Rc<G>,
     pub order_factors: Factorization,
@@ -28,19 +28,60 @@ pub struct SylowDecomp<G: SylowDecomposable> {
 
 impl<G: SylowDecomposable> SylowDecomp<G> {
     pub fn new(parent: &Rc<G>, order_factors: Factorization) -> SylowDecomp<G> {
-        println!("Beginning search for generators.");
-        println!("Group of order {:?}.", parent.order());
         let length = order_factors.len();
         let mut gen = vec![parent.one(); length];
         for i in 0..length {
-            println!("Searching for generator of order {:?}", order_factors.prime_powers[i]);
             gen[i] = parent.find_sylow_generator(&order_factors.prime_powers[i]);
-            println!("Found it! {:?}", gen[i]);
         }
         SylowDecomp {
             parent: Rc::clone(parent),
             order_factors,
             generators: gen
+        }
+    }
+
+    pub fn decompose(self: &Rc<SylowDecomp<G>>, x: &G::Elem) -> SylowElem<G> {
+        let mut coords = Vec::new();
+        'outer: for i in 0..self.generators.len() {
+            let (p,d) = self.order_factors.prime_powers[i];
+            let gen = &self.generators[i];
+
+            let precomp_count = if d == 1 {1} else {intpow(p, (d + 1) / 2, 0)};
+            let mut precomp = Vec::new();
+            let mut a = gen.clone();
+            let mut skip = gen.clone();
+            skip.pow(precomp_count);
+            precomp.push(a.clone());
+            for _ in 1..precomp_count {
+                a.multiply(&skip);
+                precomp.push(a.clone());
+            }
+
+            println!("precomputation: {:?}", precomp);
+
+            let mut a = x.clone();
+            let killpow = self.order_factors.value / intpow(p, d, 0);
+            a.pow(killpow);
+            println!("a is {:?}", a);
+            for i in 0.. {
+                if a.is_one() {
+                    coords.push(i);
+                    println!("coord is {}", i);
+                    continue 'outer;
+                }
+                for j in 0..precomp.len() {
+                    if a == precomp[j] { 
+                        println!("j is {}", j);
+                        coords.push(precomp_count * (j as u128) - i);     
+                        continue 'outer;
+                    }
+                }
+                a.multiply(gen);
+            }
+        }
+        SylowElem {
+            group: Rc::clone(self),
+            coords
         }
     }
 }
@@ -58,6 +99,7 @@ impl<G: SylowDecomposable> Semigroup for SylowDecomp<G> {
     }
 }
 
+#[derive(Eq,PartialEq)]
 pub struct SylowElem<G: SylowDecomposable> {
     group: Rc<SylowDecomp<G>>,
     coords: Vec<u128>
@@ -104,7 +146,7 @@ impl<G: SylowDecomposable> SemigroupElem for SylowElem<G> {
 }
 
 impl<G: SylowDecomposable> SylowElem<G> {
-    fn to_product(&self) -> G::Elem {
+    pub fn to_product(&self) -> G::Elem {
         let mut x = self.group().parent.one();
         for i in 0..self.group().generators.len() {
             if self.coords[i] > 0 {
@@ -114,6 +156,30 @@ impl<G: SylowDecomposable> SylowElem<G> {
             }
         }
         x
+    }
+}
+
+pub mod tests {
+    use super::*;
+
+    pub fn test_is_generator_small<G: SylowDecomposable> (g: &G::Elem, d: u128) -> bool {
+        let mut x = g.clone();
+        for _ in 1..d {
+            if x.is_one() {return false;}
+            x.multiply(g);
+        }
+        x.is_one()
+    }
+
+    pub fn test_is_generator_big<G: SylowDecomposable>(g: &G::Elem, d: (u128, u128)) {
+        let mut x = g.clone();
+        println!("testing if {:?} has order {:?}", &x, d);
+        for _ in 0..d.1 {
+            assert!(!x.is_one());
+            x.pow(d.0);
+            println!("now {:?}", &x);
+        }
+        assert!(x.is_one());
     }
 }
 
