@@ -1,5 +1,6 @@
 use std::rc::Rc;
 use std::fmt;
+use std::iter::successors;
 
 use crate::util::*;
 use crate::semigroup::*;
@@ -44,6 +45,14 @@ impl<G: SylowDecomposable> SylowDecomp<G> {
             size,
             generators: gen
         }
+    }
+
+    pub fn get_of_p_order(self: &Rc<Self>, i: usize, mut d: u128) -> impl Iterator {
+        let p = self.size.prime_powers[i].0;
+        successors(Some(p), move |x| if *x == 1 {None} else {Some(x / p)})
+            .fold(vec![0].into_iter(), |it, step| {
+                it.flat_map(|x| vec![x, x + step]) 
+            })
     }
 }
 
@@ -116,7 +125,6 @@ impl<G: SylowDecomposable> SylowElem<G> {
     pub fn order(&self) -> Factorization {
         let mut prime_powers = Vec::new(); 
         for i in 0..self.group.size.prime_powers.len() {
-            println!("calculating order component of {:?}", self.group.size.prime_powers[i]);
             let mut x = self.clone();
             for j in 0..self.group.size.prime_powers.len() {
                 if j == i { continue; }
