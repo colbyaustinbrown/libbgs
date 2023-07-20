@@ -136,12 +136,10 @@ mod tests {
         QuadFieldExt::new(
             Factorization {
                 value: 6, 
-                factors: vec![2, 3], 
                 prime_powers: vec![(2,1), (3,1)]
             },
             Factorization { 
                 value: 8,
-                factors: vec![8],
                 prime_powers: vec![(2,3)]
             }
         )
@@ -177,12 +175,10 @@ mod tests {
         let fp = Rc::new(QuadFieldExt::new(
             Factorization {
                 value: 1_000_000_000_000_000_124_398,
-                factors: vec![2, 7, 13, 841, 43, 705737, 215288719],
                 prime_powers: vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
             },
             Factorization {
                 value: 1_000_000_000_000_000_124_400,
-                factors: vec![16, 3, 25, 121, 17, 19, 23, 97, 757, 1453, 8689],
                 prime_powers: vec![(2, 4), (3, 1), (5, 2), (11, 2), (17, 1), (19, 1), (23, 1), (97, 1), (757, 1), (1453, 1), (8689, 1)]
             }
         ));
@@ -200,13 +196,11 @@ mod tests {
     fn sylow_finds_generators() {
         let pplusone = Factorization {
             value: 18,
-            factors: vec![2, 9],
             prime_powers: vec![(2, 1), (3, 2)]
         };
         let f = Rc::new(QuadFieldExt::new(
             Factorization {
                 value: 16,
-                factors: vec![16],
                 prime_powers: vec![(2, 4)]
             },
             pplusone.clone()
@@ -214,7 +208,7 @@ mod tests {
         let g = Rc::new(SylowDecomp::new(&f, pplusone.clone()));
         for i in 0..g.generators.len() {
             let gen = &g.generators[i];
-            let d = g.size.factors[i];
+            let d = g.size.factor(i);
             test_is_generator_small::<QuadFieldExt>(gen, d);
         }
     }
@@ -223,13 +217,11 @@ mod tests {
     fn sylow_finds_generators_big() {
         let pplusone = Factorization {
             value: 1_000_000_000_000_000_124_400,
-            factors: vec![16, 3, 25, 121, 17, 19, 23, 97, 757, 1453, 8689],
             prime_powers: vec![(2, 4), (3, 1), (5, 2), (11, 2), (17, 1), (19, 1), (23, 1), (97, 1), (757, 1), (1453, 1), (8689, 1)]
         };
         let fp = Rc::new(QuadFieldExt::new(
             Factorization {
                 value: 1_000_000_000_000_000_124_398,
-                factors: vec![2, 7, 13, 841, 43, 705737, 215288719],
                 prime_powers: vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
             },
             pplusone.clone()

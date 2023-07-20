@@ -89,13 +89,13 @@ impl<G: SylowDecomposable> SemigroupElem for SylowElem<G> {
     fn multiply(&mut self, other: &SylowElem<G>) {
         let len = self.group().generators.len();
         for i in 0..usize::max(len, len) {
-            self.coords[i] = (self.coords[i] + other.coords[i]) % self.group().size.factors[i];
+            self.coords[i] = (self.coords[i] + other.coords[i]) % self.group().size.factor(i);
         }
     }
 
     fn square(&mut self) {
         for i in 0..self.group().generators.len() {
-            self.coords[i] = self.coords[i] * 2 % self.group.size.factors[i];
+            self.coords[i] = self.coords[i] * 2 % self.group.size.factor(i);
         }
     }
 }
@@ -120,7 +120,7 @@ impl<G: SylowDecomposable> SylowElem<G> {
             let mut x = self.clone();
             for j in 0..self.group.size.prime_powers.len() {
                 if j == i { continue; }
-                x.pow(self.group.size.factors[j]);
+                x.pow(self.group.size.factor(j));
             }
             let mut r = 0;
             while !x.is_one() {
@@ -135,7 +135,6 @@ impl<G: SylowDecomposable> SylowElem<G> {
         let value: u128 = factors.iter().product();
         Factorization {
             value,
-            factors,
             prime_powers
         }
     }

@@ -69,7 +69,6 @@ mod tests {
     fn one_is_one() {
         let p = Rc::new(Factorization {
             value: 6,
-            factors: vec![2,3],
             prime_powers: vec![(2,1), (3,1)]
         });
         let one = p.one();
@@ -80,7 +79,6 @@ mod tests {
     fn multiplies() {
         let p = Rc::new(Factorization {
             value: 6,
-            factors: vec![2,3],
             prime_powers: vec![(2,1), (3,1)]
         });
         let mut x = (3, Rc::clone(&p));
@@ -94,7 +92,6 @@ mod tests {
     fn squares() {
         let p = Rc::new(Factorization {
             value: 6,
-            factors: vec![2,3],
             prime_powers: vec![(2,1), (3,1)]
         });
         let mut x = (3, Rc::clone(&p));
@@ -110,7 +107,6 @@ mod tests {
     fn powers_up() {
         let p = Rc::new(Factorization {
             value: 6,
-            factors: vec![2,3],
             prime_powers: vec![(2,1), (3,1)]
         });
         let mut x = (2, Rc::clone(&p));
@@ -130,7 +126,6 @@ mod tests {
     fn powers_up_big() {
         let fp = Rc::new(Factorization {
             value: 1_000_000_000_000_000_124_398,
-            factors: vec![2, 7, 13, 841, 43, 705737, 215288719],
             prime_powers: vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
         });
         let mut x = (3, Rc::clone(&fp));
@@ -142,12 +137,10 @@ mod tests {
     fn sylow_one_is_one() {
         let fp = Rc::new(Factorization {
             value: 12,
-            factors: vec![4, 3],
             prime_powers: vec![(2,2), (3,1)]
         });
         let g = Rc::new(SylowDecomp::new(&fp, Factorization {
             value: 12,
-            factors: vec![4, 3],
             prime_powers: vec![(2,2), (3,1)]
         }));
         let one = g.one();
@@ -158,17 +151,15 @@ mod tests {
     fn sylow_finds_generators() {
         let fp = Rc::new(Factorization {
             value: 1_000_000_000_000_000_124_398,
-            factors: vec![2, 7, 13, 841, 43, 705737, 215288719],
             prime_powers: vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
         });
         let g = Rc::new(SylowDecomp::new(&fp, Factorization {
             value: 12,
-            factors: vec![4, 3],
             prime_powers: vec![(2,2), (3,1)]
         }));
         for i in 0..g.generators.len() {
             let gen = &g.generators[i];
-            let d = g.size.factors[i];
+            let d = g.size.factor(i);
             test_is_generator_small::<FpStar>(gen, d);
         }
     }
@@ -177,12 +168,10 @@ mod tests {
     fn sylow_finds_generators_big() {
         let fp = Rc::new(Factorization {
             value: 1_000_000_000_000_000_124_398,
-            factors: vec![2, 7, 13, 841, 43, 705737, 215288719],
             prime_powers: vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
         });
         let g = Rc::new(SylowDecomp::new(&fp, Factorization {
             value: 1_000_000_000_000_000_124_398,
-            factors: vec![2, 7, 13, 841, 43, 705737, 215288719],
             prime_powers: vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
         }));
         for i in 0..g.generators.len() {
@@ -196,12 +185,10 @@ mod tests {
     fn sylow_order() {
         let fp = Rc::new(Factorization {
             value: 12,
-            factors: vec![4, 3],
             prime_powers: vec![(2,2), (3,1)]
         });
         let g = Rc::new(SylowDecomp::new(&fp, Factorization {
             value: 12,
-            factors: vec![4, 3],
             prime_powers: vec![(2,2), (3,1)]
         }));
         for i in 1..13 {
@@ -218,19 +205,17 @@ mod tests {
     fn sylow_order_big() {
         let fp = Rc::new(Factorization {
             value: 1_000_000_000_000_000_124_398,
-            factors: vec![2, 7, 13, 841, 43, 705737, 215288719],
             prime_powers: vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
         });
         let g = Rc::new(SylowDecomp::new(&fp, Factorization {
             value: 1_000_000_000_000_000_124_398,
-            factors: vec![2, 7, 13, 841, 43, 705737, 215288719],
             prime_powers: vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
         }));
         let n = 123456789;
         let mut x = SylowElem {
             group: Rc::clone(&g),
-            coords: g.size.factors.iter()
-                .map(|f| n % f)
+            coords: g.size.prime_powers.iter()
+                .map(|(p,d)| n % intpow(*p, *d, 0))
                 .collect()
         };
         let or = x.order().value;
