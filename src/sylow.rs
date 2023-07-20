@@ -22,7 +22,6 @@ pub trait SylowDecomposable: Semigroup {
 #[derive(PartialEq, Eq, Debug)]
 pub struct SylowDecomp<G: SylowDecomposable> {
     pub parent: Rc<G>,
-    pub size: Factorization,
     pub generators: Vec<G::Elem>
 }
 
@@ -33,15 +32,14 @@ pub struct SylowElem<G: SylowDecomposable> {
 }
 
 impl<G: SylowDecomposable> SylowDecomp<G> {
-    pub fn new(parent: &Rc<G>, size: Factorization) -> SylowDecomp<G> {
-        let length = size.len();
+    pub fn new(parent: &Rc<G>) -> SylowDecomp<G> {
+        let length = parent.size().len();
         let mut gen = vec![parent.one(); length];
         for i in 0..length {
-            gen[i] = parent.find_sylow_generator(&size.prime_powers[i]);
+            gen[i] = parent.find_sylow_generator(&parent.size().prime_powers[i]);
         }
         SylowDecomp {
             parent: Rc::clone(parent),
-            size,
             generators: gen
         }
     }
@@ -72,7 +70,7 @@ impl<G: SylowDecomposable> Semigroup for SylowDecomp<G> {
     fn one(self: &Rc<Self>) -> SylowElem<G> {
         SylowElem {
             group: Rc::clone(self),
-            coords: vec![0; self.size.len()]
+            coords: vec![0; self.size().len()]
         }
     }
 }
@@ -106,13 +104,13 @@ impl<G: SylowDecomposable> SemigroupElem for SylowElem<G> {
     fn multiply(&mut self, other: &SylowElem<G>) {
         let len = self.group().generators.len();
         for i in 0..usize::max(len, len) {
-            self.coords[i] = (self.coords[i] + other.coords[i]) % self.group().size.factor(i);
+            self.coords[i] = (self.coords[i] + other.coords[i]) % self.group().size().factor(i);
         }
     }
 
     fn square(&mut self) {
         for i in 0..self.group().generators.len() {
-            self.coords[i] = self.coords[i] * 2 % self.group.size.factor(i);
+            self.coords[i] = self.coords[i] * 2 % self.group.size().factor(i);
         }
     }
 }
@@ -132,18 +130,18 @@ impl<G: SylowDecomposable> SylowElem<G> {
 
     pub fn order(&self) -> Factorization {
         let mut prime_powers = Vec::new(); 
-        for i in 0..self.group.size.prime_powers.len() {
+        for i in 0..self.group.size().prime_powers.len() {
             let mut x = self.clone();
-            for j in 0..self.group.size.prime_powers.len() {
+            for j in 0..self.group.size().prime_powers.len() {
                 if j == i { continue; }
-                x.pow(self.group.size.factor(j));
+                x.pow(self.group.size().factor(j));
             }
             let mut r = 0;
             while !x.is_one() {
-                x.pow(self.group.size.prime_powers[i].0);
+                x.pow(self.group.size().prime_powers[i].0);
                 r += 1;
             }
-            prime_powers.push((self.group.size.prime_powers[i].0, r));
+            prime_powers.push((self.group.size().prime_powers[i].0, r));
         }
         let factors: Vec<u128> = prime_powers.iter()
             .map(|(p, r)| intpow(*p, *r, 0))

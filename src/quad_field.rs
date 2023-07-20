@@ -205,10 +205,10 @@ mod tests {
             },
             pplusone.clone()
         ));
-        let g = Rc::new(SylowDecomp::new(&f, pplusone.clone()));
+        let g = Rc::new(SylowDecomp::new(&f));
         for i in 0..g.generators.len() {
             let gen = &g.generators[i];
-            let d = g.size.factor(i);
+            let d = g.size().factor(i);
             test_is_generator_small::<QuadFieldExt>(gen, d);
         }
     }
@@ -226,10 +226,10 @@ mod tests {
             },
             pplusone.clone()
         ));
-        let g = Rc::new(SylowDecomp::new(&fp, pplusone.clone()));
+        let g = Rc::new(SylowDecomp::new(&fp));
         for i in 0..g.generators.len() {
             let gen = &g.generators[i];
-            let d = g.size.prime_powers[i];
+            let d = g.size().prime_powers[i];
             test_is_generator_big::<QuadFieldExt>(gen, d);
         }
     }

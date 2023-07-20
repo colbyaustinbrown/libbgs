@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use crate::sylow::*;
 use crate::util::*;
+use crate::semigroup::*;
 
 #[derive(Debug)]
 pub struct SylowFactory<G: SylowDecomposable> {
@@ -13,7 +14,7 @@ pub struct SylowFactory<G: SylowDecomposable> {
 
 impl<G: SylowDecomposable> SylowFactory<G> {
     pub fn new(decomp: &Rc<SylowDecomp<G>>, i: usize, r: usize) -> SylowFactory<G> {
-        let (p,d) = decomp.size.prime_powers[i];
+        let (p,d) = decomp.size().prime_powers[i];
         let step = intpow(p, d - 1, 0);
         SylowFactory {
             decomp: Rc::clone(decomp),
@@ -32,10 +33,10 @@ impl<G: SylowDecomposable> Iterator for SylowFactory<G> {
             let l = self.stack.len();
             if l == 0 { return None; }
 
-            let p = self.decomp.size.prime_powers[self.i].0;
+            let p = self.decomp.size().prime_powers[self.i].0;
             let (x, step, r) = self.stack.remove(l - 1);
             if r == 0 {
-                let mut coords = vec![0 ; self.decomp.size.prime_powers.len()];
+                let mut coords = vec![0 ; self.decomp.size().prime_powers.len()];
                 coords[self.i] = x;
                 return Some(SylowElem {
                     group: Rc::clone(&self.decomp),
@@ -64,10 +65,7 @@ mod tests {
             value: 6,
             prime_powers: vec![(2, 1), (3, 1)]
         });
-        let g = Rc::new(SylowDecomp::new(&fp, Factorization {
-            value: 6,
-            prime_powers: vec![(2, 1), (3, 1)]
-        })); 
+        let g = Rc::new(SylowDecomp::new(&fp));
         let mut factory = SylowFactory::new(&g, 0, 1);
         assert_eq!(factory.next().map(|s| s.to_product().0), Some(6));
         assert_eq!(factory.next(), None);
@@ -79,10 +77,7 @@ mod tests {
             value: 60,
             prime_powers: vec![(2, 2), (3, 1), (5, 1)]
         });
-        let g = Rc::new(SylowDecomp::new(&fp, Factorization {
-            value: 6,
-            prime_powers: vec![(2, 2), (3, 1), (5, 1)]
-        }));
+        let g = Rc::new(SylowDecomp::new(&fp));
         let factory = SylowFactory::new(&g, 0, 1);
         let res: Vec<SylowElem<FpStar>> = factory.collect();
         assert_eq!(res.len(), 1);
@@ -115,10 +110,7 @@ mod tests {
             value: 1_000_000_000_000_000_124_398,
             prime_powers: vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
         });
-        let g = Rc::new(SylowDecomp::new(&fp, Factorization {
-            value: 1_000_000_000_000_000_124_398,
-            prime_powers: vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
-        }));
+        let g = Rc::new(SylowDecomp::new(&fp));
 
         let factory = SylowFactory::new(&g, 3, 2);
         let res: Vec<SylowElem<FpStar>> = factory.collect();
