@@ -10,7 +10,7 @@ pub type FpNumber = (u128, Rc<Fp>);
 
 impl Semigroup for Fp {
     type Elem = FpNumber;
-    fn order(&self) -> u128 {
+    fn size(&self) -> u128 {
         *self
     }
     fn one(self: &Rc<Self>) -> FpNumber {
@@ -138,7 +138,7 @@ mod tests {
         }));
         for i in 0..g.generators.len() {
             let gen = &g.generators[i];
-            let d = g.order_factors.factors[i];
+            let d = g.size.factors[i];
             test_is_generator_small::<Fp>(gen, d);
         }
     }
@@ -153,24 +153,47 @@ mod tests {
         }));
         for i in 0..g.generators.len() {
             let gen = &g.generators[i];
-            let d = g.order_factors.prime_powers[i];
+            let d = g.size.prime_powers[i];
             test_is_generator_big::<Fp>(gen, d);
         }
     }
 
     #[test]
-    fn decomposes() {
+    fn sylow_order() {
         let fp = Rc::new(13);
         let g = Rc::new(SylowDecomp::new(&fp, Factorization {
             value: 12,
             factors: vec![4, 3],
             prime_powers: vec![(2,2), (3,1)]
         }));
-        println!("generators are {:?}", g.generators);
-        let x = (2, Rc::clone(&fp));
-        let decomp = g.decompose(&x);
-        println!("{:?}", decomp);
-        assert_eq!(x, decomp.to_product());
+        for i in 1..13 {
+            let mut x = SylowElem {
+                group: Rc::clone(&g),
+                coords: vec![i % 4, i % 3]
+            };
+            x.pow(x.order().value);
+            assert!(x.is_one());
+        }
+    }
+
+    #[test]
+    fn sylow_order_big() {
+        let fp = Rc::new(1_000_000_000_000_000_124_399);
+        let g = Rc::new(SylowDecomp::new(&fp, Factorization {
+            value: 1_000_000_000_000_000_124_398,
+            factors: vec![2, 7, 13, 841, 43, 705737, 215288719],
+            prime_powers: vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
+        }));
+        let n = 123456789;
+        let mut x = SylowElem {
+            group: Rc::clone(&g),
+            coords: g.size.factors.iter()
+                .map(|f| n % f)
+                .collect()
+        };
+        let or = x.order().value;
+        x.pow(or);
+        assert!(x.is_one());
     }
 }
 

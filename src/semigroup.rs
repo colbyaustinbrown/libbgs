@@ -3,7 +3,7 @@ use std::fmt;
 
 pub trait Semigroup: Eq {
     type Elem: SemigroupElem<Group = Self>;
-    fn order(&self) -> u128;
+    fn size(&self) -> u128;
     fn one(self: &Rc<Self>) -> Self::Elem;
 }
 
