@@ -20,19 +20,19 @@ pub trait SylowDecomposable: Semigroup {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-pub struct SylowDecomp<G: SylowDecomposable> {
-    pub parent: Rc<G>,
-    pub generators: Vec<G::Elem>
+pub struct SylowDecomp<C: SylowDecomposable> {
+    pub parent: Rc<C>,
+    pub generators: Vec<C::Elem>
 }
 
 #[derive(Eq,PartialEq)]
-pub struct SylowElem<G: SylowDecomposable> {
-    pub group: Rc<SylowDecomp<G>>,
+pub struct SylowElem<C: SylowDecomposable> {
+    pub group: Rc<SylowDecomp<C>>,
     pub coords: Vec<u128>
 }
 
-impl<G: SylowDecomposable> SylowDecomp<G> {
-    pub fn new(parent: &Rc<G>) -> SylowDecomp<G> {
+impl<C: SylowDecomposable> SylowDecomp<C> {
+    pub fn new(parent: &Rc<C>) -> SylowDecomp<C> {
         let length = parent.size().len();
         let mut gen = vec![parent.one(); length];
         for i in 0..length {
@@ -45,12 +45,12 @@ impl<G: SylowDecomposable> SylowDecomp<G> {
     }
 }
 
-impl<G: SylowDecomposable> Semigroup for SylowDecomp<G> {
-    type Elem = SylowElem<G>;
+impl<C: SylowDecomposable> Semigroup for SylowDecomp<C> {
+    type Elem = SylowElem<C>;
     fn size(&self) -> &Factorization {
         self.parent.size()
     }
-    fn one(self: &Rc<Self>) -> SylowElem<G> {
+    fn one(self: &Rc<Self>) -> SylowElem<C> {
         SylowElem {
             group: Rc::clone(self),
             coords: vec![0; self.size().len()]
@@ -58,7 +58,7 @@ impl<G: SylowDecomposable> Semigroup for SylowDecomp<G> {
     }
 }
 
-impl<G: SylowDecomposable> Clone for SylowElem<G> {
+impl<C: SylowDecomposable> Clone for SylowElem<C> {
     fn clone(&self) -> Self {
         SylowElem {
             group: Rc::clone(&self.group),
@@ -67,24 +67,24 @@ impl<G: SylowDecomposable> Clone for SylowElem<G> {
     }
 }
 
-impl<G: SylowDecomposable> fmt::Debug for SylowElem<G> {
+impl<C: SylowDecomposable> fmt::Debug for SylowElem<C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.coords.fmt(f)
     }
 }
 
-impl<G: SylowDecomposable> SemigroupElem for SylowElem<G> {
-    type Group = SylowDecomp<G>;
+impl<C: SylowDecomposable> SemigroupElem for SylowElem<C> {
+    type Group = SylowDecomp<C>;
 
     fn is_one(&self) -> bool {
         self.coords.iter().all(|x| { *x == 0 })
     }
 
-    fn group(&self) -> &Rc<SylowDecomp<G>> {
+    fn group(&self) -> &Rc<SylowDecomp<C>> {
         &self.group
     }
 
-    fn multiply(&mut self, other: &SylowElem<G>) {
+    fn multiply(&mut self, other: &SylowElem<C>) {
         let len = self.group().generators.len();
         for i in 0..usize::max(len, len) {
             self.coords[i] = (self.coords[i] + other.coords[i]) % self.group().size().factor(i);
@@ -98,8 +98,8 @@ impl<G: SylowDecomposable> SemigroupElem for SylowElem<G> {
     }
 }
 
-impl<G: SylowDecomposable> SylowElem<G> {
-    pub fn to_product(&self) -> G::Elem {
+impl<C: SylowDecomposable> SylowElem<C> {
+    pub fn to_product(&self) -> C::Elem {
         let mut x = self.group().parent.one();
         for i in 0..self.group().generators.len() {
             if self.coords[i] > 0 {
@@ -141,7 +141,7 @@ pub mod tests {
     use super::*;
 
     // utility method for external tests
-    pub fn test_is_generator_small<G: SylowDecomposable> (g: &G::Elem, d: u128) -> bool {
+    pub fn test_is_generator_small<C: SylowDecomposable> (g: &C::Elem, d: u128) -> bool {
         let mut x = g.clone();
         for _ in 1..d {
             if x.is_one() {return false;}
@@ -151,7 +151,7 @@ pub mod tests {
     }
 
     // utility method for external tests
-    pub fn test_is_generator_big<G: SylowDecomposable>(g: &G::Elem, d: (u128, u128)) {
+    pub fn test_is_generator_big<C: SylowDecomposable>(g: &C::Elem, d: (u128, u128)) {
         let mut x = g.clone();
         for _ in 0..d.1 {
             assert!(!x.is_one());

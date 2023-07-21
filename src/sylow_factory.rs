@@ -5,15 +5,15 @@ use crate::util::*;
 use crate::semigroup::*;
 
 #[derive(Debug)]
-pub struct SylowFactory<G: SylowDecomposable> {
-    pub decomp: Rc<SylowDecomp<G>>,
+pub struct SylowFactory<C: SylowDecomposable> {
+    pub decomp: Rc<SylowDecomp<C>>,
     pub i: usize,
 
     stack: Vec<(u128, u128, usize)>
 }
 
-impl<G: SylowDecomposable> SylowFactory<G> {
-    pub fn new(decomp: &Rc<SylowDecomp<G>>, i: usize, r: usize) -> SylowFactory<G> {
+impl<C: SylowDecomposable> SylowFactory<C> {
+    pub fn new(decomp: &Rc<SylowDecomp<C>>, i: usize, r: usize) -> SylowFactory<C> {
         let (p,d) = decomp.size().prime_powers[i];
         let step = intpow(p, d - 1, 0);
         SylowFactory {
@@ -24,8 +24,8 @@ impl<G: SylowDecomposable> SylowFactory<G> {
     }
 }
 
-impl<G: SylowDecomposable> Iterator for SylowFactory<G> {
-    type Item = SylowElem<G>;
+impl<C: SylowDecomposable> Iterator for SylowFactory<C> {
+    type Item = SylowElem<C>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
