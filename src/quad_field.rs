@@ -104,10 +104,10 @@ impl SemigroupElem for QuadNumber {
     }
 
     fn square(&mut self) {
-            let f = &self.subgroup;
-            let a0_old = self.a0;
-            self.a0 = (long_multiply(self.a0, self.a0, f.p) + long_multiply(self.a1, long_multiply(self.a1, f.r, f.p), f.p)) % f.p;
-            self.a1 = (long_multiply(self.a1, a0_old, f.p) + long_multiply(a0_old, self.a1, f.p)) % f.p;
+        let f = &self.subgroup;
+        let a0_old = self.a0;
+        self.a0 = (long_multiply(self.a0, self.a0, f.p) + long_multiply(self.a1, long_multiply(self.a1, f.r, f.p), f.p)) % f.p;
+        self.a1 = (long_multiply(self.a1, a0_old, f.p) + long_multiply(a0_old, self.a1, f.p)) % f.p;
     }
 }
 
@@ -116,8 +116,8 @@ impl SylowDecomposable for QuadSubgroup {
         let pow = self.pminusone.value;
         // should be self.p * self.p, but maybe this works?
         (1..self.p * 2)
-            .map(|i| standard_affine_shift(self.p * 2, i))
-            .map(|j| {
+            .map(|i| {
+                let j = standard_affine_shift(self.p * 2, i);
                 let mut p = self.steinitz(j);
                 p.pow(pow);
                 p

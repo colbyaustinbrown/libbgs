@@ -43,23 +43,6 @@ impl<G: SylowDecomposable> SylowDecomp<G> {
             generators: gen
         }
     }
-
-    /*
-    pub fn get_of_p_order<'a>(self: &'a Rc<Self>, i: usize, mut d: u128) -> impl Iterator<Item = Box<SylowElem<G>>> + 'a {
-        let p = self.size.prime_powers[i].0;
-        successors(Some(self.size.factor(i)), move |n| {
-            if *n == 1 {None} 
-            else {Some(n / self.size.prime_powers[i].0)}
-        }).fold(vec![(0,true)].into_iter(), |it, step| {
-            it.map(|x| x)
-        }).filter_map(|(x,b)| if b {Some(x)} else {None})
-        .map(move |x| {
-            let mut coords = vec![0 ; self.size.prime_powers.len()];
-            coords[i] = x;
-            Box::new(SylowElem { group: Rc::clone(self), coords })
-        })
-    }
-    */
 }
 
 impl<G: SylowDecomposable> Semigroup for SylowDecomp<G> {
