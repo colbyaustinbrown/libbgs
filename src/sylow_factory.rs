@@ -64,7 +64,7 @@ mod tests {
         ));
         let g = Rc::new(SylowDecomp::new(&fp));
         let mut factory = SylowFactory::new(&g, 0, 1);
-        assert_eq!(factory.next().map(|s| s.to_product().0), Some(6));
+        assert_eq!(factory.next().map(|s| s.to_product().value()), Some(6));
         assert_eq!(factory.next(), None);
     }
 
