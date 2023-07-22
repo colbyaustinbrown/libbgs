@@ -13,10 +13,9 @@ mod tests {
 
     #[test]
     fn fact_works() {
-        let fact = Factorization {
-            value: 8,
-            prime_powers: vec![(2, 3)]
-        };
-        assert_eq!(fact.value, 8);
+        let fact = Factorization::new(
+            vec![(2, 3)]
+        );
+        assert_eq!(fact.value(), 8);
     }
 }

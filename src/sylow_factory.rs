@@ -14,7 +14,7 @@ pub struct SylowFactory<C: SylowDecomposable> {
 
 impl<C: SylowDecomposable> SylowFactory<C> {
     pub fn new(decomp: &Rc<SylowDecomp<C>>, i: usize, r: usize) -> SylowFactory<C> {
-        let (p,d) = decomp.size().prime_powers[i];
+        let (p,d) = decomp.size().prime_powers()[i];
         let step = intpow(p, d - 1, 0);
         SylowFactory {
             decomp: Rc::clone(decomp),
@@ -32,10 +32,10 @@ impl<C: SylowDecomposable> Iterator for SylowFactory<C> {
             let l = self.stack.len();
             if l == 0 { return None; }
 
-            let p = self.decomp.size().prime_powers[self.i].0;
+            let p = self.decomp.size().prime_powers()[self.i].0;
             let (x, step, r) = self.stack.remove(l - 1);
             if r == 0 {
-                let mut coords = vec![0 ; self.decomp.size().prime_powers.len()];
+                let mut coords = vec![0 ; self.decomp.len()];
                 coords[self.i] = x;
                 return Some(SylowElem {
                     group: Rc::clone(&self.decomp),
@@ -59,10 +59,9 @@ mod tests {
 
     #[test]
     pub fn test_make_factory() {
-        let fp = Rc::new(Factorization {
-            value: 6,
-            prime_powers: vec![(2, 1), (3, 1)]
-        });
+        let fp = Rc::new(Factorization::new(
+            vec![(2, 1), (3, 1)]
+        ));
         let g = Rc::new(SylowDecomp::new(&fp));
         let mut factory = SylowFactory::new(&g, 0, 1);
         assert_eq!(factory.next().map(|s| s.to_product().0), Some(6));
@@ -71,10 +70,9 @@ mod tests {
 
     #[test]
     pub fn test_generates_small() {
-        let fp = Rc::new(Factorization {
-            value: 60,
-            prime_powers: vec![(2, 2), (3, 1), (5, 1)]
-        });
+        let fp = Rc::new(Factorization::new(
+            vec![(2, 2), (3, 1), (5, 1)]
+        ));
         let g = Rc::new(SylowDecomp::new(&fp));
         let factory = SylowFactory::new(&g, 0, 1);
         let res: Vec<SylowElem<FpStar>> = factory.collect();
@@ -104,10 +102,9 @@ mod tests {
 
     #[test]
     pub fn test_generates_big() {
-        let fp = Rc::new(Factorization {
-            value: 1_000_000_000_000_000_124_398,
-            prime_powers: vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
-        });
+        let fp = Rc::new(Factorization::new(
+            vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
+        ));
         let g = Rc::new(SylowDecomp::new(&fp));
 
         let factory = SylowFactory::new(&g, 3, 2);

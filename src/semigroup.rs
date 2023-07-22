@@ -7,6 +7,14 @@ pub trait Semigroup: Eq {
     type Elem: SemigroupElem<Group = Self>;
     fn size(&self) -> &Factorization;
     fn one(self: &Rc<Self>) -> Self::Elem;
+
+    fn len(&self) -> usize {
+        self.size().len()
+    }
+
+    fn factors(&self) -> &Vec<(u128, u128)> {
+        self.size().prime_powers()
+    }
 }
 
 pub trait SemigroupElem: Clone + Eq + fmt::Debug {
