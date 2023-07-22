@@ -27,9 +27,8 @@ impl<C: SylowDecomposable> SylowFactory<C> {
 impl<C: SylowDecomposable> Iterator for SylowFactory<C> {
     type Item = SylowElem<C>;
 
-    fn next(&mut self) -> Option<Self::Item> {
+    fn next(&mut self) -> Option<SylowElem<C>> {
         loop {
-            // println!("next called: {:?}", self.stack);
             let l = self.stack.len();
             if l == 0 { return None; }
 
@@ -57,7 +56,6 @@ mod tests {
     use super::*;
     use crate::factorization::*;
     use crate::fp::*;
-    use crate::semigroup::*;
 
     #[test]
     pub fn test_make_factory() {

@@ -137,6 +137,21 @@ impl<C: SylowDecomposable> SylowElem<C> {
     }
 }
 
+impl<C: SylowDecomposable> SylowDecomposable for SylowDecomp<C> {
+    fn find_sylow_generator(self: &Rc<Self>, d: &(u128, u128)) -> Self::Elem {
+        let mut coords = vec![0 ; self.generators.len()];
+        for i in 0..self.generators.len() {
+            if *d == self.size().prime_powers[i] {
+                coords[i] = 1;
+            }
+        }
+        SylowElem {
+            group: Rc::clone(self),
+            coords
+        }
+    }
+}
+
 pub mod tests {
     use super::*;
 
