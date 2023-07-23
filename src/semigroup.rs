@@ -7,7 +7,7 @@ pub trait Semigroup: Eq {
     fn one(self: &Rc<Self>) -> Self::Elem;
 }
 
-pub trait SemigroupElem: Clone + Eq + fmt::Debug {
+pub trait SemigroupElem: Clone + PartialEq + Eq + fmt::Debug {
     type Group: Semigroup<Elem = Self>;
     fn is_one(&self) -> bool;
     fn group(&self) -> &Rc<Self::Group>;

@@ -1,11 +1,29 @@
 use std::rc::Rc;
-// use either::*;
 
 use crate::factorization::*;
-use crate::util::*;
 use crate::semigroup::*;
 use crate::sylow::*;
 use crate::fp::*;
+
+pub trait QuadField: Semigroup + Sized + PartialEq + Eq + std::fmt::Debug 
+where Self: Semigroup {
+    fn p(&self) -> u128;
+    fn r(&self) -> u128;
+    fn change_r(&self, r: u128) -> Self;
+
+    fn from_ints(self: &Rc<Self>, a0: u128, a1: u128) -> QuadNumber<Self> {
+        QuadNumber {
+            subgroup: Rc::clone(self),
+            a0,
+            a1
+        }
+    }
+
+    fn steinitz(self: &Rc<Self>, i: u128) -> QuadNumber<Self> {
+        Self::from_ints(self, i % self.p(), i / self.p())
+    }
+}
+
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct QuadFieldExt {
@@ -14,12 +32,17 @@ pub struct QuadFieldExt {
     r: u128
 }
 
-type QuadSubgroup = QuadFieldExt;
+#[derive(PartialEq, Eq, Debug)]
+pub struct QuadFieldBare {
+    p: u128,
+    r: u128
+}
 
-impl Semigroup for QuadSubgroup {
+impl Semigroup for QuadFieldExt {
     type Elem = QuadNumber;
+
     fn size(&self) -> u128 {
-        self.pminusone.p() + 1
+        self.pplusone.value()
     }
     fn one(self: &Rc<Self>) -> QuadNumber {
         QuadNumber {
@@ -30,7 +53,22 @@ impl Semigroup for QuadSubgroup {
     }
 }
 
-impl Factorized for QuadSubgroup {
+impl Semigroup for QuadFieldBare {
+    type Elem = QuadNumber<QuadFieldBare>;
+
+    fn size(&self) -> u128 {
+        self.p - 1
+    }
+    fn one(self: &Rc<Self>) -> QuadNumber<QuadFieldBare> {
+        QuadNumber {
+            subgroup: Rc::clone(self),
+            a0: 1,
+            a1: 0
+        }
+    }
+}
+
+impl Factorized for QuadFieldExt {
     fn factors(&self) -> &Factorization {
         &self.pplusone
     }
@@ -63,8 +101,14 @@ impl QuadFieldExt {
         };
         QuadFieldExt::new(pminusone, pplusone, r)
     }
+}
 
-    pub fn change_r(&self, r: u128) -> QuadFieldExt {
+impl QuadField for QuadFieldExt {
+    fn r(&self) -> u128 {
+        self.r
+    }
+
+    fn change_r(&self, r: u128) -> QuadFieldExt {
         QuadFieldExt {
             r: r,
             pminusone: Rc::clone(&self.pminusone),
@@ -72,40 +116,51 @@ impl QuadFieldExt {
         }
     }
 
-    fn steinitz(self: &Rc<Self>, i: u128) -> QuadNumber {
-        QuadNumber {
-            subgroup: Rc::clone(self),
-            a0: i % self.p(),
-            a1: i / self.p()
-        }
-    }
-
-    fn from_ints(self: &Rc<Self>, a0: u128, a1: u128) -> QuadNumber {
-        QuadNumber {
-            subgroup: Rc::clone(self),
-            a0,
-            a1
-        }
-    }
-
-    pub fn p(&self) -> u128 {
+    fn p(&self) -> u128 {
         self.pminusone.value() + 1
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct QuadNumber {
-    subgroup: Rc<QuadSubgroup>,
+impl QuadField for QuadFieldBare {
+    fn r(&self) -> u128 {
+        self.r
+    }
+
+    fn p(&self) -> u128 {
+        self.p
+    }
+
+    fn change_r(&self, r: u128) -> QuadFieldBare {
+        QuadFieldBare {
+            p: self.p,
+            r
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub struct QuadNumber<F: QuadField = QuadFieldExt> {
+    subgroup: Rc<F>,
     a0: u128,
     a1: u128
 }
 
-impl QuadNumber {
+impl<F: QuadField> Clone for QuadNumber<F> {
+    fn clone(&self) -> QuadNumber<F> {
+        QuadNumber {
+            subgroup: Rc::clone(&self.subgroup),
+            a0: self.a0,
+            a1: self.a1
+        }
+    }
+}
+
+impl<F: QuadField> QuadNumber<F> {
     fn is_zero(&self) -> bool {
         self.a0 == 0 && self.a1 == 0
     }
 
-    fn from_int(subgroup: Rc<QuadSubgroup>, a0: u128) -> QuadNumber {
+    fn from_int(subgroup: Rc<F>, a0: u128) -> QuadNumber<F> {
         QuadNumber {
             subgroup,
             a0,
@@ -114,21 +169,23 @@ impl QuadNumber {
     }
 }
 
-impl SemigroupElem for QuadNumber {
-    type Group = QuadSubgroup;
+impl<F> SemigroupElem for QuadNumber<F> 
+where F: QuadField<Elem = Self> {
+    type Group = F;
+
     fn is_one(&self) -> bool {
         self.a0 == 1 && self.a1 == 0
     }
 
-    fn group(&self) -> &Rc<QuadSubgroup> {
+    fn group(&self) -> &Rc<F> {
         &self.subgroup
     }
 
-    fn multiply(&mut self, other: &QuadNumber) {
+    fn multiply(&mut self, other: &QuadNumber<F>) {
         let f = &self.subgroup;
         let a0_old = self.a0;
         let p = f.p();
-        self.a0 = (long_multiply(self.a0, other.a0, p) + long_multiply(self.a1, long_multiply(other.a1, f.r, p), p)) % p;
+        self.a0 = (long_multiply(self.a0, other.a0, p) + long_multiply(self.a1, long_multiply(other.a1, f.r(), p), p)) % p;
         self.a1 = (long_multiply(self.a1, other.a0, p) + long_multiply(a0_old, other.a1, p)) % p;
     }
 
@@ -136,13 +193,13 @@ impl SemigroupElem for QuadNumber {
         let f = &self.subgroup;
         let a0_old = self.a0;
         let p = f.p();
-        self.a0 = (long_multiply(self.a0, self.a0, p) + long_multiply(self.a1, long_multiply(self.a1, f.r, p), p)) % p;
+        self.a0 = (long_multiply(self.a0, self.a0, p) + long_multiply(self.a1, long_multiply(self.a1, f.r(), p), p)) % p;
         self.a1 = (long_multiply(self.a1, a0_old, p) + long_multiply(a0_old, self.a1, p)) % p;
     }
 }
 
-impl SylowDecomposable for QuadSubgroup {
-    fn find_sylow_generator(self: &Rc<Self>, i: usize) -> QuadNumber {
+impl SylowDecomposable for QuadFieldExt {
+    fn find_sylow_generator(self: &Rc<Self>, i: usize) -> QuadNumber<QuadFieldExt> {
         let pow = self.pminusone.value();
         // should be self.p * self.p, but maybe this works?
         (1..self.p() * 2)

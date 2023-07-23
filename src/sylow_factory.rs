@@ -53,7 +53,6 @@ impl<C: SylowDecomposable> Iterator for SylowFactory<C> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::factorization::*;
     use crate::fp::*;
 
     #[test]
