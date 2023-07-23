@@ -58,3 +58,21 @@ pub fn legendre(a: u128, p: u128) -> u128 {
     intpow(a, (p - 1) / 2, p)
 }
 
+pub fn find_nonresidue(p: u128) -> u128 {
+    if p % 4 == 3 {
+        p - 1
+    } else if p % 8 == 3 || p % 8 == 5 {
+        2
+    } else {
+        let mut res = 0;
+        for i in 0..p {
+            let a = standard_affine_shift(p, i);
+            if intpow(a, (p - 1) / 2, p) == p - 1 {
+                res = a;
+                break;
+            }
+        }
+        res 
+    }
+}
+

@@ -4,6 +4,7 @@ use crate::factorization::*;
 use crate::semigroup::*;
 use crate::sylow::*;
 use crate::fp::*;
+use crate::util::*;
 
 pub trait QuadField: Semigroup + Sized + PartialEq + Eq + std::fmt::Debug 
 where Self: Semigroup {
@@ -36,6 +37,15 @@ pub struct QuadFieldExt {
 pub struct QuadFieldBare {
     p: u128,
     r: u128
+}
+
+impl QuadFieldBare {
+    pub fn new(p: u128, r: u128) -> QuadFieldBare {
+        QuadFieldBare {
+            p,
+            r
+        }
+    }
 }
 
 impl Semigroup for QuadFieldExt {
@@ -84,22 +94,7 @@ impl QuadFieldExt {
     }
     pub fn make(pminusone: &Rc<FpStar>, pplusone: Factorization) -> QuadFieldExt {
         let p = pplusone.value() - 1;
-        let r = if p % 4 == 3 {
-            p - 1
-        } else if p % 8 == 3 || p % 8 == 5 {
-            2
-        } else {
-            let mut res = 0;
-            for i in 0..p {
-                let a = standard_affine_shift(p, i);
-                if intpow(a, (p - 1) / 2, p) == p - 1 {
-                    res = a;
-                    break;
-                }
-            }
-            res 
-        };
-        QuadFieldExt::new(pminusone, pplusone, r)
+        QuadFieldExt::new(pminusone, pplusone, find_nonresidue(p))
     }
 }
 
@@ -141,8 +136,8 @@ impl QuadField for QuadFieldBare {
 #[derive(PartialEq, Eq, Debug)]
 pub struct QuadNumber<F: QuadField = QuadFieldExt> {
     subgroup: Rc<F>,
-    a0: u128,
-    a1: u128
+    pub a0: u128,
+    pub a1: u128
 }
 
 impl<F: QuadField> Clone for QuadNumber<F> {

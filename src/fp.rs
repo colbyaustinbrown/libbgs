@@ -5,6 +5,7 @@ use crate::util::long_multiply;
 use crate::sylow::*;
 use crate::util::*;
 use crate::factorization::*;
+use crate::quad_field::*;
 
 pub type FpStar = Factorization;
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -29,6 +30,29 @@ impl FpStar {
 impl FpNumber {
     pub fn value(&self) -> u128 {
         self.value
+    }
+
+    fn int_sqrt(&self) -> Option<FpNumber> {
+        // Cipolla's algorithm
+
+        let p = self.group.p();
+        let l = legendre(self.value, self.group.p());
+        if l == 0 { 
+            return Some(self.group.from_int(0));
+        } else if l == p - 1{
+            return None;
+        }
+        let mut i = 1;
+        let (a,r) = loop {
+            let a = standard_affine_shift(p, i);
+            let r = (intpow(a, 2, p) + p - self.value) % p;
+            if legendre(r, p) == (p - 1) { break (a,r); }
+            i += 1;
+        };
+        let fp2 = Rc::new(QuadFieldBare::new(p, r));
+        let mut x = fp2.from_ints(a, 1);
+        x.pow((p + 1) / 2);
+        Some(self.group.from_int(x.a0))
     }
 }
 
@@ -224,6 +248,27 @@ mod tests {
         let or = x.order().value();
         x.pow(or);
         assert!(x.is_one());
+    }
+
+    #[test]
+    fn calculates_square_roots() {
+        let fp = Rc::new(Factorization::new(
+                vec![(2, 2), (3, 1)]
+        ));
+        let mut nonresidues = 0;
+        for x in (1..13).map(|i| fp.from_int(i)) {
+            println!("x: {:?}", x);
+            match x.int_sqrt() {
+                None => { nonresidues += 1; }
+                Some(mut p) => {
+                    println!("{:?}", p);
+                    p.pow(2);
+                    println!("{:?}", p);
+                    assert_eq!(x, p);
+                }
+            }
+        }
+        assert_eq!(nonresidues, 6);
     }
 }
 
