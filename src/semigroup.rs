@@ -1,16 +1,10 @@
 use std::rc::Rc;
 use std::fmt;
 
-use crate::factorization::*;
-
 pub trait Semigroup: Eq {
     type Elem: SemigroupElem<Group = Self>;
-    fn size(&self) -> &Factorization;
+    fn size(&self) -> u128;
     fn one(self: &Rc<Self>) -> Self::Elem;
-
-    fn factors(&self) -> &Vec<(u128, u128)> {
-        self.size().prime_powers()
-    }
 }
 
 pub trait SemigroupElem: Clone + Eq + fmt::Debug {

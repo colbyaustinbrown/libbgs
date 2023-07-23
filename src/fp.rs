@@ -14,7 +14,7 @@ pub struct FpNumber {
 }
 
 impl FpStar {
-    fn p(&self) -> u128 {
+    pub fn p(&self) -> u128 {
         self.value() + 1
     }
 
@@ -41,8 +41,8 @@ impl PartialEq<u128> for FpNumber {
 impl Semigroup for FpStar {
     type Elem = FpNumber;
 
-    fn size(&self) -> &Factorization {
-        &self
+    fn size(&self) -> u128 {
+        self.factors().value()
     }
 
     fn one(self: &Rc<Self>) -> FpNumber {
@@ -50,11 +50,17 @@ impl Semigroup for FpStar {
     }
 }
 
+impl Factorized for FpStar {
+    fn factors(&self) -> &Factorization {
+        &self
+    }
+}
+
 impl SylowDecomposable for FpStar {
     fn find_sylow_generator(self: &Rc<Self>, i: usize) -> FpNumber {
         match self.factors()[i] {
-            (2,1) => self.from_int(self.size().value()),
-            _ => (1..self.size().value())
+            (2,1) => self.from_int(self.size()),
+            _ => (1..self.size())
                 .map(|i| self.from_int(standard_affine_shift(self.p(), i)))
                 .find_map(|c| self.is_sylow_generator(&c, i))
                 .unwrap()
@@ -136,7 +142,7 @@ mod tests {
         assert_eq!(6, x.value());
 
         let mut x = p.from_int(5);
-        x.pow(p.size().value());
+        x.pow(p.factors().value());
         assert!(x.is_one());
     }
 
@@ -146,7 +152,7 @@ mod tests {
             vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
         ));
         let mut x = fp.from_int(3);
-        x.pow(fp.size().value());
+        x.pow(fp.value());
         assert!(x.is_one());
     }
 
@@ -168,7 +174,7 @@ mod tests {
         let g = Rc::new(SylowDecomp::new(&fp));
         for i in 0..g.generators.len() {
             let gen = &g.generators[i];
-            let d = g.size().factor(i);
+            let d = g.parent.factor(i);
             test_is_generator_small::<FpStar>(gen, d);
         }
     }
@@ -181,7 +187,7 @@ mod tests {
         let g = Rc::new(SylowDecomp::new(&fp));
         for i in 0..g.generators.len() {
             let gen = &g.generators[i];
-            let d = g.size().factors()[i];
+            let d = g.factors()[i];
             test_is_generator_big::<FpStar>(gen, d);
         }
     }
@@ -211,7 +217,7 @@ mod tests {
         let n = 123456789;
         let mut x = SylowElem {
             group: Rc::clone(&g),
-            coords: g.size().factors().iter()
+            coords: g.factors().as_array().iter()
                 .map(|(p,d)| n % intpow(*p, *d, 0))
                 .collect()
         };

@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use crate::sylow::*;
 use crate::util::*;
-use crate::semigroup::*;
+use crate::factorization::*;
 
 pub struct SylowFactory<C: SylowDecomposable> {
     pub decomp: Rc<SylowDecomp<C>>,
@@ -31,10 +31,10 @@ impl<C: SylowDecomposable> Iterator for SylowFactory<C> {
             let l = self.stack.len();
             if l == 0 { return None; }
 
-            let p = self.decomp.size().factors()[self.i].0;
+            let p = self.decomp.factors()[self.i].0;
             let (x, step, r) = self.stack.remove(l - 1);
             if r == 0 {
-                let mut coords = vec![0 ; self.decomp.size().len()];
+                let mut coords = vec![0 ; self.decomp.factors().len()];
                 coords[self.i] = x;
                 return Some(SylowElem {
                     group: Rc::clone(&self.decomp),

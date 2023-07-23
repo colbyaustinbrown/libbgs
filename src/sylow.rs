@@ -2,15 +2,15 @@ use std::rc::Rc;
 use std::fmt;
 
 use crate::util::*;
-use crate::semigroup::*;
+pub use crate::semigroup::*;
 use crate::factorization::*;
 
-pub trait SylowDecomposable: Semigroup {
+pub trait SylowDecomposable: Semigroup + Factorized {
     fn find_sylow_generator(self: &Rc<Self>, i: usize) -> Self::Elem;
 
     fn is_sylow_generator(self: &Rc<Self>, candidate: &Self::Elem, i: usize) -> Option<Self::Elem> {
         let d = self.factors()[i];
-        let pow = self.size().value() / intpow(d.0, d.1, 0);
+        let pow = self.size() / intpow(d.0, d.1, 0);
         let mut res = candidate.clone();
         res.pow(pow);
         let mut check = res.clone();
@@ -33,11 +33,12 @@ pub struct SylowElem<C: SylowDecomposable> {
 
 impl<C: SylowDecomposable> SylowDecomp<C> {
     pub fn new(parent: &Rc<C>) -> SylowDecomp<C> {
-        println!("bump A");
-        let length = parent.size().len();
-        println!("bump B");
+        let length = parent.factors().len();
         let gen = (0..length)
-            .map(|i| parent.find_sylow_generator(i))
+            .map(|i| {
+                let res = parent.find_sylow_generator(i);
+                res
+            })
             .collect();
         SylowDecomp {
             parent: Rc::clone(parent),
@@ -45,7 +46,7 @@ impl<C: SylowDecomposable> SylowDecomp<C> {
         }
     }
 
-    fn size(&self) -> &Factorization {
+    fn size(&self) -> u128 {
         self.parent.size()
     }
 }
@@ -56,18 +57,24 @@ impl<C: SylowDecomposable> Semigroup for SylowDecomp<C> {
     fn one(self: &Rc<Self>) -> SylowElem<C> {
         SylowElem {
             group: Rc::clone(self),
-            coords: vec![0; self.size().len()]
+            coords: vec![0; self.factors().len()]
         }
     }
 
-    fn size(&self) -> &Factorization {
+    fn size(&self) -> u128 {
         self.parent.size()
+    }
+}
+
+impl<C: SylowDecomposable> Factorized for SylowDecomp<C> {
+    fn factors(&self) -> &Factorization {
+        self.parent.factors()
     }
 }
 
 impl<C: SylowDecomposable> SylowDecomposable for SylowDecomp<C> {
     fn find_sylow_generator(self: &Rc<Self>, i: usize) -> Self::Elem {
-        let mut coords = vec![0 ; self.size().len()];
+        let mut coords = vec![0 ; self.factors().len()];
         coords[i] = 1;
         SylowElem {
             group: Rc::clone(self),
@@ -94,22 +101,22 @@ impl<C: SylowDecomposable> SylowElem<C> {
                 let mut x = self.clone();
                 for j in 0..self.len() {
                     if j == i { continue; }
-                    x.pow(self.group.size().factor(j));
+                    x.pow(self.group.factors().factor(j));
                 }
 
                 let mut r = 0;
                 while !x.is_one() {
-                    x.pow(self.group.size().prime_powers()[i].0);
+                    x.pow(self.group.factors()[i].0);
                     r += 1;
                 }
-                (self.group.size().prime_powers()[i].0, r)
+                (self.group.factors()[i].0, r)
             })
             .collect();
         Factorization::new(prime_powers)
     }
 
     pub fn len(&self) -> usize {
-        self.group().size().len()
+        self.group().factors().len()
     }
 }
 
@@ -127,13 +134,13 @@ impl<C: SylowDecomposable> SemigroupElem for SylowElem<C> {
     fn multiply(&mut self, other: &SylowElem<C>) {
         let len = self.group().generators.len();
         for i in 0..usize::max(len, len) {
-            self.coords[i] = (self.coords[i] + other.coords[i]) % self.group().size().factor(i);
+            self.coords[i] = (self.coords[i] + other.coords[i]) % self.group().factors().factor(i);
         }
     }
 
     fn square(&mut self) {
         for i in 0..self.group().generators.len() {
-            self.coords[i] = self.coords[i] * 2 % self.group.size().factor(i);
+            self.coords[i] = self.coords[i] * 2 % self.group.factors().factor(i);
         }
     }
 }

@@ -18,8 +18,8 @@ type QuadSubgroup = QuadFieldExt;
 
 impl Semigroup for QuadSubgroup {
     type Elem = QuadNumber;
-    fn size(&self) -> &Factorization {
-        &self.pplusone
+    fn size(&self) -> u128 {
+        self.pminusone.p() + 1
     }
     fn one(self: &Rc<Self>) -> QuadNumber {
         QuadNumber {
@@ -28,7 +28,12 @@ impl Semigroup for QuadSubgroup {
             a1: 0
         }
     }
+}
 
+impl Factorized for QuadSubgroup {
+    fn factors(&self) -> &Factorization {
+        &self.pplusone
+    }
 }
 
 impl QuadFieldExt {
@@ -227,7 +232,7 @@ mod tests {
         let g = Rc::new(SylowDecomp::new(&f));
         for i in 0..g.generators.len() {
             let gen = &g.generators[i];
-            let d = g.size().factor(i);
+            let d = g.factors().factor(i);
             test_is_generator_small::<QuadFieldExt>(gen, d);
         }
     }
@@ -246,7 +251,7 @@ mod tests {
         let g = Rc::new(SylowDecomp::new(&fp));
         for i in 0..g.generators.len() {
             let gen = &g.generators[i];
-            let d = g.size().prime_powers()[i];
+            let d = g.factors()[i];
             test_is_generator_big::<QuadFieldExt>(gen, d);
         }
     }
