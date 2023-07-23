@@ -4,7 +4,6 @@ use crate::sylow::*;
 use crate::util::*;
 use crate::semigroup::*;
 
-#[derive(Debug)]
 pub struct SylowFactory<C: SylowDecomposable> {
     pub decomp: Rc<SylowDecomp<C>>,
     pub i: usize,
@@ -14,7 +13,7 @@ pub struct SylowFactory<C: SylowDecomposable> {
 
 impl<C: SylowDecomposable> SylowFactory<C> {
     pub fn new(decomp: &Rc<SylowDecomp<C>>, i: usize, r: usize) -> SylowFactory<C> {
-        let (p,d) = decomp.size().prime_powers()[i];
+        let (p,d) = decomp.factors()[i];
         let step = intpow(p, d - 1, 0);
         SylowFactory {
             decomp: Rc::clone(decomp),
@@ -32,10 +31,10 @@ impl<C: SylowDecomposable> Iterator for SylowFactory<C> {
             let l = self.stack.len();
             if l == 0 { return None; }
 
-            let p = self.decomp.size().prime_powers()[self.i].0;
+            let p = self.decomp.size().factors()[self.i].0;
             let (x, step, r) = self.stack.remove(l - 1);
             if r == 0 {
-                let mut coords = vec![0 ; self.decomp.len()];
+                let mut coords = vec![0 ; self.decomp.size().len()];
                 coords[self.i] = x;
                 return Some(SylowElem {
                     group: Rc::clone(&self.decomp),

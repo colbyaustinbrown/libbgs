@@ -42,7 +42,7 @@ impl Semigroup for FpStar {
     type Elem = FpNumber;
 
     fn size(&self) -> &Factorization {
-        self
+        &self
     }
 
     fn one(self: &Rc<Self>) -> FpNumber {
@@ -52,7 +52,7 @@ impl Semigroup for FpStar {
 
 impl SylowDecomposable for FpStar {
     fn find_sylow_generator(self: &Rc<Self>, i: usize) -> FpNumber {
-        match self.size().prime_powers()[i] {
+        match self.factors()[i] {
             (2,1) => self.from_int(self.size().value()),
             _ => (1..self.size().value())
                 .map(|i| self.from_int(standard_affine_shift(self.p(), i)))
@@ -181,7 +181,7 @@ mod tests {
         let g = Rc::new(SylowDecomp::new(&fp));
         for i in 0..g.generators.len() {
             let gen = &g.generators[i];
-            let d = g.size().prime_powers()[i];
+            let d = g.size().factors()[i];
             test_is_generator_big::<FpStar>(gen, d);
         }
     }
@@ -211,7 +211,7 @@ mod tests {
         let n = 123456789;
         let mut x = SylowElem {
             group: Rc::clone(&g),
-            coords: g.size().prime_powers().iter()
+            coords: g.size().factors().iter()
                 .map(|(p,d)| n % intpow(*p, *d, 0))
                 .collect()
         };

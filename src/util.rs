@@ -54,3 +54,7 @@ pub fn long_multiply(mut a: u128, mut b: u128, m: u128) -> u128 {
     }
 }
 
+pub fn legendre(a: u128, p: u128) -> u128 {
+    intpow(a, (p - 1) / 2, p)
+}
+

@@ -16,6 +16,14 @@ impl Factorization {
         }
     }
 
+    pub fn factors(&self) -> &Vec<(u128, u128)> {
+        &self.prime_powers
+    }
+
+    pub fn len(&self) -> usize {
+        self.factors().len()
+    }
+
     pub fn factor(&self, i: usize) -> u128 {
         intpow(self.prime_powers[i].0, self.prime_powers[i].1, 0)
     }
@@ -26,10 +34,6 @@ impl Factorization {
 
     pub fn prime_powers(&self) -> &Vec<(u128, u128)> {
         &self.prime_powers
-    }
-
-    pub fn len(&self) -> usize {
-        self.prime_powers.len()
     }
 }
 

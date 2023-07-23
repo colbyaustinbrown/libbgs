@@ -8,10 +8,6 @@ pub trait Semigroup: Eq {
     fn size(&self) -> &Factorization;
     fn one(self: &Rc<Self>) -> Self::Elem;
 
-    fn len(&self) -> usize {
-        self.size().len()
-    }
-
     fn factors(&self) -> &Vec<(u128, u128)> {
         self.size().prime_powers()
     }

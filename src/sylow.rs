@@ -9,7 +9,7 @@ pub trait SylowDecomposable: Semigroup {
     fn find_sylow_generator(self: &Rc<Self>, i: usize) -> Self::Elem;
 
     fn is_sylow_generator(self: &Rc<Self>, candidate: &Self::Elem, i: usize) -> Option<Self::Elem> {
-        let d = self.size().prime_powers()[i];
+        let d = self.factors()[i];
         let pow = self.size().value() / intpow(d.0, d.1, 0);
         let mut res = candidate.clone();
         res.pow(pow);
@@ -33,7 +33,9 @@ pub struct SylowElem<C: SylowDecomposable> {
 
 impl<C: SylowDecomposable> SylowDecomp<C> {
     pub fn new(parent: &Rc<C>) -> SylowDecomp<C> {
+        println!("bump A");
         let length = parent.size().len();
+        println!("bump B");
         let gen = (0..length)
             .map(|i| parent.find_sylow_generator(i))
             .collect();
@@ -54,7 +56,7 @@ impl<C: SylowDecomposable> Semigroup for SylowDecomp<C> {
     fn one(self: &Rc<Self>) -> SylowElem<C> {
         SylowElem {
             group: Rc::clone(self),
-            coords: vec![0; self.len()]
+            coords: vec![0; self.size().len()]
         }
     }
 
@@ -65,7 +67,7 @@ impl<C: SylowDecomposable> Semigroup for SylowDecomp<C> {
 
 impl<C: SylowDecomposable> SylowDecomposable for SylowDecomp<C> {
     fn find_sylow_generator(self: &Rc<Self>, i: usize) -> Self::Elem {
-        let mut coords = vec![0 ; self.len()];
+        let mut coords = vec![0 ; self.size().len()];
         coords[i] = 1;
         SylowElem {
             group: Rc::clone(self),
@@ -107,7 +109,7 @@ impl<C: SylowDecomposable> SylowElem<C> {
     }
 
     pub fn len(&self) -> usize {
-        self.group().len()
+        self.group().size().len()
     }
 }
 
