@@ -4,6 +4,7 @@ use crate::factorization::*;
 use crate::semigroup::*;
 use crate::sylow::*;
 use crate::fp::*;
+use crate::group::*;
 
 pub trait QuadField: Semigroup + Sized + PartialEq + Eq + std::fmt::Debug 
 where Self: Semigroup {
@@ -95,6 +96,23 @@ impl QuadFieldExt {
     pub fn make(pminusone: &Rc<FpStar>, pplusone: Factorization) -> QuadFieldExt {
         let p = pplusone.value() - 1;
         QuadFieldExt::new(pminusone, pplusone, find_nonresidue(p))
+    }
+
+    pub fn int_sqrt(self: &Rc<Self>, x: u128) -> QuadNumber {
+        let mut x = self.pminusone.from_int(x);
+        if let Some(y) = x.int_sqrt() {
+            return self.from_ints(y.value(), 0);
+        }
+
+        let mut r = self.pminusone.from_int(self.r);
+        r.invert();
+        x.multiply(&r);
+        let a1 = x.int_sqrt().unwrap();
+        QuadNumber {
+            subgroup: Rc::clone(self),
+            a0: 0,
+            a1: a1.value()
+        }
     }
 }
 
@@ -193,6 +211,12 @@ where F: QuadField<Elem = Self> {
     }
 }
 
+impl<F: QuadField> PartialEq<u128> for QuadNumber<F> {
+    fn eq(&self, other: &u128) -> bool {
+        self.a0 == *other && self.a1 == 0
+    }
+}
+
 impl SylowDecomposable for QuadFieldExt {
     fn find_sylow_generator(self: &Rc<Self>, i: usize) -> QuadNumber<QuadFieldExt> {
         let pow = self.pminusone.value();
@@ -268,6 +292,25 @@ mod tests {
         x.pow(fp.pminusone.value());
         x.pow(fp.pplusone.value());
         assert!(x.is_one());
+    }
+
+    #[test]
+    fn finds_sqrt() {
+        let fp = Rc::new(QuadFieldExt::make(
+            &Rc::new(Factorization::new(
+                vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
+            )),
+            Factorization::new(
+                vec![(2, 4), (3, 1), (5, 2), (11, 2), (17, 1), (19, 1), (23, 1), (97, 1), (757, 1), (1453, 1), (8689, 1)]
+            )
+        ));
+        for i in 3..1003 {
+            let mut x = fp.int_sqrt(i);
+            let y = x.clone();
+            assert_ne!(x, i);
+            x.multiply(&y);
+            assert_eq!(x, i);
+        }
     }
 
     #[test]

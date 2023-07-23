@@ -7,6 +7,7 @@ mod sylow;
 mod fp;
 mod sylow_factory;
 mod markoff_triple;
+mod group;
 
 #[cfg(test)]
 mod tests {

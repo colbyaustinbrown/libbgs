@@ -6,6 +6,7 @@ use crate::sylow::*;
 use crate::util::*;
 use crate::factorization::*;
 use crate::quad_field::*;
+use crate::group::*;
 
 pub type FpStar = Factorization;
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,7 +33,7 @@ impl FpNumber {
         self.value
     }
 
-    fn int_sqrt(&self) -> Option<FpNumber> {
+    pub fn int_sqrt(&self) -> Option<FpNumber> {
         // Cipolla's algorithm
 
         let p = self.group.p();
@@ -74,6 +75,8 @@ impl Semigroup for FpStar {
     }
 }
 
+impl Group for FpStar {}
+
 impl Factored for FpStar {
     fn factors(&self) -> &Factorization {
         &self
@@ -108,6 +111,12 @@ impl SemigroupElem for FpNumber {
 
     fn square(&mut self) {
         self.value = long_multiply(self.value, self.value, self.group.p());
+    }
+}
+
+impl GroupElem for FpNumber {
+    fn invert(&mut self) {
+        self.pow(self.group.p() - 2); 
     }
 }
 
@@ -257,18 +266,30 @@ mod tests {
         ));
         let mut nonresidues = 0;
         for x in (1..13).map(|i| fp.from_int(i)) {
-            println!("x: {:?}", x);
             match x.int_sqrt() {
                 None => { nonresidues += 1; }
                 Some(mut p) => {
-                    println!("{:?}", p);
                     p.pow(2);
-                    println!("{:?}", p);
                     assert_eq!(x, p);
                 }
             }
         }
         assert_eq!(nonresidues, 6);
+    }
+
+    #[test]
+    fn inverts() {
+        let fp = Rc::new(Factorization::new(
+                vec![(2, 2), (3, 1)]
+        ));
+        for i in 2..13 {
+            let mut x = fp.from_int(i);
+            let y = x.clone();
+            x.invert();
+            assert!(!x.is_one());
+            x.multiply(&y);
+            assert!(x.is_one());
+        }
     }
 }
 
