@@ -4,7 +4,6 @@ use crate::factorization::*;
 use crate::semigroup::*;
 use crate::sylow::*;
 use crate::fp::*;
-use crate::util::*;
 
 pub trait QuadField: Semigroup + Sized + PartialEq + Eq + std::fmt::Debug 
 where Self: Semigroup {
@@ -78,7 +77,7 @@ impl Semigroup for QuadFieldBare {
     }
 }
 
-impl Factorized for QuadFieldExt {
+impl Factored for QuadFieldExt {
     fn factors(&self) -> &Factorization {
         &self.pplusone
     }
@@ -92,6 +91,7 @@ impl QuadFieldExt {
             r
         }
     }
+
     pub fn make(pminusone: &Rc<FpStar>, pplusone: Factorization) -> QuadFieldExt {
         let p = pplusone.value() - 1;
         QuadFieldExt::new(pminusone, pplusone, find_nonresidue(p))

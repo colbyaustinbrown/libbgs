@@ -5,7 +5,7 @@ use crate::util::*;
 pub use crate::semigroup::*;
 use crate::factorization::*;
 
-pub trait SylowDecomposable: Semigroup + Factorized {
+pub trait SylowDecomposable: Semigroup + Factored {
     fn find_sylow_generator(self: &Rc<Self>, i: usize) -> Self::Elem;
 
     fn is_sylow_generator(self: &Rc<Self>, candidate: &Self::Elem, i: usize) -> Option<Self::Elem> {
@@ -66,7 +66,7 @@ impl<C: SylowDecomposable> Semigroup for SylowDecomp<C> {
     }
 }
 
-impl<C: SylowDecomposable> Factorized for SylowDecomp<C> {
+impl<C: SylowDecomposable> Factored for SylowDecomp<C> {
     fn factors(&self) -> &Factorization {
         self.parent.factors()
     }

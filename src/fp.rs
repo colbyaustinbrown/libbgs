@@ -74,7 +74,7 @@ impl Semigroup for FpStar {
     }
 }
 
-impl Factorized for FpStar {
+impl Factored for FpStar {
     fn factors(&self) -> &Factorization {
         &self
     }

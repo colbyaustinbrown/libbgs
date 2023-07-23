@@ -8,7 +8,7 @@ pub struct Factorization {
     prime_powers: Vec<(u128, u128)>,
 }
 
-pub trait Factorized {
+pub trait Factored {
     fn factors(&self) -> &Factorization;
 }
 
