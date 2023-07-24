@@ -1,13 +1,13 @@
 #![allow(dead_code)]
-mod factorization;
-mod quad_field;
-mod util;
-mod semigroup;
-mod sylow;
-mod fp;
-mod sylow_factory;
-mod markoff_triple;
-mod group;
+pub mod factorization;
+pub mod quad_field;
+pub mod util;
+pub mod semigroup;
+pub mod sylow;
+pub mod fp;
+pub mod sylow_factory;
+pub mod markoff_triple;
+pub mod group;
 
 #[cfg(test)]
 mod tests {
