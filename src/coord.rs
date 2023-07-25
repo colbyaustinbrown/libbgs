@@ -6,26 +6,24 @@ use crate::fp::*;
 use crate::factorization::*;
 
 pub struct Coord {
-    fp: Rc<QuadFieldExt>,
     a: u128,
     chi: Option<Either<QuadNumber, FpNumber>>
 }
 
 impl Coord {
-    pub fn new(fp: &Rc<QuadFieldExt>, a: u128) -> Coord {
+    pub fn new(a: u128) -> Coord {
         Coord {
-            fp: Rc::clone(fp),
             a,
             chi: None
         }
     }
 
-    pub fn get_chi(&mut self) -> &Either<QuadNumber, FpNumber> {
-        self.chi.get_or_insert_with(|| self.fp.int_sqrt_either(self.a))
+    pub fn get_chi(&mut self, fp: &Rc<QuadFieldExt>) -> &Either<QuadNumber, FpNumber> {
+        self.chi.get_or_insert_with(|| fp.int_sqrt_either(self.a))
     }
 
-    pub fn get_ord(&mut self) -> Factorization {
-        self.get_chi().as_ref().either(|l| l.order(), |r| r.order())
+    pub fn get_ord(&mut self, fp: &Rc<QuadFieldExt>) -> Factorization {
+        self.get_chi(fp).as_ref().either(|l| l.order(), |r| r.order())
     }
 
     pub fn rot<'a>(&'a self, b: u128, c: u128) -> impl Iterator<Item = (Coord, Coord)> + 'a {
@@ -34,7 +32,7 @@ impl Coord {
             if next == (b, c) { None } else { Some(next) }
         })
         .map(|(y,z)| {
-            (Coord::new(&self.fp, y), Coord::new(&self.fp, z))
+            (Coord::new(y), Coord::new(z))
         })
     }
 }
@@ -58,3 +56,4 @@ fn either_multiply(a: &mut Either<QuadNumber, FpNumber>, b: &Either<QuadNumber, 
         }
     }
 }
+

@@ -7,8 +7,8 @@ pub mod sylow;
 pub mod fp;
 pub mod sylow_factory;
 pub mod group;
-pub mod graph;
 pub mod coord;
+pub mod triple;
 
 #[cfg(test)]
 mod tests {
