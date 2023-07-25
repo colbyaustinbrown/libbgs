@@ -6,8 +6,9 @@ pub mod semigroup;
 pub mod sylow;
 pub mod fp;
 pub mod sylow_factory;
-pub mod markoff_triple;
 pub mod group;
+pub mod graph;
+pub mod coord;
 
 #[cfg(test)]
 mod tests {

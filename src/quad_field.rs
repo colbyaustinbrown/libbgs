@@ -1,7 +1,8 @@
 use std::rc::Rc;
 
+use either::*;
+
 use crate::factorization::*;
-use crate::semigroup::*;
 use crate::sylow::*;
 use crate::fp::*;
 use crate::group::*;
@@ -98,21 +99,25 @@ impl QuadFieldExt {
         QuadFieldExt::new(pminusone, pplusone, find_nonresidue(p))
     }
 
-    pub fn int_sqrt(self: &Rc<Self>, x: u128) -> QuadNumber {
+    pub fn int_sqrt_either(self: &Rc<Self>, x: u128) -> Either<QuadNumber, FpNumber> {
         let mut x = self.pminusone.from_int(x);
         if let Some(y) = x.int_sqrt() {
-            return self.from_ints(y.value(), 0);
+            return Right(self.pminusone.from_int(y.value()));
         }
 
         let mut r = self.pminusone.from_int(self.r);
         r.invert();
         x.multiply(&r);
         let a1 = x.int_sqrt().unwrap();
-        QuadNumber {
+        Left(QuadNumber {
             subgroup: Rc::clone(self),
             a0: 0,
             a1: a1.value()
-        }
+        })
+    }
+
+    pub fn int_sqrt(self: &Rc<Self>, x: u128) -> QuadNumber {
+        self.int_sqrt_either(x).left_or_else(|n| self.from_ints(n.value(), 0))
     }
 }
 
@@ -210,6 +215,7 @@ where F: QuadField<Elem = Self> {
         self.a1 = (long_multiply(self.a1, a0_old, p) + long_multiply(a0_old, self.a1, p)) % p;
     }
 }
+impl FactoredElem<QuadFieldExt> for QuadNumber {}
 
 impl<F: QuadField> PartialEq<u128> for QuadNumber<F> {
     fn eq(&self, other: &u128) -> bool {

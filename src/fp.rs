@@ -28,6 +28,10 @@ impl FpStar {
     }
 }
 
+impl Factored for FpStar {
+    fn factors(&self) -> &Factorization { self }
+}
+
 impl FpNumber {
     pub fn value(&self) -> u128 {
         self.value
@@ -77,12 +81,6 @@ impl Semigroup for FpStar {
 
 impl Group for FpStar {}
 
-impl Factored for FpStar {
-    fn factors(&self) -> &Factorization {
-        &self
-    }
-}
-
 impl SylowDecomposable for FpStar {
     fn find_sylow_generator(self: &Rc<Self>, i: usize) -> FpNumber {
         match self.factors()[i] {
@@ -113,6 +111,8 @@ impl SemigroupElem for FpNumber {
         self.value = long_multiply(self.value, self.value, self.group.p());
     }
 }
+
+impl FactoredElem<FpStar> for FpNumber {}
 
 impl GroupElem for FpNumber {
     fn invert(&mut self) {
