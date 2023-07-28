@@ -9,15 +9,15 @@ enum Pos {
     C
 }
 
-struct MarkoffTriple {
-    fp: Rc<QuadFieldExt>,
-    a: Coord,
-    b: Coord,
-    c: Coord
+struct MarkoffTriple<'a> {
+    fp: Rc<QuadFieldExt<'a>>,
+    a: Coord<'a>,
+    b: Coord<'a>,
+    c: Coord<'a>
 }
 
-impl MarkoffTriple {
-    pub fn ord(&mut self, pos: Pos) -> u128 {
+impl<'a> MarkoffTriple<'a> {
+    pub fn ord(&'a mut self, pos: Pos) -> u128 {
         match pos {
             Pos::A => &mut self.a,
             Pos::B => &mut self.b,

@@ -1,32 +1,28 @@
-use std::rc::Rc;
 use std::fmt;
 
 pub trait Semigroup: Eq {
     type Elem: SemigroupElem<Group = Self>;
     fn size(&self) -> u128;
-    fn one(self: &Rc<Self>) -> Self::Elem;
+    fn one(&self) -> Self::Elem;
 }
 
 pub trait SemigroupElem: Clone + PartialEq + Eq + fmt::Debug {
     type Group: Semigroup<Elem = Self>;
-    fn is_one(&self) -> bool;
-    fn group(&self) -> &Rc<Self::Group>;
-    fn multiply(&mut self, other: &Self);
-    fn square(&mut self);
+    fn is_one(&self, g: &Self::Group) -> bool;
+    fn multiply(&mut self, other: &Self, g: &Self::Group);
+    fn square(&mut self, g: &Self::Group);
 
-    fn pow(&mut self, mut n: u128) where Self: Sized {
-        let mut y = Self::Group::one(self.group());
+    fn pow(&mut self, mut n: u128, g: &Self::Group) where Self: Sized {
+        let mut y = Self::Group::one(g);
         while n > 1 {
             // println!("{n} {:?} {:?}", &self, y);
             if n % 2 == 1 {
-                y.multiply(self);
+                y.multiply(self, g);
             }
-            self.square();
+            self.square(g);
             n >>= 1;
         }
-        // println!("{:?} {:?}", &self, y);
-        self.multiply(&y);
-        // println!("{:?} {:?}", &self, y);
+        self.multiply(&y, g);
     }
 }
 

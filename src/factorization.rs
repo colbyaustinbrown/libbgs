@@ -15,25 +15,24 @@ pub trait Factored: {
 
 pub trait FactoredElem<G: Factored>: SemigroupElem 
 where Self: SemigroupElem<Group = G> {
-   fn order(&self) -> Factorization {
-        let prime_powers: Vec<(u128, u128)> = (0..self.group().factors().len())
+   fn order(&self, g: &G) -> Factorization {
+        let prime_powers: Vec<(u128, u128)> = (0..g.factors().len())
             .map(|i| {
                 let mut x = self.clone();
-                for j in 0..self.group().factors().len() {
+                for j in 0..g.factors().len() {
                     if j == i { continue; }
-                    x.pow(self.group().factors().factor(j));
+                    x.pow(g.factors().factor(j), g);
                 }
 
                 let mut r = 0;
-                while !x.is_one() {
-                    x.pow(self.group().factors()[i].0);
+                while !x.is_one(g) {
+                    x.pow(g.factors()[i].0, g);
                     r += 1;
                 }
-                (self.group().factors()[i].0, r)
+                (g.factors()[i].0, r)
             })
             .collect();
         Factorization::new(prime_powers)
-        
     }
 }
 
