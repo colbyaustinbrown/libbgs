@@ -2,10 +2,10 @@ use std::marker::PhantomData;
 
 use either::*;
 
-use crate::factorization::*;
-use crate::sylow::*;
-use crate::fp::*;
-use crate::group::*;
+use crate::numbers::factorization::*;
+use crate::numbers::sylow::*;
+use crate::numbers::fp::*;
+use crate::numbers::group::*;
 
 pub trait QuadField: Semigroup + Sized + PartialEq + Eq + std::fmt::Debug 
 where Self: Semigroup {
@@ -249,7 +249,7 @@ impl<'a> SylowDecomposable for QuadFieldExt<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sylow::tests::*;
+    use crate::numbers::sylow::tests::*;
 
     #[test]
     fn one_is_one() {

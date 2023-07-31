@@ -1,28 +1,47 @@
 use std::rc::Rc;
 
-use crate::quad_field::*;
+use crate::numbers::quad_field::*;
 use crate::coord::*;
 
-enum Pos {
+pub enum Pos {
     A,
     B,
     C
 }
 
-struct MarkoffTriple<'a> {
-    fp: Rc<QuadFieldExt<'a>>,
-    a: Coord<'a>,
-    b: Coord<'a>,
-    c: Coord<'a>
+#[derive(Debug)]
+pub struct MarkoffTriple<'a> {
+    f: &'a QuadFieldExt<'a>,
+    a: Rc<Coord<'a>>,
+    b: Rc<Coord<'a>>,
+    c: Rc<Coord<'a>>
 }
 
 impl<'a> MarkoffTriple<'a> {
-    pub fn ord(&'a mut self, pos: Pos) -> u128 {
+    pub fn make(f: &'a Rc<QuadFieldExt<'a>>, a: u128, b: u128, c: u128) -> Self {
+        MarkoffTriple {
+            f,
+            a: Rc::new(Coord::new(a, f)),
+            b: Rc::new(Coord::new(b, f)),
+            c: Rc::new(Coord::new(c, f))
+        }
+    }
+
+    pub fn new(f: &'a Rc<QuadFieldExt<'a>>, a: &'a Rc<Coord>, b: &'a Rc<Coord>, c: &'a Rc<Coord>) -> Self {
+        MarkoffTriple {
+            f,
+            a: Rc::clone(a),
+            b: Rc::clone(b),
+            c: Rc::clone(c)
+        }
+    }
+
+    pub fn ord(&self, pos: Pos) -> u128 {
         match pos {
-            Pos::A => &mut self.a,
-            Pos::B => &mut self.b,
-            Pos::C => &mut self.c
-        }.get_ord(&self.fp).value()
+            Pos::A => &self.a,
+            Pos::B => &self.b,
+            Pos::C => &self.c
+        }.get_ord(&self.f).value()
     }
 }
 

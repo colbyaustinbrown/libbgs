@@ -2,8 +2,8 @@ use std::fmt;
 use std::marker::PhantomData;
 
 use crate::util::*;
-pub use crate::semigroup::*;
-use crate::factorization::*;
+pub use crate::numbers::semigroup::*;
+use crate::numbers::factorization::*;
 
 pub trait SylowDecomposable: Semigroup + Factored {
     fn find_sylow_generator(&self, i: usize) -> Self::Elem;

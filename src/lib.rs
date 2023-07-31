@@ -1,18 +1,12 @@
 #![allow(dead_code)]
-pub mod factorization;
-pub mod quad_field;
+pub mod numbers;
 pub mod util;
-pub mod semigroup;
-pub mod sylow;
-pub mod fp;
-pub mod sylow_factory;
-pub mod group;
 pub mod coord;
 pub mod triple;
 
 #[cfg(test)]
 mod tests {
-    use crate::factorization::*;
+    use crate::numbers::factorization::*;
 
     #[test]
     fn fact_works() {

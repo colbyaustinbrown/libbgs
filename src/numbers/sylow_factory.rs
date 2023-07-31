@@ -1,6 +1,6 @@
-use crate::sylow::*;
+use crate::numbers::sylow::*;
 use crate::util::*;
-use crate::factorization::*;
+use crate::numbers::factorization::*;
 
 pub struct SylowFactory<'a, C: SylowDecomposable> {
     pub decomp: &'a SylowDecomp<'a, C>,
@@ -48,7 +48,7 @@ impl<'a, C: SylowDecomposable> Iterator for SylowFactory<'a, C> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fp::*;
+    use crate::numbers::fp::*;
 
     #[test]
     pub fn test_make_factory() {

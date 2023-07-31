@@ -1,7 +1,7 @@
 use std::ops::Index;
 
 pub use crate::util::*;
-pub use crate::semigroup::*;
+pub use crate::numbers::semigroup::*;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Factorization {

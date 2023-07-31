@@ -1,18 +1,18 @@
 use std::rc::Rc;
 
-use crate::semigroup::*;
+use crate::numbers::semigroup::*;
 use crate::util::long_multiply;
-use crate::sylow::*;
+use crate::numbers::sylow::*;
 use crate::util::*;
-use crate::factorization::*;
-use crate::quad_field::*;
-use crate::group::*;
+use crate::numbers::factorization::*;
+use crate::numbers::quad_field::*;
+use crate::numbers::group::*;
 
 pub type FpStar = Factorization;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FpNum {
-    value: u128
+    pub value: u128
 }
 
 impl FpStar {
@@ -118,8 +118,7 @@ impl GroupElem for FpNum {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::factorization::Factorization;
-    use crate::sylow::tests::*;
+    use crate::numbers::sylow::tests::*;
 
     #[test]
     fn one_is_one() {

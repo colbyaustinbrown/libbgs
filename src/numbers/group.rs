@@ -1,4 +1,4 @@
-use crate::semigroup::*;
+use crate::numbers::semigroup::*;
 
 pub trait Group: Semigroup {}
 
