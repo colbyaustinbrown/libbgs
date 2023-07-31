@@ -28,15 +28,15 @@ where Self: Semigroup {
 
 
 #[derive(PartialEq, Eq, Debug)]
-pub struct QuadFieldExt<'a> {
-    pminusone: &'a FpStar,
+pub struct QuadFieldExt {
+    pminusone: FpStar,
     pplusone: Factorization,
     r: u128
 }
 
-impl<'a> QuadFieldExt<'a> {
-    pub fn pminusone(&self) -> &'a FpStar { 
-        self.pminusone 
+impl QuadFieldExt {
+    pub fn pminusone(&self) -> &FpStar { 
+        &self.pminusone 
     }
     pub fn pplusone(&self) -> &Factorization {
         &self.pplusone
@@ -56,7 +56,7 @@ pub struct QuadNum<F: QuadField> {
     pub a1: u128
 }
 
-pub type QuadNumExt<'a> = QuadNum<QuadFieldExt<'a>>;
+pub type QuadNumExt = QuadNum<QuadFieldExt>;
 
 impl QuadFieldBare {
     pub fn new(p: u128, r: u128) -> QuadFieldBare {
@@ -67,13 +67,13 @@ impl QuadFieldBare {
     }
 }
 
-impl<'a> Semigroup for QuadFieldExt<'a> {
-    type Elem = QuadNum<QuadFieldExt<'a>>;
+impl Semigroup for QuadFieldExt {
+    type Elem = QuadNum<QuadFieldExt>;
 
     fn size(&self) -> u128 {
         self.pplusone.value()
     }
-    fn one(&self) -> QuadNum<QuadFieldExt<'a>> {
+    fn one(&self) -> QuadNum<QuadFieldExt> {
         QuadNum {
             _f: PhantomData,
             a0: 1,
@@ -97,14 +97,14 @@ impl Semigroup for QuadFieldBare {
     }
 }
 
-impl<'a> Factored for QuadFieldExt<'a> {
+impl Factored for QuadFieldExt {
     fn factors(&self) -> &Factorization {
         &self.pplusone
     }
 }
 
-impl<'a> QuadFieldExt<'a> {
-    pub fn new(pminusone: &'a FpStar, pplusone: Factorization, r: u128) -> QuadFieldExt {
+impl QuadFieldExt {
+    pub fn new(pminusone: FpStar, pplusone: Factorization, r: u128) -> QuadFieldExt {
         QuadFieldExt {
             pminusone: pminusone,
             pplusone,
@@ -112,14 +112,14 @@ impl<'a> QuadFieldExt<'a> {
         }
     }
 
-    pub fn make(pminusone: &FpStar, pplusone: Factorization) -> QuadFieldExt {
+    pub fn make(pminusone: FpStar, pplusone: Factorization) -> QuadFieldExt {
         let p = pplusone.value() - 1;
         QuadFieldExt::new(pminusone, pplusone, find_nonresidue(p))
     }
 
     pub fn int_sqrt_either(&self, x: u128) -> Either<QuadNum<QuadFieldExt>, FpNum> {
         let mut x = self.pminusone.from_int(x);
-        let fp = self.pminusone;
+        let fp = &self.pminusone;
         if let Some(y) = x.int_sqrt(fp) {
             return Right(self.pminusone.from_int(y.value()));
         }
@@ -140,15 +140,15 @@ impl<'a> QuadFieldExt<'a> {
     }
 }
 
-impl<'a> QuadField for QuadFieldExt<'a> {
+impl QuadField for QuadFieldExt {
     fn r(&self) -> u128 {
         self.r
     }
 
-    fn change_r(&self, r: u128) -> QuadFieldExt<'a> {
+    fn change_r(&self, r: u128) -> QuadFieldExt {
         QuadFieldExt {
             r: r,
-            pminusone: &self.pminusone,
+            pminusone: self.pminusone.clone(),
             pplusone: self.pplusone.clone()
         }
     }
@@ -222,7 +222,7 @@ where F: QuadField<Elem = Self> {
         self.a1 = (long_multiply(self.a1, a0_old, p) + long_multiply(a0_old, self.a1, p)) % p;
     }
 }
-impl<'a> FactoredElem<QuadFieldExt<'a>> for QuadNum<QuadFieldExt<'a>> {}
+impl FactoredElem<QuadFieldExt> for QuadNum<QuadFieldExt> {}
 
 impl<F: QuadField> PartialEq<u128> for QuadNum<F> {
     fn eq(&self, other: &u128) -> bool {
@@ -230,8 +230,8 @@ impl<F: QuadField> PartialEq<u128> for QuadNum<F> {
     }
 }
 
-impl<'a> SylowDecomposable for QuadFieldExt<'a> {
-    fn find_sylow_generator(&self, i: usize) -> QuadNum<QuadFieldExt<'a>> {
+impl SylowDecomposable for QuadFieldExt {
+    fn find_sylow_generator(&self, i: usize) -> QuadNum<QuadFieldExt> {
         let pow = self.pminusone.value();
         // should be self.p * self.p, but maybe this works?
         (1..self.p() * 2)
@@ -255,7 +255,7 @@ mod tests {
     fn one_is_one() {
         let p7 = Factorization::new(vec![(2,1), (3,1)]);
         let f49 = QuadFieldExt::make(
-            &p7,
+            p7,
             Factorization ::new(vec![(2,3)])
         );
         let one = f49.one();
@@ -266,7 +266,7 @@ mod tests {
     fn calculates_r_as_nonresidue() {
         let p7 = Factorization::new(vec![(2,1), (3,1)]);
         let f49 = QuadFieldExt::make(
-            &p7,
+            p7,
             Factorization ::new(vec![(2,3)])
         );
         for i in 2..f49.p() {
@@ -278,7 +278,7 @@ mod tests {
     fn powers_up() {
         let p7 = Factorization::new(vec![(2,1), (3,1)]);
         let f49 = QuadFieldExt::make(
-            &p7,
+            p7,
             Factorization ::new(vec![(2,3)])
         );
         let mut x = f49.from_ints(3, 4);
@@ -290,7 +290,7 @@ mod tests {
     fn powers_up_big() {
         let fp = Factorization::new(vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]);
         let fp2 = QuadFieldExt::make(
-            &fp,
+            fp,
             Factorization::new(vec![(2, 4), (3, 1), (5, 2), (11, 2), (17, 1), (19, 1), (23, 1), (97, 1), (757, 1), (1453, 1), (8689, 1)])
         );
         let mut x = QuadNum {
@@ -307,7 +307,7 @@ mod tests {
     fn finds_sqrt() {
         let fp = Factorization::new(vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]);
         let fp2 = QuadFieldExt::make(
-            &fp,
+            fp,
             Factorization::new(vec![(2, 4), (3, 1), (5, 2), (11, 2), (17, 1), (19, 1), (23, 1), (97, 1), (757, 1), (1453, 1), (8689, 1)])
         );
         for i in 3..1003 {
@@ -326,7 +326,7 @@ mod tests {
         );
         let f17 = Factorization::new(vec![(2,4)]);
         let f289 = QuadFieldExt::make(
-            &f17,
+            f17,
             pplusone.clone()
         );
         let g = SylowDecomp::new(&f289);
@@ -341,7 +341,7 @@ mod tests {
     fn sylow_finds_generators_big() {
         let fp = Factorization::new(vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]);
         let fp2 = QuadFieldExt::make(
-            &fp,
+            fp,
             Factorization::new(vec![(2, 4), (3, 1), (5, 2), (11, 2), (17, 1), (19, 1), (23, 1), (97, 1), (757, 1), (1453, 1), (8689, 1)])
         );
         let g = SylowDecomp::new(&fp2);

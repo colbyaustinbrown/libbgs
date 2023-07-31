@@ -6,13 +6,13 @@ use crate::numbers::fp::*;
 use crate::numbers::factorization::*;
 
 #[derive(Debug)]
-pub struct Coord<'a> {
+pub struct Coord {
     v: u128,
-    chi: Either<QuadNumExt<'a>, FpNum>
+    chi: Either<QuadNumExt, FpNum>
 }
 
-impl<'a> Coord<'a> {
-    pub fn new(v: u128, fp: &'a QuadFieldExt) -> Coord<'a> {
+impl Coord {
+    pub fn new(v: u128, fp: &QuadFieldExt) -> Coord {
         let disc = intpow(v, 2, fp.p());
         let disc = (disc * disc + fp.p() - 4) % fp.p();
         let chi = match fp.int_sqrt_either(disc) {
@@ -49,7 +49,7 @@ impl<'a> Coord<'a> {
         self.chi().as_ref().either(|l| l.order(fp), |r| r.order(fp.pminusone()))
     }
 
-    pub fn rot(self: &'a Rc<Self>, b: &'a Rc<Coord<'a>>, c: &'a Rc<Coord<'a>>, fp: &'a QuadFieldExt) -> impl Iterator<Item = (Rc<Coord<'a>>, Rc<Coord<'a>>)> + 'a {
+    pub fn rot<'a>(self: &'a Rc<Self>, b: &'a Rc<Coord>, c: &'a Rc<Coord>, fp: &'a QuadFieldExt) -> impl Iterator<Item = (Rc<Coord>, Rc<Coord>)> + 'a {
         std::iter::successors(Some((Rc::clone(b),Rc::clone(c))), move |(y,z)| {
             let (b_,c_) = (Rc::clone(z), Rc::new(Coord::new(3 * self.v() * z.v() - y.v(), fp)));
             if Rc::as_ptr(&b_) == Rc::as_ptr(b) { None } else { Some((b_,c_)) }
@@ -57,12 +57,12 @@ impl<'a> Coord<'a> {
     }
 }
 
-impl<'a> PartialEq for Coord<'a> {
+impl PartialEq for Coord {
     fn eq(&self, other: &Self) -> bool {
         self.v == other.v
     }
 }
-impl<'a> Eq for Coord<'a> {}
+impl Eq for Coord {}
 
 fn either_multiply<F>(a: &mut Either<QuadNum<F>, FpNum>, b: &Either<QuadNum<F>, FpNum>, fp2: &F, fp: &FpStar) 
 where F: QuadField<Elem = QuadNum<F>> {

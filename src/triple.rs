@@ -11,14 +11,14 @@ pub enum Pos {
 
 #[derive(Debug)]
 pub struct MarkoffTriple<'a> {
-    f: &'a QuadFieldExt<'a>,
-    a: Rc<Coord<'a>>,
-    b: Rc<Coord<'a>>,
-    c: Rc<Coord<'a>>
+    f: &'a QuadFieldExt,
+    a: Rc<Coord>,
+    b: Rc<Coord>,
+    c: Rc<Coord>
 }
 
 impl<'a> MarkoffTriple<'a> {
-    pub fn make(f: &'a Rc<QuadFieldExt<'a>>, a: u128, b: u128, c: u128) -> Self {
+    pub fn make(f: &'a Rc<QuadFieldExt>, a: u128, b: u128, c: u128) -> Self {
         MarkoffTriple {
             f,
             a: Rc::new(Coord::new(a, f)),
@@ -27,7 +27,7 @@ impl<'a> MarkoffTriple<'a> {
         }
     }
 
-    pub fn new(f: &'a Rc<QuadFieldExt<'a>>, a: &'a Rc<Coord>, b: &'a Rc<Coord>, c: &'a Rc<Coord>) -> Self {
+    pub fn new(f: &'a Rc<QuadFieldExt>, a: &Rc<Coord>, b: &Rc<Coord>, c: &Rc<Coord>) -> Self {
         MarkoffTriple {
             f,
             a: Rc::clone(a),
