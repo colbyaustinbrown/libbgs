@@ -37,8 +37,11 @@ impl FpNum {
     }
 
     pub fn int_sqrt(&self, fp: &FpStar) -> Option<FpNum> {
-        // Cipolla's algorithm
+        if self.value == 0 { 
+            return Some(fp.from_int(0));
+        }
 
+        // Cipolla's algorithm
         let p = fp.p();
         let l = legendre(self.value, fp.p());
         if l == 0 { 
