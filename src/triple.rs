@@ -18,7 +18,7 @@ pub struct MarkoffTriple {
 }
 
 impl MarkoffTriple {
-    pub fn make(a: u128, b: u128, c: u128, f: &QuadFieldExt) -> Self {
+    pub fn make(a: u128, b: u128, c: u128, f: &QuadField) -> Self {
         MarkoffTriple {
             a: Rc::new(Coord::new(a, f)),
             b: Rc::new(Coord::new(b, f)),
@@ -34,7 +34,7 @@ impl MarkoffTriple {
         }
     }
 
-    pub fn ord(&self, pos: Pos, f: &QuadFieldExt) -> u128 {
+    pub fn ord(&self, pos: Pos, f: &QuadField) -> u128 {
         match pos {
             Pos::A => &self.a,
             Pos::B => &self.b,
@@ -42,7 +42,7 @@ impl MarkoffTriple {
         }.get_ord(f).value()
     }
 
-    pub fn get_from_ab(x: &Rc<Coord>, y: &Rc<Coord>, f: &QuadFieldExt) -> Vec<Self> {
+    pub fn get_from_ab(x: &Rc<Coord>, y: &Rc<Coord>, f: &QuadField) -> Vec<Self> {
         let a = x.v();
         let b = y.v();
         let m = f.p();

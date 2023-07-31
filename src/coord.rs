@@ -8,11 +8,11 @@ use crate::numbers::factorization::*;
 #[derive(Debug)]
 pub struct Coord {
     v: u128,
-    chi: Either<QuadNumExt, FpNum>
+    chi: Either<QuadNum, FpNum>
 }
 
 impl Coord {
-    pub fn new(v: u128, fp: &QuadFieldExt) -> Coord {
+    pub fn new(v: u128, fp: &QuadField) -> Coord {
         let disc = intpow(v, 2, fp.p());
         let disc = (disc * disc + fp.p() - 4) % fp.p();
         let chi = match fp.int_sqrt_either(disc) {
@@ -41,15 +41,15 @@ impl Coord {
         self.v 
     }
 
-    pub fn chi(&self) -> &Either<QuadNumExt, FpNum> {
+    pub fn chi(&self) -> &Either<QuadNum, FpNum> {
         &self.chi
     }
 
-    pub fn get_ord(&self, fp: &QuadFieldExt) -> Factorization {
+    pub fn get_ord(&self, fp: &QuadField) -> Factorization {
         self.chi().as_ref().either(|l| l.order(fp), |r| r.order(fp.pminusone()))
     }
 
-    pub fn rot<'a>(self: &'a Rc<Self>, b: &'a Rc<Coord>, c: &'a Rc<Coord>, fp: &'a QuadFieldExt) -> impl Iterator<Item = (Rc<Coord>, Rc<Coord>)> + 'a {
+    pub fn rot<'a>(self: &'a Rc<Self>, b: &'a Rc<Coord>, c: &'a Rc<Coord>, fp: &'a QuadField) -> impl Iterator<Item = (Rc<Coord>, Rc<Coord>)> + 'a {
         std::iter::successors(Some((Rc::clone(b),Rc::clone(c))), move |(y,z)| {
             let (b_,c_) = (Rc::clone(z), Rc::new(Coord::new(3 * self.v() * z.v() - y.v(), fp)));
             if Rc::as_ptr(&b_) == Rc::as_ptr(b) { None } else { Some((b_,c_)) }
@@ -64,18 +64,17 @@ impl PartialEq for Coord {
 }
 impl Eq for Coord {}
 
-fn either_multiply<F>(a: &mut Either<QuadNum<F>, FpNum>, b: &Either<QuadNum<F>, FpNum>, fp2: &F, fp: &FpStar) 
-where F: QuadField<Elem = QuadNum<F>> {
+fn either_multiply(a: &mut Either<QuadNum, FpNum>, b: &Either<QuadNum, FpNum>, fp2: &QuadField, fp: &FpStar) {
     match (a, b) {
         (Left(x), Left(y)) => {
             x.multiply(y, fp2);
         },
         (Left(x), Right(y)) => {
-            x.multiply(&fp2.from_ints(y.value(), 0), fp2); 
+            x.multiply(&QuadNum::from_ints(y.value(), 0), fp2); 
         },
         (r @ Right(_), Left(y)) => {
             let v = r.clone().unwrap_right().value();
-            let mut res = fp2.from_ints(v, 0);
+            let mut res = QuadNum::from_ints(v, 0);
             res.multiply(y, fp2);
             *r = Left(res);
         },

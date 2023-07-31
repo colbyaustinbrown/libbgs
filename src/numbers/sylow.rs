@@ -27,7 +27,7 @@ pub struct SylowDecomp<'a, C: SylowDecomposable> {
 
 #[derive(Eq,PartialEq)]
 pub struct SylowElem<'a, C: SylowDecomposable> {
-    _group: &'a PhantomData<C>,
+    _group: PhantomData<fn(&'a C) -> &'a C>,
     pub coords: Vec<u128>
 }
 
@@ -60,7 +60,7 @@ impl<'a, C: SylowDecomposable> Semigroup for SylowDecomp<'a, C> {
 
     fn one(&self) -> SylowElem<'a, C> {
         SylowElem {
-            _group: &PhantomData,
+            _group: PhantomData,
             coords: vec![0; self.factors().len()]
         }
     }
@@ -81,7 +81,7 @@ impl<'a, C: SylowDecomposable> SylowDecomposable for SylowDecomp<'a, C> {
         let mut coords = vec![0 ; self.factors().len()];
         coords[i] = 1;
         SylowElem {
-            _group: &PhantomData,
+            _group: PhantomData,
             coords
         }
     }
@@ -90,7 +90,7 @@ impl<'a, C: SylowDecomposable> SylowDecomposable for SylowDecomp<'a, C> {
 impl<'a, C: SylowDecomposable> SylowElem<'a, C> {
     pub fn new(coords: Vec<u128>) -> SylowElem<'a, C> {
         SylowElem {
-            _group: &PhantomData,
+            _group: PhantomData,
             coords
         }
     }
@@ -105,7 +105,7 @@ impl<'a, C: SylowDecomposable> SylowElem<'a, C> {
             })
     }
 
-    pub fn order(&self, g: &SylowDecomp<C>) -> Factorization {
+    pub fn order(&self, g: &'a SylowDecomp<C>) -> Factorization {
         let prime_powers: Vec<(u128, u128)> = (0..g.len())
             .map(|i| {
                 let mut x = self.clone();
@@ -151,7 +151,7 @@ where C: SylowDecomposable + 'a {
 impl<'a, C: SylowDecomposable> Clone for SylowElem<'a, C> {
     fn clone(&self) -> Self {
         SylowElem {
-            _group: &PhantomData,
+            _group: PhantomData,
             coords: self.coords.clone()
         }
     }

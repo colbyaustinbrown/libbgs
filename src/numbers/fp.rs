@@ -1,11 +1,9 @@
-use std::rc::Rc;
-
 use crate::numbers::semigroup::*;
 use crate::util::long_multiply;
 use crate::numbers::sylow::*;
 use crate::util::*;
 use crate::numbers::factorization::*;
-use crate::numbers::quad_field::*;
+use crate::numbers::quad_field_small::*;
 use crate::numbers::group::*;
 
 pub type FpStar = Factorization;
@@ -56,8 +54,8 @@ impl FpNum {
             if legendre(r, p) == (p - 1) { break (a,r); }
             i += 1;
         };
-        let fp2 = Rc::new(QuadFieldBare::new(p, r));
-        let mut x = fp2.from_ints(a, 1);
+        let fp2 = QuadFieldSml::new(p, r);
+        let mut x = QuadNumSml::from_ints(a, 1);
         x.pow((p + 1) / 2, &fp2);
         Some(fp.from_int(x.a0))
     }
