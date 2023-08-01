@@ -50,7 +50,7 @@ impl Factored for QuadField {
 impl QuadField {
     pub fn new(pminusone: FpStar, pplusone: Factorization, r: u128) -> QuadField {
         QuadField {
-            pminusone: pminusone,
+            pminusone,
             pplusone,
             r
         }
@@ -92,7 +92,7 @@ impl QuadField {
 
     pub fn change_r(&self, r: u128) -> QuadField {
         QuadField {
-            r: r,
+            r,
             pminusone: self.pminusone.clone(),
             pplusone: self.pplusone.clone()
         }
@@ -150,7 +150,7 @@ impl SylowDecomposable for QuadField {
             .map(|i| {
                 let j = standard_affine_shift(self.p() * 2, i);
                 let mut p = self.steinitz(j);
-                p.pow(pow, &self);
+                p.pow(pow, self);
                 p
             })
             .find_map(|c| self.is_sylow_generator(&c, i))

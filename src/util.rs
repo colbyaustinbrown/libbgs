@@ -26,7 +26,7 @@ pub fn intpow(mut x: u128, mut n: u128, m: u128) -> u128 {
 pub fn standard_affine_shift(q: u128, i: u128) -> u128 {
     let mut m = 4*q / 5;
     while gcd(m, q) != 1 {
-        m = m - 1;
+        m -= 1;
     }
     let a = 2*q / 3;
     (m * i + a) % q

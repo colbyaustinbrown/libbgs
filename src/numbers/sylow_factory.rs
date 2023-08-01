@@ -14,7 +14,7 @@ impl<'a, C: SylowDecomposable> SylowFactory<'a, C> {
         let (p,d) = decomp.factors()[i];
         let step = intpow(p, d - 1, 0);
         SylowFactory {
-            decomp: decomp,
+            decomp,
             i,
             stack: vec![(0,step,r)]
         }

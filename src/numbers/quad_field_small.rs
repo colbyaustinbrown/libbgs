@@ -28,7 +28,7 @@ impl QuadFieldSml {
     fn change_r(&self, r: u128) -> QuadFieldSml {
         QuadFieldSml {
             p: self.p,
-            r: r
+            r
         }
     }
 
