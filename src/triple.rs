@@ -12,9 +12,9 @@ pub enum Pos {
 
 #[derive(Debug)]
 pub struct MarkoffTriple {
-    a: Rc<Coord>,
-    b: Rc<Coord>,
-    c: Rc<Coord>
+    pub a: Rc<Coord>,
+    pub b: Rc<Coord>,
+    pub c: Rc<Coord>
 }
 
 impl MarkoffTriple {
@@ -40,6 +40,18 @@ impl MarkoffTriple {
             Pos::B => &self.b,
             Pos::C => &self.c
         }.get_ord(f).value()
+    }
+
+    pub fn rot<'a>(&'a self, pos: Pos, f: &'a QuadField) -> impl Iterator<Item = MarkoffTriple> + 'a {
+        match pos {
+            Pos::A => self.a.rot(&self.b, &self.c, f),
+            Pos::B => self.b.rot(&self.a, &self.c, f),
+            Pos::C => self.c.rot(&self.a, &self.b, f)
+        }.map(move |(x,y)| match pos {
+            Pos::A => MarkoffTriple { a: Rc::clone(&self.a), b: x, c: y },
+            Pos::B => MarkoffTriple { a: x, b: Rc::clone(&self.b), c: y },
+            Pos::C => MarkoffTriple { a: x, b: y, c: Rc::clone(&self.c) }
+        })
     }
 
     pub fn get_from_ab(x: &Rc<Coord>, y: &Rc<Coord>, f: &QuadField) -> Vec<Self> {

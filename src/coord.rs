@@ -13,11 +13,12 @@ pub struct Coord {
 
 impl Coord {
     pub fn new(v: u128, fp: &QuadField) -> Coord {
-        let disc = intpow(v, 2, fp.p());
-        let disc = (disc * disc + fp.p() - 4) % fp.p();
+        let v3 = long_multiply(v, 3, fp.p());
+        let disc = intpow(v3, 2, fp.p());
+        let disc = (disc + fp.p() - 4) % fp.p();
         let chi = match fp.int_sqrt_either(disc) {
             Left(mut x) => {
-                x.a0 += v;
+                x.a0 += v3;
                 if x.a0 % 2 == 1 { x.a0 += fp.p(); }
                 if x.a1 % 2 == 1 { x.a1 += fp.p(); }
                 x.a0 /= 2;
@@ -25,14 +26,14 @@ impl Coord {
                 Left(x)
             },
             Right(mut x) => {
-                x.value += v;
+                x.value += v3;
                 if x.value % 2 == 1 { x.value += fp.p(); } 
                 x.value /= 2;
                 Right(x)
             }
         };
         Coord {
-            v,
+            v: v % fp.p(),
             chi
         }
     }
@@ -51,8 +52,8 @@ impl Coord {
 
     pub fn rot<'a>(self: &'a Rc<Self>, b: &'a Rc<Coord>, c: &'a Rc<Coord>, fp: &'a QuadField) -> impl Iterator<Item = (Rc<Coord>, Rc<Coord>)> + 'a {
         std::iter::successors(Some((Rc::clone(b),Rc::clone(c))), move |(y,z)| {
-            let (b_,c_) = (Rc::clone(z), Rc::new(Coord::new(3 * self.v() * z.v() - y.v(), fp)));
-            if Rc::as_ptr(&b_) == Rc::as_ptr(b) { None } else { Some((b_,c_)) }
+            let (b_,c_) = (Rc::clone(z), Rc::new(Coord::new(3 * self.v() * z.v() + fp.p() - y.v(), fp)));
+            if &b_ == b && &c_ == c { None } else { Some((b_,c_)) }
         })
     }
 }
