@@ -4,6 +4,7 @@ use std::marker::PhantomData;
 use crate::util::*;
 pub use crate::numbers::semigroup::*;
 use crate::numbers::factorization::*;
+use crate::numbers::group::*;
 
 pub trait SylowDecomposable: Semigroup + Factored {
     fn find_sylow_generator(&self, i: usize) -> Self::Elem;
@@ -66,6 +67,8 @@ impl<'a, C: SylowDecomposable> Semigroup for SylowDecomp<'a, C> {
         self.parent.size()
     }
 }
+
+impl<'a, C: SylowDecomposable> Group for SylowDecomp<'a, C> {}
 
 impl<'a, C: SylowDecomposable> Factored for SylowDecomp<'a, C> {
     fn factors(&self) -> &Factorization {
@@ -141,6 +144,14 @@ where C: SylowDecomposable + 'a {
     fn square(&mut self, g: &SylowDecomp<C>) {
         for i in 0..g.generators.len() {
             self.coords[i] = self.coords[i] * 2 % g.factors().factor(i);
+        }
+    }
+}
+
+impl<'a, C: SylowDecomposable> GroupElem for SylowElem<'a, C> {
+    fn invert(&mut self, g: &Self::Group) {
+        for i in 0..self.coords.len() {
+            self.coords[i] = g.factors().factor(i) - self.coords[i];
         }
     }
 }

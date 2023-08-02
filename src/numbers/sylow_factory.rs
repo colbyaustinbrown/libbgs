@@ -1,22 +1,53 @@
+use itertools::*;
+
 use crate::numbers::sylow::*;
 use crate::util::*;
 use crate::numbers::factorization::*;
 
-pub struct SylowFactory<'a, C: SylowDecomposable> {
-    pub decomp: &'a SylowDecomp<'a, C>,
-    pub i: usize,
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum Mode {
+    EQ,
+    LEQ
+}
 
-    stack: Vec<(u128, u128, usize)>
+pub fn sylow_factory<'a, C: SylowDecomposable>(decomp: &'a SylowDecomp<C>, rs: &[u128], mode: Mode) -> impl Iterator<Item = SylowElem<'a, C>> {
+    rs.iter()
+        .zip(decomp.factors().as_array())
+        .enumerate()
+        .filter(|(_, (r, _))| **r > 0)
+        .map(|(i, (r, (p, d)))| SylowFactory {
+            decomp,
+            i,
+            r: *r,
+            stack: vec![(0, intpow(*p, *d - 1, 0), *r)],
+            mode
+        })
+        .multi_cartesian_product()
+        .map(|x| {
+            let mut res = decomp.one();
+            x.iter().for_each(|e| { res.multiply(e, decomp); });
+            res
+        })
+}
+
+pub struct SylowFactory<'a, C: SylowDecomposable> {
+    decomp: &'a SylowDecomp<'a, C>,
+    i: usize,
+    r: u128,
+    mode: Mode,
+
+    stack: Vec<(u128, u128, u128)>
 }
 
 impl<'a, C: SylowDecomposable> SylowFactory<'a, C> {
-    pub fn new(decomp: &'a SylowDecomp<C>, i: usize, r: usize) -> SylowFactory<'a, C> {
+    pub fn new(decomp: &'a SylowDecomp<'a, C>, i: usize, r: u128) -> SylowFactory<'a, C>{
         let (p,d) = decomp.factors()[i];
-        let step = intpow(p, d - 1, 0);
         SylowFactory {
             decomp,
             i,
-            stack: vec![(0,step,r)]
+            r,
+            mode: Mode::EQ,
+            stack: vec![(0, intpow(p, d - 1, 0), r)]
         }
     }
 }
@@ -31,17 +62,28 @@ impl<'a, C: SylowDecomposable> Iterator for SylowFactory<'a, C> {
 
             let p = self.decomp.factors()[self.i].0;
             let (x, step, r) = self.stack.remove(l - 1);
-            if r == 0 {
-                let mut coords = vec![0 ; self.decomp.factors().len()];
-                coords[self.i] = x;
-                return Some(SylowElem::new(coords));
-            } else {
+
+            if r > 0 {
                 for i in 1..p {
                     self.stack.push((x + (p - i) * step, step / p, r - 1)); 
                 }
                 if r != 1 { self.stack.push((x, step / p, r - 1)); }
             }
+            if self.mode == Mode::LEQ || r == 0 {
+                let mut coords = vec![0 ; self.decomp.factors().len()];
+                coords[self.i] = x;
+                return Some(SylowElem::new(coords));
+            }
         }
+    }
+}
+
+impl<'a, C: SylowDecomposable> Clone for SylowFactory<'a, C> {
+    fn clone(&self) -> Self {
+        // TODO: edit the lane constructor to allow for proper copying of the mode
+        let mut res = SylowFactory::new(self.decomp, self.i, self.r);
+        res.mode = self.mode;
+        res
     }
 }
 

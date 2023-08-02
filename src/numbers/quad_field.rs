@@ -111,6 +111,11 @@ impl QuadNum {
     pub fn from_ints(a0: u128, a1: u128) -> Self {
         QuadNum { a0, a1 }
     }
+
+    pub fn add(&mut self, other: QuadNum, f: &QuadField) {
+        self.a0 = (self.a0 + other.a0) % f.p();
+        self.a1 = (self.a1 + other.a1) % f.p();
+    }
 }
 
 impl SemigroupElem for QuadNum {

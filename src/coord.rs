@@ -38,6 +38,21 @@ impl Coord {
         }
     }
 
+    pub fn from_chi(chis: Either<(QuadNum, QuadNum), (FpNum, FpNum)>, fp: &QuadField) -> Coord {
+        Coord {
+            v: chis.clone().either(|mut l| {
+                l.0.add(l.1, fp);
+                l.0.a0
+            }, |mut r| {
+                r.0.value = (r.0.value + r.1.value) % fp.p();
+                r.0.value
+            }),
+            chi: chis
+                .map_left(|x| x.0)
+                .map_right(|x| x.0)
+        }
+    }
+
     pub fn v(&self) -> u128 {
         self.v 
     }
@@ -52,7 +67,9 @@ impl Coord {
 
     pub fn rot<'a>(self: &'a Rc<Self>, b: &'a Rc<Coord>, c: &'a Rc<Coord>, fp: &'a QuadField) -> impl Iterator<Item = (Rc<Coord>, Rc<Coord>)> + 'a {
         std::iter::successors(Some((Rc::clone(b),Rc::clone(c))), move |(y,z)| {
-            let (b_,c_) = (Rc::clone(z), Rc::new(Coord::new(3 * self.v() * z.v() + fp.p() - y.v(), fp)));
+            let tmp = long_multiply(3, self.v(), fp.p());
+            let tmp = long_multiply(tmp, z.v(), fp.p());
+            let (b_,c_) = (Rc::clone(z), Rc::new(Coord::new(tmp + fp.p() - y.v(), fp)));
             if &b_ == b && &c_ == c { None } else { Some((b_,c_)) }
         })
     }

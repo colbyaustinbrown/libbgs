@@ -1,17 +1,17 @@
+use std::rc::Rc;
+use either::Either::*;
+
 use libbgs::triple::*;
 use libbgs::numbers::quad_field::*;
 use libbgs::numbers::factorization::*;
 use libbgs::numbers::sylow::*;
 use libbgs::numbers::sylow_factory::*;
+use libbgs::numbers::group::*;
+use libbgs::coord::*;
 
 fn main() {
-    let fp = Factorization::new(vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]);
-    let fp2 = QuadField::make(
-        fp.clone(),
-        Factorization::new(vec![(2, 4), (3, 1), (5, 2), (11, 2), (17, 1), (19, 1), (23, 1), (97, 1), (757, 1), (1453, 1), (8689, 1)])
-    );
-    // let p = 13;
     /*
+    let p = 13;
     let fp = Factorization::new(vec![(2, 2), (3, 1)]);
     let fp2 = QuadField::make(
         fp,
@@ -30,11 +30,21 @@ fn main() {
         }
     }
     */
+    let fp = Factorization::new(vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]);
+    let fp2 = QuadField::make(
+        fp.clone(),
+        Factorization::new(vec![(2, 4), (3, 1), (5, 2), (11, 2), (17, 1), (19, 1), (23, 1), (97, 1), (757, 1), (1453, 1), (8689, 1)])
+    );
+    println!("p is {}", fp2.p());
     let decomp = SylowDecomp::new(&fp);
-    let factory = SylowFactory::new(&decomp, 1, 1);
-    for a in factory.map(|v| v.to_product(&decomp)) {
-        println!("a is {a:?}");
-        let x = MarkoffTriple::make(a.value, 1, 1, &fp2);
-        println!("ord is {}", x.ord(Pos::A, &fp2));
+    let factory = sylow_factory(&decomp, &vec![1, 1, 1, 0, 0, 0, 0], Mode::LEQ);
+    let mut count = 0;
+    for y in factory {
+        let mut yin = y.clone();
+        yin.invert(&decomp);
+        let a = Coord::from_chi(Right((y.to_product(&decomp), yin.to_product(&decomp))), &fp2);
+        println!("{} has order {}", a.v(), a.get_ord(&fp2).value());
+        count += 1;
     }
+    println!("total: {count}");
 }
