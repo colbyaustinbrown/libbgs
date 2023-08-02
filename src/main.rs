@@ -1,4 +1,3 @@
-use std::rc::Rc;
 use either::Either::*;
 
 use libbgs::triple::*;
@@ -37,7 +36,8 @@ fn main() {
     );
     println!("p is {}", fp2.p());
     let decomp = SylowDecomp::new(&fp);
-    let factory = sylow_factory(&decomp, &vec![1, 1, 1, 0, 0, 0, 0], Mode::LEQ);
+    //let factory = sylow_factory(&decomp, &vec![1, 1, 1, 0, 0, 0, 0], Mode::LEQ);
+    let factory = SylowFactory::new(&decomp, 3, 1, flags::NO_UPPER_HALF);
     let mut count = 0;
     for y in factory {
         let mut yin = y.clone();
