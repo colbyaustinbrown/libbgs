@@ -3,99 +3,91 @@ use crate::util::*;
 use crate::numbers::factorization::*;
 
 pub mod flags {
-    pub const NONE: u8 = 0b0;
-    pub const NO_UPPER_HALF: u8 = 0b1;
+    pub const NONE: u8 = 0x01;
+    pub const NO_UPPER_HALF: u8 = 0x02;
 }
 
-/*
-pub fn sylow_factory<'a, C: SylowDecomposable>(decomp: &'a SylowDecomp<C>, rs: &[u128], mode: Mode) -> impl Iterator<Item = SylowElem<'a, C>> {
-    rs.iter()
-        .zip(decomp.factors().as_array())
-        .enumerate()
-        .filter(|(_, (r, _))| **r > 0)
-        .map(|(i, (r, (p, d)))| SylowFactory {
-            decomp,
-            i,
-            r: *r,
-            stack: vec![(0, intpow(*p, *d - 1, 0), *r)],
-            mode
-        })
-        .multi_cartesian_product()
-        .map(|x| {
-            let mut res = decomp.one();
-            x.iter().for_each(|e| { res.multiply(e, decomp); });
-            res
-        })
-}
-*/
-
-struct Gear {
+#[derive(Debug)]
+struct Gear<'a, C: SylowDecomposable + std::fmt::Debug> {
     i: usize,
-    coord: u128,
+    res: SylowElem<'a, C>,
     step: u128,
     r: u128,
-    first: bool
+    is_fresh: bool
 }
 
-pub struct SylowFactory<'a, C: SylowDecomposable> {
+pub struct SylowFactory<'a, C: SylowDecomposable + std::fmt::Debug> {
     decomp: &'a SylowDecomp<'a, C>,
     mode: u8,
-
-    stack: Vec<Gear>
+    pows: Vec<u128>,
+    stack: Vec<Gear<'a, C>>
 }
 
-impl<'a, C: SylowDecomposable> SylowFactory<'a, C> {
-    pub fn new(decomp: &'a SylowDecomp<'a, C>, i: usize, r: u128, mode: u8) -> SylowFactory<'a, C>{
-        let (p,d) = decomp.factors()[i];
+impl<'a, C: SylowDecomposable + std::fmt::Debug> SylowFactory<'a, C> {
+    pub fn new(decomp: &'a SylowDecomp<'a, C>, pows: Vec<u128>, mode: u8) -> SylowFactory<'a, C>{
+        let (p,d) = decomp.factors()[0];
+        let first_nonzero = pows.iter()
+            .enumerate()
+            .find_map(|(i, r)| if *r > 0 { Some(i) } else { None })
+            .unwrap_or(0);
         SylowFactory {
             decomp,
             mode,
             stack: vec![Gear {
-                i,
-                coord: 0, 
+                i: first_nonzero,
+                res: decomp.one(),
                 step: intpow(p, d - 1, 0), 
-                r,
-                first: true
-            }]
+                r: pows[first_nonzero],
+                is_fresh: true
+            }],
+            pows
         }
     }
 }
 
-impl<'a, C: SylowDecomposable> Iterator for SylowFactory<'a, C> {
+impl<'a, C: SylowDecomposable + std::fmt::Debug> Iterator for SylowFactory<'a, C> {
     type Item = SylowElem<'a, C>;
 
     fn next(&mut self) -> Option<SylowElem<'a, C>> {
         loop {
-            let l = self.stack.len();
-            if l == 0 { return None; }
-
-            let gear = self.stack.remove(l - 1);
-            let p = self.decomp.factors()[gear.i].0;
+            let Some(mut gear) = self.stack.pop() else { return None; };
+            let (p,_) = self.decomp.factors()[gear.i];
+            let fact = self.decomp.factors().factor(gear.i);
 
             if gear.r > 0 {
-                for j in 1..(p + 1) {
-                    if gear.r == 1 && j == p + 1 { continue; }
+                let start = if gear.r > 1 { 0 } else { 1 };
+                for i in start..p { 
+                    let mut res = gear.res.clone();
+                    res.coords[gear.i] += i * gear.step;
 
-                    let coord = gear.coord + (p - j) * gear.step;
-                    if self.mode & flags::NO_UPPER_HALF != 0 {
-                        if coord > self.decomp.factors().factor(gear.i) / 2 {
-                                continue;
-                        }
+                    if self.mode & flags::NO_UPPER_HALF != 0
+                        && gear.is_fresh 
+                        && res.coords[gear.i] > fact / 2 { 
+                        break; 
                     }
 
                     self.stack.push(Gear {
                         i: gear.i,
-                        coord: gear.coord + (p - j) * gear.step, 
-                        step: gear.step / p, 
+                        res,
+                        step: gear.step / p,
                         r: gear.r - 1,
-                        first: true
-                    }); 
+                        is_fresh: gear.is_fresh
+                    });
                 }
-            }
-            if gear.r == 0 {
-                let mut coords = vec![0 ; self.decomp.factors().len()];
-                coords[gear.i] = gear.coord;
-                return Some(SylowElem::new(coords));
+            } else {
+                gear.i += 1;
+
+                if gear.i == self.decomp.factors().len() {
+                    // println!("gear is {:?}", gear);
+                    return Some(gear.res);
+                }
+
+                let (p,d) = self.decomp.factors()[gear.i];
+
+                gear.step = intpow(p, d - 1, 0);
+                gear.r = self.pows[gear.i];
+                gear.is_fresh = false;
+                self.stack.push(gear);
             }
         }
     }

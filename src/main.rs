@@ -1,6 +1,5 @@
 use either::Either::*;
 
-use libbgs::triple::*;
 use libbgs::numbers::quad_field::*;
 use libbgs::numbers::factorization::*;
 use libbgs::numbers::sylow::*;
@@ -37,10 +36,11 @@ fn main() {
     println!("p is {}", fp2.p());
     let decomp = SylowDecomp::new(&fp);
     //let factory = sylow_factory(&decomp, &vec![1, 1, 1, 0, 0, 0, 0], Mode::LEQ);
-    let factory = SylowFactory::new(&decomp, 3, 1, flags::NO_UPPER_HALF);
+    let factory = SylowFactory::new(&decomp, vec![0, 1, 1, 1, 0, 0, 0], flags::NO_UPPER_HALF);
     let mut count = 0;
     for y in factory {
         let mut yin = y.clone();
+        // println!("{:?}", y.coords);
         yin.invert(&decomp);
         let a = Coord::from_chi(Right((y.to_product(&decomp), yin.to_product(&decomp))), &fp2);
         println!("{} has order {}", a.v(), a.get_ord(&fp2).value());
