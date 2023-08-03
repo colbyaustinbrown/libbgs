@@ -25,11 +25,11 @@ pub struct SylowFactory<'a, C: SylowDecomposable + std::fmt::Debug> {
 
 impl<'a, C: SylowDecomposable + std::fmt::Debug> SylowFactory<'a, C> {
     pub fn new(decomp: &'a SylowDecomp<'a, C>, pows: Vec<u128>, mode: u8) -> SylowFactory<'a, C>{
-        let (p,d) = decomp.factors()[0];
         let first_nonzero = pows.iter()
             .enumerate()
             .find_map(|(i, r)| if *r > 0 { Some(i) } else { None })
             .unwrap_or(0);
+        let (p,d) = decomp.factors()[first_nonzero];
         SylowFactory {
             decomp,
             mode,
@@ -102,7 +102,7 @@ mod tests {
     pub fn test_make_factory() {
         let fp = Factorization::new(vec![(2, 1), (3, 1)]);
         let g = SylowDecomp::new(&fp);
-        let mut factory = SylowFactory::new(&g, 0, 1);
+        let mut factory = SylowFactory::new(&g, vec![1, 0], flags::NONE);
         assert_eq!(factory.next().map(|s| s.to_product(&g).value()), Some(6));
         assert_eq!(factory.next(), None);
     }
@@ -111,7 +111,7 @@ mod tests {
     pub fn test_generates_small() {
         let fp = Factorization::new(vec![(2, 2), (3, 1), (5, 1)]);
         let g = SylowDecomp::new(&fp);
-        let factory = SylowFactory::new(&g, 0, 1);
+        let factory = SylowFactory::new(&g, vec![1, 0, 0], flags::NONE);
         let res: Vec<SylowElem<FpStar>> = factory.collect();
         assert_eq!(res.len(), 1);
         let mut x = res[0].clone();
@@ -119,7 +119,7 @@ mod tests {
         x.pow(2, &g);
         assert!(x.is_one(&g));
 
-        let factory = SylowFactory::new(&g, 0, 2);
+        let factory = SylowFactory::new(&g, vec![2, 0, 0], flags::NONE);
         let mut count = 0;
         for mut x in factory {
             count += 1;
@@ -132,7 +132,7 @@ mod tests {
         }
         assert_eq!(count, 2);
 
-        let factory = SylowFactory::new(&g, 1, 1);
+        let factory = SylowFactory::new(&g, vec![0, 1, 0], flags::NONE);
         let res: Vec<SylowElem<FpStar>> = factory.collect();
         assert_eq!(res.len(), 2);
     }
@@ -142,15 +142,31 @@ mod tests {
         let fp = Factorization::new(vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]);
         let g = SylowDecomp::new(&fp);
 
-        let factory = SylowFactory::new(&g, 3, 2);
+        let factory = SylowFactory::new(&g, vec![0, 0, 0, 2, 0, 0, 0], flags::NONE);
         let res: Vec<SylowElem<FpStar>> = factory.collect();
         assert_eq!(res.len(), 29 * 29 - 29);
 
-        let mut factory = SylowFactory::new(&g, 5, 1);
+        let mut factory = SylowFactory::new(&g, vec![0, 0, 0, 0, 0, 1, 0], flags::NONE);
         let mut x = factory.next();
         assert_eq!(x.as_ref().map(|a| a.is_one(&g)), Some(false));
         x.as_mut().map(|a| {a.pow(705737, &g); a});
         assert_eq!(x.map(|a| a.is_one(&g)), Some(true));
+    }
+
+    #[test]
+    pub fn test_skips_upper_half() {
+        let fp = Factorization::new(vec![(2,1), (3,3), (5,1)]);
+        let g = SylowDecomp::new(&fp);
+
+        let factory_all = SylowFactory::new(&g, vec![0, 2, 1], flags::NONE);
+        let res: Vec<SylowElem<FpStar>> = factory_all.collect();
+        println!("{res:?}");
+        assert_eq!(res.len(), 24);
+
+        let factory_half = SylowFactory::new(&g, vec![0, 2, 1], flags::NO_UPPER_HALF);
+        let res: Vec<SylowElem<FpStar>> = factory_half.collect();
+        println!("{res:?}");
+        assert_eq!(res.len(), 12);
     }
 }
 
