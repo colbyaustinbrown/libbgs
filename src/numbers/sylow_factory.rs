@@ -5,6 +5,7 @@ use crate::numbers::factorization::*;
 pub mod flags {
     pub const NONE: u8 = 0x01;
     pub const NO_UPPER_HALF: u8 = 0x02;
+    pub const LEQ: u8 = 0x04;
 }
 
 #[derive(Debug)]
@@ -13,7 +14,8 @@ struct Gear<'a, C: SylowDecomposable + std::fmt::Debug> {
     res: SylowElem<'a, C>,
     step: u128,
     r: u128,
-    is_fresh: bool
+    block_upper: bool,
+    has_nonzero: bool
 }
 
 pub struct SylowFactory<'a, C: SylowDecomposable + std::fmt::Debug> {
@@ -38,7 +40,8 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> SylowFactory<'a, C> {
                 res: decomp.one(),
                 step: intpow(p, d - 1, 0), 
                 r: pows[first_nonzero],
-                is_fresh: true
+                block_upper: mode & flags::NO_UPPER_HALF != 0,
+                has_nonzero: false
             }],
             pows
         }
@@ -55,13 +58,12 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> Iterator for SylowFactory<'a, C
             let fact = self.decomp.factors().factor(gear.i);
 
             if gear.r > 0 {
-                let start = if gear.r > 1 { 0 } else { 1 };
+                let start = if gear.r > 1 || self.mode & flags::LEQ != 0 { 0 } else { 1 };
                 for i in start..p { 
                     let mut res = gear.res.clone();
                     res.coords[gear.i] += i * gear.step;
 
-                    if self.mode & flags::NO_UPPER_HALF != 0
-                        && gear.is_fresh 
+                    if gear.block_upper 
                         && res.coords[gear.i] > fact / 2 { 
                         break; 
                     }
@@ -71,7 +73,8 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> Iterator for SylowFactory<'a, C
                         res,
                         step: gear.step / p,
                         r: gear.r - 1,
-                        is_fresh: gear.is_fresh
+                        block_upper: gear.block_upper,
+                        has_nonzero: true
                     });
                 }
             } else {
@@ -86,7 +89,7 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> Iterator for SylowFactory<'a, C
 
                 gear.step = intpow(p, d - 1, 0);
                 gear.r = self.pows[gear.i];
-                gear.is_fresh = false;
+                gear.block_upper &= !gear.has_nonzero;
                 self.stack.push(gear);
             }
         }
