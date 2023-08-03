@@ -9,7 +9,7 @@ pub mod flags {
 }
 
 #[derive(Debug)]
-struct Gear<'a, C: SylowDecomposable + std::fmt::Debug> {
+struct Seed<'a, C: SylowDecomposable + std::fmt::Debug> {
     i: usize,
     res: SylowElem<'a, C>,
     step: u128,
@@ -22,7 +22,7 @@ pub struct SylowFactory<'a, C: SylowDecomposable + std::fmt::Debug> {
     decomp: &'a SylowDecomp<'a, C>,
     mode: u8,
     pows: Vec<u128>,
-    stack: Vec<Gear<'a, C>>
+    stack: Vec<Seed<'a, C>>
 }
 
 impl<'a, C: SylowDecomposable + std::fmt::Debug> SylowFactory<'a, C> {
@@ -35,7 +35,7 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> SylowFactory<'a, C> {
         SylowFactory {
             decomp,
             mode,
-            stack: vec![Gear {
+            stack: vec![Seed {
                 i: first_nonzero,
                 res: decomp.one(),
                 step: intpow(p, d - 1, 0), 
@@ -53,44 +53,44 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> Iterator for SylowFactory<'a, C
 
     fn next(&mut self) -> Option<SylowElem<'a, C>> {
         loop {
-            let Some(mut gear) = self.stack.pop() else { return None; };
-            let (p,_) = self.decomp.factors()[gear.i];
-            let fact = self.decomp.factors().factor(gear.i);
+            let Some(mut seed) = self.stack.pop() else { return None; };
+            let (p,_) = self.decomp.factors()[seed.i];
+            let fact = self.decomp.factors().factor(seed.i);
 
-            if gear.r > 0 {
-                let start = if gear.r > 1 || self.mode & flags::LEQ != 0 { 0 } else { 1 };
+            if seed.r > 0 {
+                let start = if seed.r > 1 || self.mode & flags::LEQ != 0 { 0 } else { 1 };
                 for i in start..p { 
-                    let mut res = gear.res.clone();
-                    res.coords[gear.i] += i * gear.step;
+                    let mut res = seed.res.clone();
+                    res.coords[seed.i] += i * seed.step;
 
-                    if gear.block_upper 
-                        && res.coords[gear.i] > fact / 2 { 
+                    if seed.block_upper 
+                        && res.coords[seed.i] > fact / 2 { 
                         break; 
                     }
 
-                    self.stack.push(Gear {
-                        i: gear.i,
+                    self.stack.push(Seed {
+                        i: seed.i,
                         res,
-                        step: gear.step / p,
-                        r: gear.r - 1,
-                        block_upper: gear.block_upper,
+                        step: seed.step / p,
+                        r: seed.r - 1,
+                        block_upper: seed.block_upper,
                         has_nonzero: true
                     });
                 }
             } else {
-                gear.i += 1;
+                seed.i += 1;
 
-                if gear.i == self.decomp.factors().len() {
-                    // println!("gear is {:?}", gear);
-                    return Some(gear.res);
+                if seed.i == self.decomp.factors().len() {
+                    // println!("seed is {:?}", seed);
+                    return Some(seed.res);
                 }
 
-                let (p,d) = self.decomp.factors()[gear.i];
+                let (p,d) = self.decomp.factors()[seed.i];
 
-                gear.step = intpow(p, d - 1, 0);
-                gear.r = self.pows[gear.i];
-                gear.block_upper &= !gear.has_nonzero;
-                self.stack.push(gear);
+                seed.step = intpow(p, d - 1, 0);
+                seed.r = self.pows[seed.i];
+                seed.block_upper &= !seed.has_nonzero;
+                self.stack.push(seed);
             }
         }
     }
