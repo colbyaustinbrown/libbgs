@@ -10,6 +10,10 @@ criterion = { version = "0.4", features = ["html_reports"] }
 name = "bench_quad_num"
 harness = false
 
+[[bench]]
+name = "bench_sylow_factory"
+harness = false
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

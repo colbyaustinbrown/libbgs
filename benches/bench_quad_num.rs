@@ -1,9 +1,9 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 
 use libbgs::numbers::factorization::*;
 use libbgs::numbers::quad_field::*;
 
-fn find_sqrt(n: u128) {
+fn find_sqrt() {
     let fp = QuadField::make(
         Factorization::new(
             vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]
@@ -22,7 +22,7 @@ fn find_sqrt(n: u128) {
 }
 
 fn criterion_benchmark(c: &mut Criterion ){
-    c.bench_function("find sqrt", |b| b.iter(|| find_sqrt(black_box(20))));
+    c.bench_function("find sqrt", |b| b.iter(|| find_sqrt()));
 }
 
 criterion_group!(benches, criterion_benchmark);
