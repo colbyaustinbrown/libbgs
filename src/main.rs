@@ -3,7 +3,7 @@ use either::Either::*;
 use libbgs::numbers::quad_field::*;
 use libbgs::numbers::factorization::*;
 use libbgs::numbers::sylow::*;
-use libbgs::numbers::sylow_factory::*;
+use libbgs::numbers::sylow_stream::*;
 use libbgs::numbers::group::*;
 use libbgs::coord::*;
 use libbgs::triple::*;
@@ -36,10 +36,10 @@ fn main() {
     );
     println!("p is {}", fp2.p());
     let decomp = SylowDecomp::new(&fp);
-    //let factory = sylow_factory(&decomp, &vec![1, 1, 1, 0, 0, 0, 0], Mode::LEQ);
-    let factory = SylowFactory::new(&decomp, vec![0, 1, 1, 1, 0, 0, 0], flags::NO_UPPER_HALF | flags::LEQ);
+    //let stream = sylow_stream(&decomp, &vec![1, 1, 1, 0, 0, 0, 0], Mode::LEQ);
+    let stream = SylowStream::new(&decomp, vec![0, 1, 1, 1, 0, 0, 0], flags::NO_UPPER_HALF | flags::LEQ);
     let mut count = 0;
-    for y in factory {
+    for y in stream {
         let mut yin = y.clone();
         // println!("{:?}", y.coords);
         yin.invert(&decomp);
