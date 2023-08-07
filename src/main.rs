@@ -45,10 +45,10 @@ fn main() {
         .add_flag(flags::LEQ);
     for y in builder.build() {
         let mut yin = y.clone();
-        println!("{:?}", y.coords);
+        // println!("{:?}", y.coords);
         yin.invert(&decomp);
         let a = Coord::from_chi(Right((y.to_product(&decomp), yin.to_product(&decomp))), &fp2);
-        // println!("{} has order {}", a.v(), a.get_ord(&fp2).value());
+        println!("{} has order {}", a.v(), a.get_ord(&fp2).value());
         count += 1;
     }
     println!("total: {count}");

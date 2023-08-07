@@ -15,7 +15,6 @@ struct Seed<'a, C: SylowDecomposable> {
     rs: Vec<u128>,
     res: SylowElem<'a, C>,
     block_upper: bool,
-    has_nonzero: bool,
     contributed: bool
 }
 
@@ -58,44 +57,36 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> SylowStreamBuilder<'a, C> {
     }
 
     pub fn build(&self) -> SylowStream<'a, C> {
-        let (p,d) = self.decomp.factors()[0];
-        let seed = Seed {
-            i: 0,
-            res: self.decomp.one(),
-            step: intpow(p, d - 1, 0),
-            rs: vec![0 ; self.decomp.factors().len()],
-            block_upper: self.mode & flags::NO_UPPER_HALF != 0,
-            has_nonzero: false,
-            contributed: true
-        };
-        /*
-        let stack = (0..self.decomp.factors().len())
-        .map(|i| {
+        let mut stack = Vec::new();
+        if self.mode & flags::LEQ != 0 {
+            stack.push(StackElem::Res(self.decomp.one()));
+        }
+        for i in 0..self.decomp.factors().len() {
             let (p,d) = self.decomp.factors()[i];
-            StackElem::Seed(Seed {
-                i,
-                res: self.decomp.one(),
-                step: intpow(p, d - 1, 0),
-                rs: vec![0 ; self.decomp.factors().len()],
-                block_upper: self.mode & flags::NO_UPPER_HALF != 0,
-                has_nonzero: false,
-                contributed: false
-            })
-        }).collect();
-        */
-        let stack = if self.mode & flags::LEQ != 0 {
-            vec![StackElem::Res(self.decomp.one())]
-        } else {
-            Vec::new()
-        };
-        let mut stream = SylowStream {
+            'a: for t in &self.targets {
+                if self.mode & flags::LEQ == 0 {
+                    for t in &t[0..i] {
+                        if *t > 0 { continue 'a; }
+                    }
+                }
+                if t[i] == 0 { continue; }
+                stack.push(StackElem::Seed(Seed {
+                    i,
+                    res: self.decomp.one(),
+                    step: intpow(p, d - 1, 0),
+                    rs: vec![0 ; self.decomp.factors().len()],
+                    block_upper: self.mode & flags::NO_UPPER_HALF != 0,
+                    contributed: false
+                }));
+                break;
+            }
+        }
+        SylowStream {
             decomp: self.decomp,
             mode: self.mode,
             targets: self.targets.clone(),
             stack
-        };
-        stream.push_next_seeds(&seed, 0);
-        stream
+        }
     }
 }
 
@@ -103,66 +94,62 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> Iterator for SylowStream<'a, C>
     type Item = SylowElem<'a, C>;
 
     fn next(&mut self) -> Option<SylowElem<'a, C>> {
-        //println!("targets are {:?}", self.targets);
-        loop {
-            let Some(top) = self.stack.pop() else { return None; };
-            // println!("top is {:?}", top);
-            let seed = match top {
-                StackElem::Res(res) => { 
-                    return Some(res); 
-                }
-                StackElem::Seed(s) => { s } 
-            };
-
-            let (p,_) = self.decomp.factors()[seed.i];
-            let fact = self.decomp.factors().factor(seed.i);
-
-            let status = self.get_status_flags(&seed.rs, seed.i);
-            //println!("status: {status}");
-
-            // First, create new seeds by incrementing
-            // the current power.
-            if status & statuses::TWO_OR_MORE_AWAY != 0 
-            || status & statuses::ONE_AWAY != 0 {
-                let start = if status & statuses::ONE_AWAY != 0 
-                    && !self.has_flag(flags::LEQ) 
-                    { 1 } else { 0 };
-                //println!("start: {start}");
-                for j in start..p {
-                    let mut res = seed.res.clone();
-                    res.coords[seed.i] += j * seed.step;
-
-                    if seed.block_upper && res.coords[seed.i] > fact / 2 { break; }
-
-                    let mut rs = seed.rs.clone();
-                    rs[seed.i] += 1;
-
-                    let contributed = j != 0;
-
-                    let push = StackElem::Seed(Seed {
-                        i: seed.i,
-                        step: seed.step / p,
-                        res,
-                        rs,
-                        block_upper: seed.block_upper,
-                        has_nonzero: seed.has_nonzero || seed.rs[seed.i] != 0,
-                        contributed: contributed,
-                    });
-                    // println!("pushing {:?}", push);
-                    self.stack.push(push);
-                }
+        let Some(top) = self.stack.pop() else { return None; };
+        // println!("top is {:?}", top);
+        let seed = match top {
+            StackElem::Res(res) => { 
+                return Some(res); 
             }
+            StackElem::Seed(s) => { s } 
+        };
 
-            // Next, create new seeds by moving to the next prime power,
-            // but only if we are *done* with this prime power.
-            if status & statuses::EQ != 0 && seed.contributed {
-                let pushed = self.push_next_seeds(&seed, seed.i + 1);
-                if self.has_flag(flags::LEQ) || !pushed {
-                    // println!("returning {:?}", seed.res);
-                    return Some(seed.res);
+        let (p,_) = self.decomp.factors()[seed.i];
+
+        let status = self.get_status(&seed.rs, seed.i);
+        //println!("status: {status}");
+
+        // First, create new seeds by incrementing
+        // the current power.
+        if status & statuses::KEEP_GOING != 0 {
+            let start = if status & statuses::ONE_AWAY != 0 
+                && !self.has_flag(flags::LEQ) 
+                { 1 } else { 0 };
+            //println!("start: {start}");
+            for j in start..p {
+                let mut res = seed.res.clone();
+                res.coords[seed.i] += j * seed.step;
+
+                if seed.block_upper {
+                    let fact = self.decomp.factors().factor(seed.i);
+                    if res.coords[seed.i] > fact / 2 { break; }
                 }
+
+                let mut rs = seed.rs.clone();
+                rs[seed.i] += 1;
+
+                let push = StackElem::Seed(Seed {
+                    i: seed.i,
+                    step: seed.step / p,
+                    res,
+                    rs,
+                    block_upper: seed.block_upper,
+                    contributed: j != 0,
+                });
+                // println!("pushing {:?}", push);
+                self.stack.push(push);
             }
         }
+
+        // Next, create new seeds by moving to the next prime power,
+        // but only if we are *done* with this prime power.
+        if status & statuses::EQ != 0 && seed.contributed {
+            let pushed = self.push_next_seeds(&seed, seed.i + 1);
+            if self.has_flag(flags::LEQ) || !pushed {
+                // println!("returning {:?}", seed.res);
+                return Some(seed.res);
+            }
+        }
+        self.next()
     }
 }
 
@@ -171,18 +158,27 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> SylowStream<'a, C> {
         self.mode & flag != 0
     }
 
-    fn get_status_flags(&self, rs: &Vec<u128>, i: usize) -> u8 {
+    fn get_status(&self, rs: &[u128], i: usize) -> u8 {
         let mut res = 0;
-        'a: for t in &self.targets {
-            for j in 0..i {
-                if self.has_flag(flags::LEQ) && rs[j] > t[j] { continue 'a; }
-                if !self.has_flag(flags::LEQ) && rs[j] != t[j] { continue 'a; }
+        for t in &self.targets {
+            let skip = rs
+                .iter()
+                .zip(t)
+                .take(i)
+                .any(|(r, t)| {
+                    self.has_flag(flags::LEQ) && r > t
+                    || !self.has_flag(flags::LEQ) && r != t
+                });
+            if skip { continue; }
+
+            match t[i].overflowing_sub(rs[i]) {
+                (0,false) => { res |= statuses::EQ; }
+                (1,false) => { res |= statuses::ONE_AWAY | statuses::KEEP_GOING; }
+                (_,false) => { res |= statuses::KEEP_GOING; }
+                (_,true) => {}
             }
-            if rs[i] == t[i] { res |= statuses::EQ; }
-            if t[i] > 0 && rs[i] == t[i] - 1 { res |= statuses::ONE_AWAY; }
-            else if rs[i] < t[i] { res |= statuses::TWO_OR_MORE_AWAY; }
         }
-        return res;
+        res
     }
 
     fn push_next_seeds(&mut self, seed: &Seed<'a, C>, start: usize) -> bool {
@@ -190,9 +186,8 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> SylowStream<'a, C> {
         // Note: In Rust, (a..a) is the empty iterator.
         for j in start..self.decomp.factors().len() {
             if !self.has_flag(flags::LEQ) {
-                let status = self.get_status_flags(&seed.rs, j);
-                if status & statuses::ONE_AWAY == 0
-                    && status & statuses::TWO_OR_MORE_AWAY == 0 { continue; }
+                let status = self.get_status(&seed.rs, j);
+                if status & statuses::KEEP_GOING == 0 { continue; }
             }
             let (p,d) = self.decomp.factors()[j];
             let res = seed.res.clone();
@@ -201,8 +196,7 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> SylowStream<'a, C> {
                 res,
                 step: intpow(p, d - 1, 0),
                 rs: seed.rs.clone(),
-                block_upper: seed.block_upper && !seed.has_nonzero,
-                has_nonzero: seed.has_nonzero,
+                block_upper: false,
                 contributed: false
             };
             // println!("pushing {:?}", s);
@@ -216,7 +210,7 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> SylowStream<'a, C> {
 mod statuses {
     pub const EQ: u8 = 0x01;
     pub const ONE_AWAY: u8 = 0x02;
-    pub const TWO_OR_MORE_AWAY: u8 = 0x04;
+    pub const KEEP_GOING: u8 = 0x04;
 }
 
 #[cfg(test)]
