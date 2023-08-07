@@ -37,14 +37,18 @@ fn main() {
     println!("p is {}", fp2.p());
     let decomp = SylowDecomp::new(&fp);
     //let stream = sylow_stream(&decomp, &vec![1, 1, 1, 0, 0, 0, 0], Mode::LEQ);
-    let stream = SylowStream::new(&decomp, vec![0, 1, 1, 1, 0, 0, 0], flags::NO_UPPER_HALF | flags::LEQ);
     let mut count = 0;
-    for y in stream {
+    let builder = SylowStreamBuilder::new(&decomp)
+        .add_target(vec![0, 1, 1, 0, 0, 0, 0])
+        .add_target(vec![0, 0, 1, 1, 0, 0, 0])
+        // .add_flag(flags::NO_UPPER_HALF)
+        .add_flag(flags::LEQ);
+    for y in builder.build() {
         let mut yin = y.clone();
-        // println!("{:?}", y.coords);
+        println!("{:?}", y.coords);
         yin.invert(&decomp);
         let a = Coord::from_chi(Right((y.to_product(&decomp), yin.to_product(&decomp))), &fp2);
-        println!("{} has order {}", a.v(), a.get_ord(&fp2).value());
+        // println!("{} has order {}", a.v(), a.get_ord(&fp2).value());
         count += 1;
     }
     println!("total: {count}");
