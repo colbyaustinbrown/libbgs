@@ -2,6 +2,8 @@ use crate::numbers::sylow::*;
 use crate::util::*;
 use crate::numbers::factorization::*;
 
+const STACK_ADDITION_LIMIT: u8 = 127;
+
 pub mod flags {
     pub const NONE: u8 = 0x01;
     pub const NO_UPPER_HALF: u8 = 0x02;
@@ -21,7 +23,12 @@ struct Seed<'a, C: SylowDecomposable> {
 #[derive(Debug)]
 enum StackElem<'a, C: SylowDecomposable> {
     Res(SylowElem<'a, C>),
-    Seed(Seed<'a, C>)
+    Seed(Seed<'a, C>),
+    Thunk {
+        seed: Seed<'a, C>, 
+        start: u128,
+        stop: u128
+    }
 }
 
 pub struct SylowStreamBuilder<'a, C: SylowDecomposable + std::fmt::Debug> {
@@ -96,11 +103,12 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> Iterator for SylowStream<'a, C>
     fn next(&mut self) -> Option<SylowElem<'a, C>> {
         let Some(top) = self.stack.pop() else { return None; };
         // println!("top is {:?}", top);
-        let seed = match top {
+        let (seed,pause) = match top {
             StackElem::Res(res) => { 
                 return Some(res); 
             }
-            StackElem::Seed(s) => { s } 
+            StackElem::Seed(s) => { (s, None) } ,
+            StackElem::Thunk{seed, start, stop} => { (seed, Some((start, stop))) }
         };
 
         let (p,_) = self.decomp.factors()[seed.i];
@@ -111,11 +119,23 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> Iterator for SylowStream<'a, C>
         // First, create new seeds by incrementing
         // the current power.
         if status & statuses::KEEP_GOING != 0 {
-            let start = if status & statuses::ONE_AWAY != 0 
-                && !self.has_flag(flags::LEQ) 
-                { 1 } else { 0 };
+            let (mut start, stop) = match pause {
+                None => if status & statuses::ONE_AWAY != 0 
+                            && !self.has_flag(flags::LEQ) 
+                            { (1,p) } else { (0,p) },
+                Some(x) => x
+            };
+
+            if stop - start > STACK_ADDITION_LIMIT as u128 {
+                self.stack.push(StackElem::Thunk {
+                    seed: seed.clone(),
+                    start,
+                    stop: stop - STACK_ADDITION_LIMIT as u128
+                });
+                start = stop - STACK_ADDITION_LIMIT as u128;
+            }
             //println!("start: {start}");
-            for j in start..p {
+            for j in start..stop {
                 let mut res = seed.res.clone();
                 res.coords[seed.i] += j * seed.step;
 
@@ -142,7 +162,7 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> Iterator for SylowStream<'a, C>
 
         // Next, create new seeds by moving to the next prime power,
         // but only if we are *done* with this prime power.
-        if status & statuses::EQ != 0 && seed.contributed {
+        if pause.is_none() && status & statuses::EQ != 0 && seed.contributed {
             let pushed = self.push_next_seeds(&seed, seed.i + 1);
             if self.has_flag(flags::LEQ) || !pushed {
                 // println!("returning {:?}", seed.res);
@@ -211,6 +231,19 @@ mod statuses {
     pub const EQ: u8 = 0x01;
     pub const ONE_AWAY: u8 = 0x02;
     pub const KEEP_GOING: u8 = 0x04;
+}
+
+impl<'a, C: SylowDecomposable> Clone for Seed<'a, C> {
+    fn clone(&self) -> Seed<'a, C> {
+        Seed {
+            i: self.i,
+            step: self.step,
+            rs: self.rs.clone(),
+            res: self.res.clone(),
+            block_upper: self.block_upper,
+            contributed: self.contributed
+        }
+    }
 }
 
 #[cfg(test)]
