@@ -1,8 +1,7 @@
 #![allow(dead_code)]
 pub mod numbers;
+pub mod markoff;
 pub mod util;
-pub mod coord;
-pub mod triple;
 
 #[cfg(test)]
 mod tests {

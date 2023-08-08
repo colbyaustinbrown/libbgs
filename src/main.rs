@@ -5,8 +5,8 @@ use libbgs::numbers::factorization::*;
 use libbgs::numbers::sylow::*;
 use libbgs::numbers::sylow_stream::*;
 use libbgs::numbers::group::*;
-use libbgs::coord::*;
-use libbgs::triple::*;
+use libbgs::markoff::coord::*;
+use libbgs::markoff::triple::*;
 
 fn main() {
     /*

@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use crate::numbers::quad_field::*;
-use crate::coord::*;
+use crate::markoff::coord::*;
 use crate::util::*;
 
 pub enum Pos {
