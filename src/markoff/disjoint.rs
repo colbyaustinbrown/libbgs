@@ -3,7 +3,6 @@ use std::rc::Rc;
 use std::cmp::Ordering;
 use either::{Left, Right, Either};
 use std::cell::{Ref, RefCell};
-use std::marker::PhantomData;
 
 #[derive(Debug)]
 pub struct Set<V> {
@@ -140,11 +139,6 @@ impl<V> SetPtr<V> {
             }
         }
     }
-}
-
-struct Token<'a, V> {
-    setptr: SetPtr<V>,
-    _phantom: PhantomData<&'a ()>
 }
 
 #[cfg(test)]
