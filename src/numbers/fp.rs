@@ -1,10 +1,10 @@
-use crate::numbers::semigroup::*;
+pub use crate::numbers::semigroup::*;
 use crate::util::long_multiply;
 use crate::numbers::sylow::*;
 use crate::util::*;
 use crate::numbers::factorization::*;
 use crate::numbers::quad_field_small::*;
-use crate::numbers::group::*;
+pub use crate::numbers::group::*;
 
 pub type FpStar = Factorization;
 
@@ -32,6 +32,18 @@ impl Factored for FpStar {
 impl FpNum {
     pub fn value(&self) -> u128 {
         self.value
+    }
+
+    pub fn add(&mut self, other: &FpNum, fp: &FpStar) {
+        self.value += other.value;
+        self.value %= fp.p();
+    }
+
+    pub fn sub(&mut self, other: &FpNum, fp: &FpStar) {
+        while self.value < other.value {
+            self.value += fp.p();
+        }
+        self.value -= other.value;
     }
 
     pub fn int_sqrt(&self, fp: &FpStar) -> Option<FpNum> {

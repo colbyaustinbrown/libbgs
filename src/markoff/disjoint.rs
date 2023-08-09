@@ -6,9 +6,9 @@ use std::cell::{Ref, RefCell};
 use std::marker::PhantomData;
 
 #[derive(Debug)]
-struct Set<V> {
+pub struct Set<V> {
     rank: u16,
-    data: V
+    pub data: V
 }
 
 #[derive(Debug)]
@@ -16,15 +16,23 @@ struct SetPtr<V> {
     ptr: Rc<RefCell<Either<SetPtr<V>, Set<V>>>>
 }
 
-#[derive(Debug)]
-struct Disjoint<K, V> {
+pub struct Disjoint<K, V> {
+    default: V,
+    combine: Box<dyn Fn(&V, &V) -> V>,
     disjoint: HashMap<K, SetPtr<V>>,
     orbits: HashSet<K>
 }
 
-impl<K: Eq + Clone + std::hash::Hash, V> Disjoint<K, V> {
-    pub fn new() -> Disjoint<K, V> {
+impl<K, V> Disjoint<K, V> where
+K: Eq + Clone + std::hash::Hash,
+V: Clone {
+    pub fn new<F>(default: V, combine: F) -> Disjoint<K,V>
+    where
+        for<'a> F: Fn(&V, &V) -> V + 'a
+    {
         Disjoint {
+            default,
+            combine: Box::new(combine),
             disjoint: HashMap::new(),
             orbits: HashSet::new()
         }
@@ -42,10 +50,10 @@ impl<K: Eq + Clone + std::hash::Hash, V> Disjoint<K, V> {
             })
     }
 
-    pub fn associate_with(&mut self, one: &K, two: &K, data: V) {
+    pub fn associate(&mut self, one: &K, two: &K) {
         match (self.disjoint.get(one), self.disjoint.get(two)) {
             (None, None) => {
-                let op = SetPtr::new(Set::new(data));
+                let op = SetPtr::new(Set::new(self.default.clone()));
                 self.orbits.insert(one.clone());
                 self.disjoint.insert(two.clone(), op.point());
                 self.disjoint.insert(one.clone(), op);
@@ -71,18 +79,21 @@ impl<K: Eq + Clone + std::hash::Hash, V> Disjoint<K, V> {
                         p1.ptr.replace(Left(p2.point()));
                         p2.ptr.replace(Right(Set {
                             rank: o2.rank,
-                            data
+                            data: (self.combine)(&o1.data, &o2.data)
                         }));
                     }
                 }
             }
         }
     }
-}
 
-impl<K: Eq + Clone + std::hash::Hash, V: Default> Disjoint<K, V> {
-    fn associate(&mut self, one: &K, two: &K) {
-        self.associate_with(one, two, V::default());
+    pub fn update(&mut self, k: &K, v: V) {
+        let Some(orbit) = self.disjoint.get(k) else { return; };
+        let (ptr,set) = unsafe { orbit.root() };
+        ptr.ptr.replace(Right(Set {
+            rank: set.rank,
+            data: v
+        }));
     }
 }
 
@@ -140,10 +151,10 @@ mod tests {
 
     #[test]
     fn test_assoc() {
-        let mut disjoint: Disjoint<u32, ()> = Disjoint::new(); 
+        let mut disjoint: Disjoint<u32, ()> = Disjoint::new((), |_,_| ()); 
         let assocs = vec![(1, 2), (2, 3), (4, 5), (6, 7), (8, 9), (6, 2), (9, 4)];
         for (x,y) in assocs {
-            disjoint.associate_with(&x, &y, ());
+            disjoint.associate(&x, &y);
         }
         let orbits: Vec<Ref<Set<()>>> = disjoint.get_orbits().collect();
         assert_eq!(orbits.len(), 2);
