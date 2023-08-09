@@ -2,7 +2,7 @@ use std::collections::{HashSet, HashMap};
 use std::rc::Rc;
 use std::cmp::Ordering;
 use either::{Left, Right, Either};
-use std::cell::{RefCell};
+use std::cell::{Ref, RefCell};
 
 #[derive(Debug)]
 struct Set<V> {
@@ -29,14 +29,15 @@ impl<K: Eq + Clone + std::hash::Hash, V> Disjoint<K, V> {
         }
     }
 
-    pub fn get_orbits<'a>(&'a self) -> impl Iterator<Item = &'a Set<V>> {
+    pub fn get_orbits(&self) -> impl Iterator<Item = Ref<Set<V>>> {
         self.orbits.iter()
             .filter_map(|key| {
                 self.disjoint.get(key)
             })
-            .filter_map(|e| {
-                let ptr = unsafe { (&*e.ptr.as_ptr()).as_ref() };
-                ptr.right()
+            .filter_map(|op| {
+                Ref::filter_map(op.ptr.borrow(), |e| {
+                    e.as_ref().right() 
+                }).ok()
             })
     }
 
@@ -140,7 +141,7 @@ mod tests {
         for (x,y) in assocs {
             disjoint.associate_with(&x, &y, ());
         }
-        let orbits: Vec<&Set<()>> = disjoint.get_orbits().collect();
+        let orbits: Vec<Ref<Set<()>>> = disjoint.get_orbits().collect();
         assert_eq!(orbits.len(), 2);
     }
 }
