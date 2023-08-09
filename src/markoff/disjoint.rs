@@ -3,6 +3,7 @@ use std::rc::Rc;
 use std::cmp::Ordering;
 use either::{Left, Right, Either};
 use std::cell::{Ref, RefCell};
+use std::marker::PhantomData;
 
 #[derive(Debug)]
 struct Set<V> {
@@ -56,8 +57,8 @@ impl<K: Eq + Clone + std::hash::Hash, V> Disjoint<K, V> {
                 self.disjoint.insert(one.clone(), y.point());
             },
             (Some(x), Some(y)) => {
-                let (p1,o1) = x.root();
-                let (p2,o2) = y.root();
+                let (p1,o1) = unsafe { x.root() };
+                let (p2,o2) = unsafe { y.root() };
                 match o1.rank.cmp(&o2.rank) {
                     Ordering::Less => {
                         p1.ptr.replace(Left(p2.point()));
@@ -116,18 +117,21 @@ impl<V> SetPtr<V> {
         }
     }
 
-    fn root(&self) -> (&SetPtr<V>, &Set<V>) {
-        unsafe {
-            match &*self.ptr.as_ptr() {
-                Left(l) => {
-                    l.root()
-                },
-                Right(r) => {
-                    (self, r)
-                }
+    unsafe fn root(&self) -> (&SetPtr<V>, &Set<V>) {
+        match &*self.ptr.as_ptr() {
+            Left(l) => {
+                l.root()
+            },
+            Right(r) => {
+                (self, r)
             }
         }
     }
+}
+
+struct Token<'a, V> {
+    setptr: SetPtr<V>,
+    _phantom: PhantomData<&'a ()>
 }
 
 #[cfg(test)]
