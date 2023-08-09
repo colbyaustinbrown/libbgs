@@ -60,10 +60,12 @@ where
                 self.disjoint.insert(one.clone(), op);
             },
             (Some(x), None) => {
-                self.disjoint.insert(two.clone(), x.point());
+                let (root,_) = unsafe { x.root() };
+                self.disjoint.insert(two.clone(), root.point());
             },
             (None, Some(y)) => {
-                self.disjoint.insert(one.clone(), y.point());
+                let (root,_) = unsafe { y.root() };
+                self.disjoint.insert(one.clone(), root.point());
             },
             (Some(x), Some(y)) => {
                 let (p1,o1) = unsafe { x.root() };
