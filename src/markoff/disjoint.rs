@@ -11,14 +11,16 @@ pub struct Set<V> {
 }
 
 #[derive(Debug)]
-struct SetPtr<V> {
+pub struct SetPtr<V> {
     ptr: Rc<RefCell<Either<SetPtr<V>, Set<V>>>>
 }
 
+// TODO: disjoint should not be pub (nor should SetPtr above)
+// made public for debugging purposes
 pub struct Disjoint<K, V> {
     default: V,
     combine: Box<dyn Fn(&V, &V) -> V>,
-    disjoint: HashMap<K, SetPtr<V>>,
+    pub disjoint: HashMap<K, SetPtr<V>>,
     orbits: HashSet<K>
 }
 
@@ -39,15 +41,15 @@ where
         }
     }
 
-    pub fn get_orbits(&self) -> impl Iterator<Item = Ref<Set<V>>> {
+    pub fn get_orbits(&self) -> impl Iterator<Item = (&K, Ref<Set<V>>)> {
         self.orbits.iter()
             .filter_map(|key| {
-                self.disjoint.get(key)
+                self.disjoint.get(key).map(|r| (key, r))
             })
-            .filter_map(|op| {
+            .filter_map(|(key, op)| {
                 Ref::filter_map(op.ptr.borrow(), |e| {
-                    e.as_ref().right() 
-                }).ok()
+                    e.as_ref().right()
+                }).ok().map(|r| (key, r))
             })
     }
 
@@ -154,7 +156,7 @@ mod tests {
         for (x,y) in assocs {
             disjoint.associate(&x, &y);
         }
-        let orbits: Vec<Ref<Set<()>>> = disjoint.get_orbits().collect();
+        let orbits: Vec<(&u32, Ref<Set<()>>)> = disjoint.get_orbits().collect();
         assert_eq!(orbits.len(), 2);
     }
 }

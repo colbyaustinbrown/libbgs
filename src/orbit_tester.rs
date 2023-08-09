@@ -6,20 +6,20 @@ use crate::markoff::disjoint::Disjoint;
 use crate::numbers::fp::*;
 use crate::util::*;
 
-pub struct OrbitTesterBuilder<'a> {
+pub struct OrbitTester<'a> {
     f: &'a FpStar,
     targets: HashSet<u128>
 }
 
-pub struct OrbitTester {
-    orbits: HashMap<u128, Disjoint<u128, bool>>
+pub struct OrbitTesterResults {
+    results: HashMap<u128, Disjoint<u128, bool>>
 }
 
-impl<'a> OrbitTesterBuilder<'a> {
-    pub fn run(self) -> OrbitTester {
-        let mut orbits: HashMap<u128, Disjoint<u128, bool>> = HashMap::with_capacity(self.targets.len());
+impl<'a> OrbitTester<'a> {
+    pub fn run(self) -> OrbitTesterResults {
+        let mut results = HashMap::with_capacity(self.targets.len());
         for x in &self.targets {
-            orbits.insert(*x, Disjoint::new(true, |x,y| *x && *y));
+            results.insert(*x, Disjoint::new(true, |x,y| *x && *y));
         }
 
         let p = self.f.p();
@@ -58,9 +58,9 @@ impl<'a> OrbitTesterBuilder<'a> {
 
             let it: Vec<(&FpNum, bool)> = candidates.iter()
                 .map(|z| {
-                    (z, orbits.contains_key(&z.value()))
+                    (z, results.contains_key(&z.value()))
                 }).collect();
-            let Some(disjoint) = orbits.get_mut(&x) else { continue; };
+            let Some(disjoint) = results.get_mut(&x) else { continue; };
             for (z, pred) in it {
                 if pred {
                     disjoint.associate(&y, &z.value());
@@ -70,19 +70,24 @@ impl<'a> OrbitTesterBuilder<'a> {
             }
         }
 
-        OrbitTester { orbits }
+        OrbitTesterResults { results }
     }
 
-    pub fn new(f: &FpStar) -> OrbitTesterBuilder {
-        OrbitTesterBuilder {
+    pub fn new(f: &FpStar) -> OrbitTester {
+        OrbitTester {
             f,
             targets: HashSet::new()
         }
     }
 
-    pub fn add_target(&mut self, t: u128) -> &mut Self {
+    pub fn add_target(mut self, t: u128) -> OrbitTester<'a> {
         self.targets.insert(t);
         self
     }
 }
 
+impl OrbitTesterResults {
+    pub fn results(&self) -> impl Iterator<Item = (&u128, &Disjoint<u128, bool>)> {
+        self.results.iter()
+    }
+}

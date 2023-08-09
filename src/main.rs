@@ -7,6 +7,7 @@ use libbgs::numbers::sylow_stream::*;
 use libbgs::numbers::group::*;
 use libbgs::markoff::coord::*;
 use libbgs::markoff::triple::*;
+use libbgs::orbit_tester::*;
 
 fn main() {
     /*
@@ -29,6 +30,7 @@ fn main() {
         }
     }
     */
+    /*
     let fp = Factorization::new(vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]);
     let fp2 = QuadField::make(
         fp.clone(),
@@ -43,6 +45,11 @@ fn main() {
         .add_target(vec![0, 0, 1, 1, 0, 0, 0])
         // .add_flag(flags::NO_UPPER_HALF)
         .add_flag(flags::LEQ);
+
+    let tester_builder = OrbitTester::new(&fp);
+    for x in builder.build() { 
+
+    }
     for y in builder.build() {
         let mut yin = y.clone();
         // println!("{:?}", y.coords);
@@ -52,4 +59,80 @@ fn main() {
         count += 1;
     }
     println!("total: {count}");
+    */
+
+    let fp = Factorization::new(vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]);
+    let fp2 = QuadField::make(
+        fp.clone(),
+        Factorization::new(vec![(2, 4), (3, 1), (5, 2), (11, 2), (17, 1), (19, 1), (23, 1), (97, 1), (757, 1), (1453, 1), (8689, 1)])
+    );
+    let fp_decomp = SylowDecomp::new(&fp);
+    let fp2_decomp = SylowDecomp::new(&fp2);
+
+    const LIMIT: u128 = 500;
+
+    let mut fp_stream_builder = SylowStreamBuilder::new(&fp_decomp)
+        .add_flag(flags::NO_UPPER_HALF)
+        .add_flag(flags::NO_PARABOLIC)
+        .add_flag(flags::LEQ);
+    let mut fp2_stream_builder = SylowStreamBuilder::new(&fp2_decomp)
+        .add_flag(flags::NO_UPPER_HALF)
+        .add_flag(flags::NO_PARABOLIC)
+        .add_flag(flags::LEQ);
+    for d in fp.maximal_divisors(LIMIT) {
+        fp_stream_builder = fp_stream_builder.add_target(d);
+    }
+    for d in fp2.pplusone().maximal_divisors(LIMIT) {
+        fp2_stream_builder = fp2_stream_builder.add_target(d);
+    }
+    let stream = fp_stream_builder.build()
+        .map(|x| Right((x.clone(), x)))
+        .chain(fp2_stream_builder.build()
+            .map(|x| Left((x.clone(), x)))
+        )
+        .map(|e| e.either(
+            |(l, mut l_i)| { 
+                l_i.invert(&fp2_decomp);
+                Left((
+                    l.to_product(&fp2_decomp), 
+                    l_i.to_product(&fp2_decomp)
+                ))
+            },
+            |(r, mut r_i)| { 
+                r_i.invert(&fp_decomp);
+                Right((
+                    r.to_product(&fp_decomp), 
+                    r_i.to_product(&fp_decomp)
+                ))
+            }
+        ))
+        .map(|x| Coord::from_chi(x, &fp2));
+
+    let mut tester = OrbitTester::new(&fp);
+    let mut count = 0;
+    for x in stream {
+        count += 1;
+        tester = tester.add_target(x.v());
+    }
+    println!("Loaded {count} coordinates into the Orbit Tester.");
+
+    println!("Running the Orbit Tester.");
+    let results = tester.run();
+    println!("Testing complete.");
+
+    let mut repless_count = 0;
+    for (x, disjoint) in results.results() {
+        let mut orbits = disjoint.get_orbits().peekable();
+
+        if orbits.peek().is_none() {
+            repless_count += 1;
+            continue;
+        }
+
+        for (key, set) in orbits {
+            println!("For coordinate {x}: Is big? {} Representative: {key}", set.data); 
+        }
+    }
+    println!("{repless_count} coordinates had no representative.");
 }
+
