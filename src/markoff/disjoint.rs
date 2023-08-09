@@ -5,19 +5,19 @@ use either::{Left, Right, Either};
 use std::cell::{RefCell};
 
 #[derive(Debug)]
-struct Orbit {
+struct Set {
     rank: u16,
     has_large: bool
 }
 
 #[derive(Debug)]
-struct OrbitPtr {
-    ptr: Rc<RefCell<Either<OrbitPtr, Orbit>>>
+struct SetPtr {
+    ptr: Rc<RefCell<Either<SetPtr, Set>>>
 }
 
 #[derive(Debug)]
 struct Forest<K> {
-    forest: HashMap<K, OrbitPtr>,
+    forest: HashMap<K, SetPtr>,
     orbits: HashSet<K>
 }
 
@@ -29,7 +29,7 @@ impl<K: Eq + Clone + std::hash::Hash> Forest<K> {
         }
     }
 
-    pub fn get_orbits<'a>(&'a self) -> impl Iterator<Item = &'a Orbit> {
+    pub fn get_orbits<'a>(&'a self) -> impl Iterator<Item = &'a Set> {
         self.orbits.iter()
             .filter_map(|key| {
                 self.forest.get(key)
@@ -43,7 +43,7 @@ impl<K: Eq + Clone + std::hash::Hash> Forest<K> {
     pub fn associate(&mut self, one: &K, two: &K) {
         match (self.forest.get(one), self.forest.get(two)) {
             (None, None) => {
-                let op = OrbitPtr::new(Orbit::new());
+                let op = SetPtr::new(Set::new());
                 self.orbits.insert(one.clone());
                 self.forest.insert(two.clone(), op.point());
                 self.forest.insert(one.clone(), op);
@@ -67,7 +67,7 @@ impl<K: Eq + Clone + std::hash::Hash> Forest<K> {
                     Ordering::Equal => {
                         self.orbits.remove(one);
                         p1.ptr.replace(Left(p2.point()));
-                        p2.ptr.replace(Right(Orbit {
+                        p2.ptr.replace(Right(Set {
                             rank: o2.rank,
                             has_large: o2.has_large
                         }));
@@ -78,29 +78,29 @@ impl<K: Eq + Clone + std::hash::Hash> Forest<K> {
     }
 }
 
-impl Orbit {
-    fn new() -> Orbit {
-        Orbit {
+impl Set {
+    fn new() -> Set {
+        Set {
             rank: 0,
             has_large: false
         }
     }
 }
 
-impl OrbitPtr {
-    fn new(orbit: Orbit) -> OrbitPtr {
-        OrbitPtr { 
+impl SetPtr {
+    fn new(orbit: Set) -> SetPtr {
+        SetPtr { 
             ptr: Rc::new(RefCell::new(Right(orbit)))
         }
     }
 
-    fn point(&self) -> OrbitPtr {
-        OrbitPtr {
+    fn point(&self) -> SetPtr {
+        SetPtr {
             ptr: Rc::clone(&self.ptr)
         }
     }
 
-    fn root(&self) -> (&OrbitPtr, &Orbit) {
+    fn root(&self) -> (&SetPtr, &Set) {
         unsafe {
             match &*self.ptr.as_ptr() {
                 Left(l) => {
@@ -125,7 +125,7 @@ mod tests {
         for (x,y) in assocs {
             forest.associate(&x, &y);
         }
-        let orbits: Vec<&Orbit> = forest.get_orbits().collect();
+        let orbits: Vec<&Set> = forest.get_orbits().collect();
         assert_eq!(orbits.len(), 2);
     }
 }
