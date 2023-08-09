@@ -16,15 +16,15 @@ struct SetPtr<V> {
 }
 
 #[derive(Debug)]
-struct Forest<K, V> {
-    forest: HashMap<K, SetPtr<V>>,
+struct Disjoint<K, V> {
+    disjoint: HashMap<K, SetPtr<V>>,
     orbits: HashSet<K>
 }
 
-impl<K: Eq + Clone + std::hash::Hash, V> Forest<K, V> {
-    pub fn new() -> Forest<K, V> {
-        Forest {
-            forest: HashMap::new(),
+impl<K: Eq + Clone + std::hash::Hash, V> Disjoint<K, V> {
+    pub fn new() -> Disjoint<K, V> {
+        Disjoint {
+            disjoint: HashMap::new(),
             orbits: HashSet::new()
         }
     }
@@ -32,7 +32,7 @@ impl<K: Eq + Clone + std::hash::Hash, V> Forest<K, V> {
     pub fn get_orbits<'a>(&'a self) -> impl Iterator<Item = &'a Set<V>> {
         self.orbits.iter()
             .filter_map(|key| {
-                self.forest.get(key)
+                self.disjoint.get(key)
             })
             .filter_map(|e| {
                 let ptr = unsafe { (&*e.ptr.as_ptr()).as_ref() };
@@ -41,18 +41,18 @@ impl<K: Eq + Clone + std::hash::Hash, V> Forest<K, V> {
     }
 
     pub fn associate_with(&mut self, one: &K, two: &K, data: V) {
-        match (self.forest.get(one), self.forest.get(two)) {
+        match (self.disjoint.get(one), self.disjoint.get(two)) {
             (None, None) => {
                 let op = SetPtr::new(Set::new(data));
                 self.orbits.insert(one.clone());
-                self.forest.insert(two.clone(), op.point());
-                self.forest.insert(one.clone(), op);
+                self.disjoint.insert(two.clone(), op.point());
+                self.disjoint.insert(one.clone(), op);
             },
             (Some(x), None) => {
-                self.forest.insert(two.clone(), x.point());
+                self.disjoint.insert(two.clone(), x.point());
             },
             (None, Some(y)) => {
-                self.forest.insert(one.clone(), y.point());
+                self.disjoint.insert(one.clone(), y.point());
             },
             (Some(x), Some(y)) => {
                 let (p1,o1) = x.root();
@@ -78,7 +78,7 @@ impl<K: Eq + Clone + std::hash::Hash, V> Forest<K, V> {
     }
 }
 
-impl<K: Eq + Clone + std::hash::Hash, V: Default> Forest<K, V> {
+impl<K: Eq + Clone + std::hash::Hash, V: Default> Disjoint<K, V> {
     fn associate(&mut self, one: &K, two: &K) {
         self.associate_with(one, two, V::default());
     }
@@ -135,12 +135,12 @@ mod tests {
 
     #[test]
     fn test_assoc() {
-        let mut forest: Forest<u32, ()> = Forest::new(); 
+        let mut disjoint: Disjoint<u32, ()> = Disjoint::new(); 
         let assocs = vec![(1, 2), (2, 3), (4, 5), (6, 7), (8, 9), (6, 2), (9, 4)];
         for (x,y) in assocs {
-            forest.associate_with(&x, &y, ());
+            disjoint.associate_with(&x, &y, ());
         }
-        let orbits: Vec<&Set<()>> = forest.get_orbits().collect();
+        let orbits: Vec<&Set<()>> = disjoint.get_orbits().collect();
         assert_eq!(orbits.len(), 2);
     }
 }
