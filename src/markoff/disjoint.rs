@@ -5,31 +5,31 @@ use either::{Left, Right, Either};
 use std::cell::{RefCell};
 
 #[derive(Debug)]
-struct Set {
+struct Set<V> {
     rank: u16,
-    has_large: bool
+    data: V
 }
 
 #[derive(Debug)]
-struct SetPtr {
-    ptr: Rc<RefCell<Either<SetPtr, Set>>>
+struct SetPtr<V> {
+    ptr: Rc<RefCell<Either<SetPtr<V>, Set<V>>>>
 }
 
 #[derive(Debug)]
-struct Forest<K> {
-    forest: HashMap<K, SetPtr>,
+struct Forest<K, V> {
+    forest: HashMap<K, SetPtr<V>>,
     orbits: HashSet<K>
 }
 
-impl<K: Eq + Clone + std::hash::Hash> Forest<K> {
-    pub fn new() -> Forest<K> {
+impl<K: Eq + Clone + std::hash::Hash, V> Forest<K, V> {
+    pub fn new() -> Forest<K, V> {
         Forest {
             forest: HashMap::new(),
             orbits: HashSet::new()
         }
     }
 
-    pub fn get_orbits<'a>(&'a self) -> impl Iterator<Item = &'a Set> {
+    pub fn get_orbits<'a>(&'a self) -> impl Iterator<Item = &'a Set<V>> {
         self.orbits.iter()
             .filter_map(|key| {
                 self.forest.get(key)
@@ -40,10 +40,10 @@ impl<K: Eq + Clone + std::hash::Hash> Forest<K> {
             })
     }
 
-    pub fn associate(&mut self, one: &K, two: &K) {
+    pub fn associate_with(&mut self, one: &K, two: &K, data: V) {
         match (self.forest.get(one), self.forest.get(two)) {
             (None, None) => {
-                let op = SetPtr::new(Set::new());
+                let op = SetPtr::new(Set::new(data));
                 self.orbits.insert(one.clone());
                 self.forest.insert(two.clone(), op.point());
                 self.forest.insert(one.clone(), op);
@@ -69,7 +69,7 @@ impl<K: Eq + Clone + std::hash::Hash> Forest<K> {
                         p1.ptr.replace(Left(p2.point()));
                         p2.ptr.replace(Right(Set {
                             rank: o2.rank,
-                            has_large: o2.has_large
+                            data
                         }));
                     }
                 }
@@ -78,29 +78,44 @@ impl<K: Eq + Clone + std::hash::Hash> Forest<K> {
     }
 }
 
-impl Set {
-    fn new() -> Set {
+impl<K: Eq + Clone + std::hash::Hash, V: Default> Forest<K, V> {
+    fn associate(&mut self, one: &K, two: &K) {
+        self.associate_with(one, two, V::default());
+    }
+}
+
+impl<V> Set<V> {
+    fn new(data: V) -> Set<V> {
         Set {
             rank: 0,
-            has_large: false
+            data
         }
     }
 }
 
-impl SetPtr {
-    fn new(orbit: Set) -> SetPtr {
+impl<V: Default> Default for Set<V> {
+    fn default() -> Set<V> {
+        Set {
+            rank: 0,
+            data: V::default()
+        }
+    }
+}
+
+impl<V> SetPtr<V> {
+    fn new(orbit: Set<V>) -> SetPtr<V> {
         SetPtr { 
             ptr: Rc::new(RefCell::new(Right(orbit)))
         }
     }
 
-    fn point(&self) -> SetPtr {
+    fn point(&self) -> SetPtr<V> {
         SetPtr {
             ptr: Rc::clone(&self.ptr)
         }
     }
 
-    fn root(&self) -> (&SetPtr, &Set) {
+    fn root(&self) -> (&SetPtr<V>, &Set<V>) {
         unsafe {
             match &*self.ptr.as_ptr() {
                 Left(l) => {
@@ -120,12 +135,12 @@ mod tests {
 
     #[test]
     fn test_assoc() {
-        let mut forest: Forest<u32> = Forest::new(); 
+        let mut forest: Forest<u32, ()> = Forest::new(); 
         let assocs = vec![(1, 2), (2, 3), (4, 5), (6, 7), (8, 9), (6, 2), (9, 4)];
         for (x,y) in assocs {
-            forest.associate(&x, &y);
+            forest.associate_with(&x, &y, ());
         }
-        let orbits: Vec<&Set> = forest.get_orbits().collect();
+        let orbits: Vec<&Set<()>> = forest.get_orbits().collect();
         assert_eq!(orbits.len(), 2);
     }
 }
