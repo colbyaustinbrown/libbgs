@@ -57,7 +57,7 @@ impl<'a> OrbitTesterBuilder<'a> {
             }
 
             let it: Vec<(&FpNum, bool)> = candidates.iter()
-                .map(|z | {
+                .map(|z| {
                     (z, orbits.contains_key(&z.value()))
                 }).collect();
             let Some(disjoint) = orbits.get_mut(&x) else { continue; };

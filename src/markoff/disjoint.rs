@@ -23,9 +23,11 @@ pub struct Disjoint<K, V> {
     orbits: HashSet<K>
 }
 
-impl<K, V> Disjoint<K, V> where
-K: Eq + Clone + std::hash::Hash,
-V: Clone {
+impl<K, V> Disjoint<K, V> 
+where
+    K: Eq + Clone + std::hash::Hash,
+    V: Clone 
+{
     pub fn new<F>(default: V, combine: F) -> Disjoint<K,V>
     where
         for<'a> F: Fn(&V, &V) -> V + 'a
