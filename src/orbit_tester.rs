@@ -6,8 +6,8 @@ use crate::markoff::disjoint::Disjoint;
 use crate::numbers::fp::*;
 use crate::util::*;
 
-pub struct OrbitTester<'a> {
-    f: &'a FpStar,
+pub struct OrbitTester<'a, const P: u128> {
+    f: &'a FpStar<P>,
     targets: HashSet<u128>
 }
 
@@ -15,14 +15,13 @@ pub struct OrbitTesterResults {
     results: HashMap<u128, Disjoint<u128, bool>>
 }
 
-impl<'a> OrbitTester<'a> {
+impl<'a, const P: u128> OrbitTester<'a, P> {
     pub fn run(self) -> OrbitTesterResults {
         let mut results = HashMap::with_capacity(self.targets.len());
         for x in &self.targets {
             results.insert(*x, Disjoint::new(true, |x,y| *x && *y));
         }
 
-        let p = self.f.p();
         let mut inv2 = self.f.from_int(2);
         inv2.invert(self.f);
 
@@ -31,12 +30,12 @@ impl<'a> OrbitTester<'a> {
         {
             let x = *x;
             let y = *y;
-            let x2 = intpow(x, 2, p);
-            let y2 = intpow(y, 2, p);
-            let tmp = self.f.from_int(long_multiply(4, x2 + y2, p));
-            let mut disc = self.f.from_int(long_multiply(9, long_multiply(x, y, p), p));
-            disc.sub(&tmp, self.f);
-            let mut z = self.f.from_int(long_multiply(3, long_multiply(x, y, p), p));
+            let x2 = intpow(x, 2, P);
+            let y2 = intpow(y, 2, P);
+            let tmp = self.f.from_int(long_multiply(4, x2 + y2, P));
+            let mut disc = self.f.from_int(long_multiply(9, long_multiply(x, y, P), P));
+            disc.sub(&tmp);
+            let mut z = self.f.from_int(long_multiply(3, long_multiply(x, y, P), P));
             let mut candidates = Vec::new();
             match disc.int_sqrt(self.f) {
                 Some(FpNum{value: 0}) => {
@@ -45,25 +44,25 @@ impl<'a> OrbitTester<'a> {
                 },
                 Some(x) => {
                     let mut z1 = z.clone();
-                    z1.add(&x, self.f);
+                    z1.add(&x);
                     z1.multiply(&inv2, self.f);
                     candidates.push(z1);
 
-                    z.sub(&x, self.f);
+                    z.sub(&x);
                     z.multiply(&inv2, self.f);
                     candidates.push(z);
                 },
                 None => {}
             }
 
-            let it: Vec<(&FpNum, bool)> = candidates.iter()
+            let it: Vec<(&FpNum<P>, bool)> = candidates.iter()
                 .map(|z| {
-                    (z, results.contains_key(&z.value()))
+                    (z, results.contains_key(&z.value))
                 }).collect();
             let Some(disjoint) = results.get_mut(&x) else { continue; };
             for (z, pred) in it {
                 if pred {
-                    disjoint.associate(&y, &z.value());
+                    disjoint.associate(&y, &z.value);
                 } else {
                     disjoint.update(&y, false);
                 }
@@ -73,14 +72,14 @@ impl<'a> OrbitTester<'a> {
         OrbitTesterResults { results }
     }
 
-    pub fn new(f: &FpStar) -> OrbitTester {
+    pub fn new(f: &FpStar<P>) -> OrbitTester<P> {
         OrbitTester {
             f,
             targets: HashSet::new()
         }
     }
 
-    pub fn add_target(mut self, t: u128) -> OrbitTester<'a> {
+    pub fn add_target(mut self, t: u128) -> OrbitTester<'a, P> {
         self.targets.insert(t);
         self
     }

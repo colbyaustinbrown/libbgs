@@ -11,14 +11,14 @@ pub enum Pos {
 }
 
 #[derive(Debug)]
-pub struct MarkoffTriple {
-    pub a: Rc<Coord>,
-    pub b: Rc<Coord>,
-    pub c: Rc<Coord>
+pub struct MarkoffTriple<const P: u128> {
+    pub a: Rc<Coord<P>>,
+    pub b: Rc<Coord<P>>,
+    pub c: Rc<Coord<P>>
 }
 
-impl MarkoffTriple {
-    pub fn make(a: u128, b: u128, c: u128, f: &QuadField) -> Self {
+impl<const P: u128> MarkoffTriple<P> {
+    pub fn make(a: u128, b: u128, c: u128, f: &QuadField<P>) -> Self {
         MarkoffTriple {
             a: Rc::new(Coord::new(a, f)),
             b: Rc::new(Coord::new(b, f)),
@@ -26,7 +26,7 @@ impl MarkoffTriple {
         }
     }
 
-    pub fn new(a: &Rc<Coord>, b: &Rc<Coord>, c: &Rc<Coord>) -> Self {
+    pub fn new(a: &Rc<Coord<P>>, b: &Rc<Coord<P>>, c: &Rc<Coord<P>>) -> Self {
         MarkoffTriple {
             a: Rc::clone(a),
             b: Rc::clone(b),
@@ -34,6 +34,7 @@ impl MarkoffTriple {
         }
     }
 
+    /*
     pub fn ord(&self, pos: Pos, f: &QuadField) -> u128 {
         match pos {
             Pos::A => &self.a,
@@ -41,8 +42,9 @@ impl MarkoffTriple {
             Pos::C => &self.c
         }.get_ord(f).value()
     }
+    */
 
-    pub fn rot<'a>(&'a self, pos: Pos, f: &'a QuadField) -> impl Iterator<Item = MarkoffTriple> + 'a {
+    pub fn rot<'a>(&'a self, pos: Pos, f: &'a QuadField<P>) -> impl Iterator<Item = MarkoffTriple<P>> + 'a {
         match pos {
             Pos::A => self.a.rot(&self.b, &self.c, f),
             Pos::B => self.b.rot(&self.a, &self.c, f),
@@ -54,27 +56,26 @@ impl MarkoffTriple {
         })
     }
 
-    pub fn get_from_ab(x: &Rc<Coord>, y: &Rc<Coord>, f: &QuadField) -> Vec<Self> {
+    pub fn get_from_ab(x: &Rc<Coord<P>>, y: &Rc<Coord<P>>, f: &QuadField<P>) -> Vec<Self> {
         let a = x.v();
         let b = y.v();
-        let m = f.p();
-        let a2 = intpow(a, 2, m);
-        let b2 = intpow(b, 2, m);
-        let mut disc = f.pminusone().from_int(long_multiply(long_multiply(9, a2, m), b2, m));
-        disc.value += m;
-        disc.value -= long_multiply(4, a2 + b2, m);
-        disc.value %= m;
+        let a2 = intpow(a, 2, P);
+        let b2 = intpow(b, 2, P);
+        let mut disc = f.pminusone().from_int(long_multiply(long_multiply(9, a2, P), b2, P));
+        disc.value += P;
+        disc.value -= long_multiply(4, a2 + b2, P);
+        disc.value %= P;
 
-        let mut res = long_multiply(3, long_multiply(a, b, m), m);
-        if res % 2 == 1 { res += m };
+        let mut res = long_multiply(3, long_multiply(a, b, P), P);
+        if res % 2 == 1 { res += P };
         res /= 2;
         match disc.int_sqrt(f.pminusone()).map(|z| z.value) {
             None => Vec::new(),
             Some(0) => vec![res],
             Some(mut d) => {
-                if d % 2 == 1 { d += m; } 
+                if d % 2 == 1 { d += P; } 
                 d /= 2;
-                vec![(res + d) % m, (res + m - d) % m]
+                vec![(res + d) % P, (res + P - d) % P]
             }
         }.iter().map(|c| 
             MarkoffTriple::new(x, y, &Rc::new(Coord::new(*c, f)))

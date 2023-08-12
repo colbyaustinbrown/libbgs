@@ -1,13 +1,16 @@
 use either::Either::*;
 
+use libbgs::numbers::fp::*;
 use libbgs::numbers::quad_field::*;
 use libbgs::numbers::factorization::*;
 use libbgs::numbers::sylow::*;
 use libbgs::numbers::sylow_stream::*;
-use libbgs::numbers::group::*;
+// use libbgs::numbers::group::*;
 use libbgs::markoff::coord::*;
-use libbgs::markoff::triple::*;
+// use libbgs::markoff::triple::*;
 use libbgs::orbit_tester::*;
+    
+const BIG_P: u128 = 1_000_000_000_000_000_124_398;
 
 fn main() {
     /*
@@ -62,12 +65,13 @@ fn main() {
     */
 
     let fp = Factorization::new(vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]);
+    let fp2_fact = Factorization::new(vec![(2, 4), (3, 1), (5, 2), (11, 2), (17, 1), (19, 1), (23, 1), (97, 1), (757, 1), (1453, 1), (8689, 1)]);
     let fp2 = QuadField::make(
-        fp.clone(),
-        Factorization::new(vec![(2, 4), (3, 1), (5, 2), (11, 2), (17, 1), (19, 1), (23, 1), (97, 1), (757, 1), (1453, 1), (8689, 1)])
+        FpStar::<BIG_P> {},
+        fp2_fact.clone()
     );
-    let fp_decomp = SylowDecomp::new(&fp);
-    let fp2_decomp = SylowDecomp::new(&fp2);
+    let fp_decomp = SylowDecomp::new(&FpStar::<BIG_P> {}, fp.clone());
+    let fp2_decomp = SylowDecomp::new(&fp2, fp2_fact);
 
     const LIMIT: u128 = 500;
 
@@ -106,9 +110,9 @@ fn main() {
                 ))
             }
         ))
-        .map(|x| Coord::from_chi(x, &fp2));
+        .map(Coord::from_chi);
 
-    let mut tester = OrbitTester::new(&fp);
+    let mut tester = OrbitTester::new(&FpStar::<BIG_P> {});
     let mut count = 0;
     for x in stream {
         count += 1;

@@ -269,25 +269,28 @@ mod tests {
     use super::*;
     use crate::numbers::fp::*;
 
+    const BIG_P: u128 = 1_000_000_000_000_000_124_399;
+
     #[test]
     pub fn test_make_stream() {
         let fp = Factorization::new(vec![(2, 1), (3, 1)]);
-        let g = SylowDecomp::new(&fp);
+        let g = SylowDecomp::new(&FpStar::<7> {}, fp.clone());
+        println!("g is {g:?}");
         let mut stream = SylowStreamBuilder::new(&g)
             .add_target(vec![1, 0])
             .build();
-        assert_eq!(stream.next().map(|s| s.to_product(&g).value()), Some(6));
+        assert_eq!(stream.next().map(|s| { println!("s is {s:?}"); s.to_product(&g).value}), Some(6));
         assert_eq!(stream.next(), None);
     }
 
     #[test]
     pub fn test_generates_small() {
         let fp = Factorization::new(vec![(2, 2), (3, 1), (5, 1)]);
-        let g = SylowDecomp::new(&fp);
+        let g = SylowDecomp::new(&FpStar::<61> {}, fp.clone());
         let stream = SylowStreamBuilder::new(&g)
             .add_target(vec![1, 0, 0]) 
             .build();
-        let coords: Vec<SylowElem<FpStar>> = stream.collect();
+        let coords: Vec<SylowElem<FpStar<61>>> = stream.collect();
         assert_eq!(coords.len(), 1);
         let mut x = coords[0].clone();
         assert!(!x.is_one(&g));
@@ -313,19 +316,19 @@ mod tests {
         let stream = SylowStreamBuilder::new(&g)
             .add_target(vec![0, 1, 0])
             .build();
-        let coords: Vec<SylowElem<FpStar>> = stream.collect();
+        let coords: Vec<SylowElem<FpStar<61>>> = stream.collect();
         assert_eq!(coords.len(), 2);
     }
 
     #[test]
     pub fn test_generates_big() {
         let fp = Factorization::new(vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]);
-        let g = SylowDecomp::new(&fp);
+        let g = SylowDecomp::new(&FpStar::<BIG_P> {}, fp.clone());
 
         let stream = SylowStreamBuilder::new(&g)
             .add_target(vec![0, 0, 0, 2, 0, 0, 0])
             .build();
-        let coords: Vec<SylowElem<FpStar>> = stream.collect();
+        let coords: Vec<SylowElem<FpStar<BIG_P>>> = stream.collect();
         assert_eq!(coords.len(), 29 * 29 - 29);
 
         let mut stream = SylowStreamBuilder::new(&g)
@@ -340,12 +343,12 @@ mod tests {
     #[test]
     pub fn test_generates_medium() {
         let fp = Factorization::new(vec![(2,1), (3,3), (5,1)]);
-        let g = SylowDecomp::new(&fp);
+        let g = SylowDecomp::new(&FpStar::<271> {}, fp.clone());
 
         let builder = SylowStreamBuilder::new(&g)
             .add_target(vec![0, 2, 1]);
         let stream_all = builder.build();
-        let coords: Vec<SylowElem<FpStar>> = stream_all.collect();
+        let coords: Vec<SylowElem<FpStar<271>>> = stream_all.collect();
         //println!("{coords:?}");
         assert_eq!(coords.len(), 24);
     }
@@ -353,13 +356,13 @@ mod tests {
     #[test]
     pub fn test_skips_upper_half() {
         let fp = Factorization::new(vec![(2,1), (3,3), (5,1)]);
-        let g = SylowDecomp::new(&fp);
+        let g = SylowDecomp::new(&FpStar::<271> {}, fp.clone());
 
         let stream = SylowStreamBuilder::new(&g)
             .add_target(vec![0, 2, 1])
             .add_flag(flags::NO_UPPER_HALF)
             .build();
-        let coords: Vec<SylowElem<FpStar>> = stream.collect();
+        let coords: Vec<SylowElem<FpStar<271>>> = stream.collect();
         //println!("{coords:?}");
         assert_eq!(coords.len(), 12);
     }
@@ -367,13 +370,13 @@ mod tests {
     #[test]
     pub fn test_multiple_targets() {
         let fp = Factorization::new(vec![(2, 1), (3, 3), (5, 1)]);
-        let g = SylowDecomp::new(&fp);
+        let g = SylowDecomp::new(&FpStar::<271> {}, fp.clone());
 
         let stream = SylowStreamBuilder::new(&g)
             .add_target(vec![1, 0, 0])
             .add_target(vec![0, 1, 0])
             .build();
-        let coords: Vec<SylowElem<FpStar>> = stream.collect();
+        let coords: Vec<SylowElem<FpStar<271>>> = stream.collect();
         assert_eq!(coords.len(), 3);
 
         let stream = SylowStreamBuilder::new(&g)
@@ -388,7 +391,7 @@ mod tests {
         }
         assert!(false);
         */
-        let coords: Vec<SylowElem<FpStar>> = stream.collect();
+        let coords: Vec<SylowElem<FpStar<271>>> = stream.collect();
         for x in &coords {
             println!("{x:?}");
         }
@@ -398,13 +401,13 @@ mod tests {
     #[test]
     pub fn test_multiple_targets_2() {
         let fp = Factorization::new(vec![(2, 1), (7, 2), (13, 2), (29, 2)]);
-        let g = SylowDecomp::new(&fp);
+        let g = SylowDecomp::new(&FpStar::<13928643> {}, fp.clone());
 
         let stream = SylowStreamBuilder::new(&g)
             .add_target(vec![0, 1, 1, 0])
             .add_flag(flags::LEQ)
             .build();
-        let coords: Vec<SylowElem<FpStar>> = stream.collect();
+        let coords: Vec<SylowElem<FpStar<13928643>>> = stream.collect();
         for x in &coords {
             println!("{x:?}");
         }
@@ -413,8 +416,8 @@ mod tests {
 
     #[test]
     pub fn test_no_parabolic() {
-        let fp = Factorization::new(vec![(2, 2), (3, 1), (5, 1)]);
-        let g = SylowDecomp::new(&fp);
+        let fact = Factorization::new(vec![(2, 2), (3, 1), (5, 1)]);
+        let g = SylowDecomp::new(&FpStar::<61> {}, fact.clone());
 
         let stream = SylowStreamBuilder::new(&g)
             .add_target(vec![2, 1, 0])
@@ -428,5 +431,4 @@ mod tests {
         }
     }
 }
-
 

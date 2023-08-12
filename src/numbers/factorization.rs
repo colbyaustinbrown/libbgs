@@ -46,7 +46,7 @@ impl Factorization {
         }
     }
 
-    pub fn maximal_divisors<'a>(&'a self, l: u128) -> impl Iterator<Item = Vec<u128>> + 'a {
+    pub fn maximal_divisors(&self, l: u128) -> impl Iterator<Item = Vec<u128>> + '_ {
         FactorStream::new(&self.prime_powers, l)
     }
 

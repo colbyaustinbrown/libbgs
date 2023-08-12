@@ -6,11 +6,10 @@ pub use crate::numbers::semigroup::*;
 use crate::numbers::factorization::*;
 use crate::numbers::group::*;
 
-pub trait SylowDecomposable: Semigroup + Factored {
-    fn find_sylow_generator(&self, i: usize) -> Self::Elem;
+pub trait SylowDecomposable: Semigroup {
+    fn find_sylow_generator(&self, i: usize, fact: &Factorization) -> Self::Elem;
 
-    fn is_sylow_generator(&self, candidate: &Self::Elem, i: usize) -> Option<Self::Elem> {
-        let d = self.factors()[i];
+    fn is_sylow_generator(&self, candidate: &Self::Elem, d: (u128, u128)) -> Option<Self::Elem> {
         let pow = self.size() / intpow(d.0, d.1, 0);
         let mut res = candidate.clone();
         res.pow(pow, self);
@@ -23,6 +22,7 @@ pub trait SylowDecomposable: Semigroup + Factored {
 #[derive(PartialEq, Eq, Debug)]
 pub struct SylowDecomp<'a, C: SylowDecomposable> {
     pub parent: &'a C,
+    pub fact: Factorization,
     pub generators: Vec<C::Elem>
 }
 
@@ -33,13 +33,14 @@ pub struct SylowElem<'a, C: SylowDecomposable> {
 }
 
 impl<'a, C: SylowDecomposable> SylowDecomp<'a, C> {
-    pub fn new(parent: &C) -> SylowDecomp<C> {
-        let length = parent.factors().len();
+    pub fn new(parent: &C, fact: Factorization) -> SylowDecomp<C> {
+        let length = fact.len();
         let generators = (0..length)
-            .map(|i| parent.find_sylow_generator(i))
+            .map(|i| parent.find_sylow_generator(i, &fact))
             .collect();
         SylowDecomp {
             parent,
+            fact,
             generators
         }
     }
@@ -72,12 +73,12 @@ impl<'a, C: SylowDecomposable> Group for SylowDecomp<'a, C> {}
 
 impl<'a, C: SylowDecomposable> Factored for SylowDecomp<'a, C> {
     fn factors(&self) -> &Factorization {
-        self.parent.factors()
+        &self.fact
     }
 }
 
 impl<'a, C: SylowDecomposable> SylowDecomposable for SylowDecomp<'a, C> {
-    fn find_sylow_generator(&self, i: usize) -> Self::Elem {
+    fn find_sylow_generator(&self, i: usize, _: &Factorization) -> Self::Elem {
         let mut coords = vec![0 ; self.factors().len()];
         coords[i] = 1;
         SylowElem {
@@ -111,15 +112,15 @@ impl<'a, C: SylowDecomposable> SylowElem<'a, C> {
                 let mut x = self.clone();
                 for j in 0..g.len() {
                     if j == i { continue; }
-                    x.pow(g.factors().factor(j), g);
+                    x.pow(g.fact.factor(j), g);
                 }
 
                 let mut r = 0;
                 while !x.is_one(g) {
-                    x.pow(g.factors()[i].0, g);
+                    x.pow(g.fact[i].0, g);
                     r += 1;
                 }
-                (g.factors()[i].0, r)
+                (g.fact[i].0, r)
             })
             .collect();
         Factorization::new(prime_powers)
@@ -137,13 +138,13 @@ where C: SylowDecomposable + 'a {
     fn multiply(&mut self, other: &SylowElem<C>, g: &SylowDecomp<C>) {
         let len = g.generators.len();
         for i in 0..usize::max(len, len) {
-            self.coords[i] = (self.coords[i] + other.coords[i]) % g.factors().factor(i);
+            self.coords[i] = (self.coords[i] + other.coords[i]) % g.fact.factor(i);
         }
     }
 
     fn square(&mut self, g: &SylowDecomp<C>) {
         for i in 0..g.generators.len() {
-            self.coords[i] = self.coords[i] * 2 % g.factors().factor(i);
+            self.coords[i] = self.coords[i] * 2 % g.fact.factor(i);
         }
     }
 }
@@ -151,7 +152,7 @@ where C: SylowDecomposable + 'a {
 impl<'a, C: SylowDecomposable> GroupElem for SylowElem<'a, C> {
     fn invert(&mut self, g: &Self::Group) {
         for i in 0..self.coords.len() {
-            self.coords[i] = g.factors().factor(i) - self.coords[i];
+            self.coords[i] = g.fact.factor(i) - self.coords[i];
         }
     }
 }
