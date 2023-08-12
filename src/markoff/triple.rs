@@ -69,7 +69,7 @@ impl<const P: u128> MarkoffTriple<P> {
         let mut res = long_multiply(3, long_multiply(a, b, P), P);
         if res % 2 == 1 { res += P };
         res /= 2;
-        match disc.int_sqrt(f.pminusone()).map(|z| z.value) {
+        match disc.int_sqrt().map(|z| z.value) {
             None => Vec::new(),
             Some(0) => vec![res],
             Some(mut d) => {

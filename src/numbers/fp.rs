@@ -39,7 +39,8 @@ impl<const P: u128> FpNum<P> {
         self.value -= other.value;
     }
 
-    pub fn int_sqrt(&self, fp: &FpStar<P>) -> Option<FpNum<P>> {
+    pub fn int_sqrt(&self) -> Option<FpNum<P>> {
+        let fp = FpStar::<P> {};
         if self.value == 0 { 
             return Some(fp.from_int(0));
         }
@@ -242,7 +243,7 @@ mod tests {
         let p = FpStar::<13> {};
         let mut nonresidues = 0;
         for x in (1..13).map(|i| p.from_int(i)) {
-            match x.int_sqrt(&p) {
+            match x.int_sqrt() {
                 None => { nonresidues += 1; }
                 Some(mut y) => {
                     y.pow(2, &p);

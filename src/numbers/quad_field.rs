@@ -67,14 +67,14 @@ impl<const P: u128> QuadField<P> {
     pub fn int_sqrt_either(&self, x: u128) -> Either<QuadNum<P>, FpNum<P>> {
         let mut x = self.pminusone.from_int(x);
         let fp = &self.pminusone;
-        if let Some(y) = x.int_sqrt(fp) {
+        if let Some(y) = x.int_sqrt() {
             return Right(self.pminusone.from_int(y.value));
         }
 
         let mut r = self.pminusone.from_int(self.r);
         r.invert(fp);
         x.multiply(&r, fp);
-        let a1 = x.int_sqrt(fp).unwrap();
+        let a1 = x.int_sqrt().unwrap();
         Left(QuadNum {
             a0: 0,
             a1: a1.value

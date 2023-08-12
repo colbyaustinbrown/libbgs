@@ -37,7 +37,7 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
             disc.sub(&tmp);
             let mut z = self.f.from_int(long_multiply(3, long_multiply(x, y, P), P));
             let mut candidates = Vec::new();
-            match disc.int_sqrt(self.f) {
+            match disc.int_sqrt() {
                 Some(FpNum{value: 0}) => {
                     z.multiply(&inv2, self.f);
                     candidates.push(z);
