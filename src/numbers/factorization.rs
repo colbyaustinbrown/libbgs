@@ -120,7 +120,7 @@ impl<'a> Iterator for FactorStream<'a> {
             self.stack.push((j, next));
             maximal = false;
         }
-        maximal &= prod * self.source[0].0 <= self.limit;
+        maximal &= prod * self.source[0].0 > self.limit;
         if self.maximal_only && !maximal { self.next() } 
         else { Some(state) }
     }
