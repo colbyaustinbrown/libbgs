@@ -3,19 +3,14 @@ use either::*;
 use crate::numbers::factorization::*;
 use crate::numbers::sylow::*;
 use crate::numbers::fp::*;
-use crate::numbers::group::*;
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct QuadField<const P: u128> {
-    pminusone: FpStar<P>,
     pplusone: Factorization,
     r: u128
 }
 
 impl<const P: u128> QuadField<P> {
-    pub fn pminusone(&self) -> &FpStar<P> { 
-        &self.pminusone 
-    }
     pub fn pplusone(&self) -> &Factorization {
         &self.pplusone
     }
@@ -50,7 +45,6 @@ impl<const P: u128> Factored for QuadField<P> {
 impl<const P: u128> QuadField<P> {
     pub fn new(pminusone: FpStar<P>, pplusone: Factorization, r: u128) -> QuadField<P> {
         QuadField {
-            pminusone,
             pplusone,
             r
         }
@@ -65,15 +59,15 @@ impl<const P: u128> QuadField<P> {
     }
 
     pub fn int_sqrt_either(&self, x: u128) -> Either<QuadNum<P>, FpNum<P>> {
-        let mut x = self.pminusone.from_int(x);
-        let fp = &self.pminusone;
+        let fp = FpStar::<P> {};
+        let mut x = fp.from_int(x);
         if let Some(y) = x.int_sqrt() {
-            return Right(self.pminusone.from_int(y.value));
+            return Right(fp.from_int(y.value));
         }
 
-        let mut r = self.pminusone.from_int(self.r);
-        r.invert(fp);
-        x.multiply(&r, fp);
+        let mut r = fp.from_int(self.r);
+        r.invert(&fp);
+        x.multiply(&r, &fp);
         let a1 = x.int_sqrt().unwrap();
         Left(QuadNum {
             a0: 0,
@@ -92,7 +86,6 @@ impl<const P: u128> QuadField<P> {
     pub fn change_r(&self, r: u128) -> QuadField<P> {
         QuadField {
             r,
-            pminusone: self.pminusone,
             pplusone: self.pplusone.clone()
         }
     }

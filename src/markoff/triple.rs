@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use crate::numbers::fp::*;
 use crate::numbers::quad_field::*;
 use crate::markoff::coord::*;
 use crate::util::*;
@@ -57,11 +58,12 @@ impl<const P: u128> MarkoffTriple<P> {
     }
 
     pub fn get_from_ab(x: &Rc<Coord<P>>, y: &Rc<Coord<P>>, f: &QuadField<P>) -> Vec<Self> {
+        let fp = FpStar::<P> {};
         let a = x.v();
         let b = y.v();
         let a2 = intpow(a, 2, P);
         let b2 = intpow(b, 2, P);
-        let mut disc = f.pminusone().from_int(long_multiply(long_multiply(9, a2, P), b2, P));
+        let mut disc = fp.from_int(long_multiply(long_multiply(9, a2, P), b2, P));
         disc.value += P;
         disc.value -= long_multiply(4, a2 + b2, P);
         disc.value %= P;
