@@ -63,7 +63,7 @@ impl Semigroup for QuadFieldSml {
 impl SemigroupElem for QuadNumSml {
     type Group = QuadFieldSml;
 
-    fn is_one(&self, _f: &QuadFieldSml) -> bool {
+    fn is_one(&self) -> bool {
         self.a0 == 1 && self.a1 == 0
     }
 

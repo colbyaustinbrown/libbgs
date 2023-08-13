@@ -293,9 +293,9 @@ mod tests {
         let coords: Vec<SylowElem<FpStar<61>>> = stream.collect();
         assert_eq!(coords.len(), 1);
         let mut x = coords[0].clone();
-        assert!(!x.is_one(&g));
+        assert!(!x.is_one());
         x.pow(2, &g);
-        assert!(x.is_one(&g));
+        assert!(x.is_one());
 
         let stream = SylowStreamBuilder::new(&g)
             .add_target(vec![2, 0, 0]) 
@@ -306,10 +306,10 @@ mod tests {
             count += 1;
             for _ in 1..3 {
                 let y = x.clone();
-                assert!(!x.is_one(&g));
+                assert!(!x.is_one());
                 x.multiply(&y, &g);
             }
-            assert!(x.is_one(&g));
+            assert!(x.is_one());
         }
         assert_eq!(count, 2);
 
@@ -335,9 +335,9 @@ mod tests {
             .add_target(vec![0, 0, 0, 0, 0, 1, 0])
             .build();
         let mut x = stream.next();
-        assert_eq!(x.as_ref().map(|a| a.is_one(&g)), Some(false));
+        assert_eq!(x.as_ref().map(|a| a.is_one()), Some(false));
         x.as_mut().map(|a| {a.pow(705737, &g); a});
-        assert_eq!(x.map(|a| a.is_one(&g)), Some(true));
+        assert_eq!(x.map(|a| a.is_one()), Some(true));
     }
 
     #[test]
@@ -425,9 +425,9 @@ mod tests {
             .add_flag(flags::NO_PARABOLIC)
             .build();
         for mut x in stream {
-            assert!(!x.is_one(&g));
+            assert!(!x.is_one());
             x.square(&g);
-            assert!(!x.is_one(&g));
+            assert!(!x.is_one());
         }
     }
 }

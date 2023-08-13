@@ -101,7 +101,7 @@ impl<const P: u128> SylowDecomposable for FpStar<P> {
 
 impl<const P: u128> SemigroupElem for FpNum<P> {
     type Group = FpStar<P>;
-    fn is_one(&self, _: &FpStar<P>) -> bool {
+    fn is_one(&self) -> bool {
         self.value == 1
     }
 
@@ -131,7 +131,7 @@ mod tests {
     fn one_is_one() {
         let p = FpStar::<7> {};
         let one = p.one();
-        assert!(one.is_one(&p));
+        assert!(one.is_one());
     }
 
     #[test]
@@ -170,7 +170,7 @@ mod tests {
 
         let mut x = p.from_int(5);
         x.pow(p.p() - 1, &p);
-        assert!(x.is_one(&p));
+        assert!(x.is_one());
     }
 
     #[test]
@@ -179,7 +179,7 @@ mod tests {
         let mut x = p.from_int(3);
         x.pow(BIG_P - 1, &FpStar::<BIG_P> {});
         println!("x is {x:?}");
-        assert!(x.is_one(&p));
+        assert!(x.is_one());
     }
 
     #[test]
@@ -187,7 +187,7 @@ mod tests {
         let p = Factorization::new(vec![(2,2), (3,1)]);
         let g = SylowDecomp::new(&FpStar::<13> {}, p.clone());
         let one = g.one();
-        assert!(one.is_one(&g));
+        assert!(one.is_one());
     }
 
     #[test]
@@ -219,7 +219,7 @@ mod tests {
         for i in 1..13 {
             let mut x = SylowElem::new(vec![i % 4, i % 3]);
             x.pow(x.order(&g).value(), &g);
-            assert!(x.is_one(&g));
+            assert!(x.is_one());
         }
     }
 
@@ -235,7 +235,7 @@ mod tests {
         );
         let or = x.order(&g).value();
         x.pow(or, &g);
-        assert!(x.is_one(&g));
+        assert!(x.is_one());
     }
 
     #[test]
@@ -261,9 +261,9 @@ mod tests {
             let mut x = p.from_int(i);
             let y = x.clone();
             x.invert(&p);
-            assert!(!x.is_one(&p));
+            assert!(!x.is_one());
             x.multiply(&y, &p);
-            assert!(x.is_one(&p));
+            assert!(x.is_one());
         }
     }
 }

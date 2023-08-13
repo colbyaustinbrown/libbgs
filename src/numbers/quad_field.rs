@@ -116,7 +116,7 @@ impl<const P: u128> QuadNum<P> {
 impl<const P: u128> SemigroupElem for QuadNum<P> {
     type Group = QuadField<P>;
 
-    fn is_one(&self, _f: &QuadField<P>) -> bool {
+    fn is_one(&self) -> bool {
         self.a0 == 1 && self.a1 == 0
     }
 
@@ -170,7 +170,7 @@ mod tests {
             Factorization ::new(vec![(2,3)])
         );
         let one = f49.one();
-        assert!(one.is_one(&f49));
+        assert!(one.is_one());
     }
 
     #[test]
@@ -192,7 +192,7 @@ mod tests {
         );
         let mut x = QuadNum::from_ints(3, 4);
         x.pow(48, &f49);
-        assert!(x.is_one(&f49));
+        assert!(x.is_one());
     }
 
     #[test]
@@ -208,7 +208,7 @@ mod tests {
         x.pow(BIG_P - 1, &fp2);
         x.pow(BIG_P + 1, &fp2);
         println!("{x:?}");
-        assert!(x.is_one(&fp2));
+        assert!(x.is_one());
     }
 
     #[test]
