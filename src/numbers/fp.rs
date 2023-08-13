@@ -92,7 +92,6 @@ impl<const P: u128> SylowDecomposable for FpStar<P> {
             (2,1) => self.from_int(self.size()),
             _ => (1..self.size())
                 .map(|i| self.from_int(standard_affine_shift(P, i)))
-                .inspect(|i| println!("i is {i:?}"))
                 .find_map(|c| self.is_sylow_generator(&c, fact[i]))
                 .unwrap()
         }
