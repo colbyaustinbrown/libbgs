@@ -1,4 +1,5 @@
 use either::Either::*;
+use either::Either;
 
 use libbgs::numbers::fp::*;
 use libbgs::numbers::quad_field::*;
@@ -127,6 +128,7 @@ fn main() {
     println!("Testing complete.");
 
     let mut repless_count = 0;
+    let mut big_count = 0;
     for (x, disjoint) in results.results() {
         let mut orbits = disjoint.get_orbits().peekable();
 
@@ -136,9 +138,15 @@ fn main() {
         }
 
         for (key, set) in orbits {
-            println!("For coordinate {x}: Is big? {} Representative: {key}", set.data); 
+            if set.data {
+                println!("For coordinate {x}: Representative: {key} is an orbit of small coordinates."); 
+            } else {
+                big_count += 1;
+            }
         }
     }
     println!("{repless_count} coordinates had no representative.");
+    println!("{big_count} orbits had big coordinates.");
+    println!("There were {} pairs of coordinates which did not form the first two coordinates in the solution of the Markoff equation.", results.failures());
 }
 

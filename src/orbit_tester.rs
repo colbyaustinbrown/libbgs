@@ -12,6 +12,7 @@ pub struct OrbitTester<'a, const P: u128> {
 }
 
 pub struct OrbitTesterResults {
+    failures: u128,
     results: HashMap<u128, Disjoint<u128, bool>>
 }
 
@@ -25,9 +26,17 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
         let mut inv2 = self.f.from_int(2);
         inv2.invert(self.f);
 
+        let mut i = 0;
+        let mut failures = 0;
+
         for (x,y) in self.targets.iter()
-            .cartesian_product(self.targets.iter())
+            .combinations_with_replacement(2)
+            .map(|v| (v[0], v[1]))
         {
+            i += 1;
+            if i % 10_000 == 0 {
+                println!("Running pair #{i}.");
+            }
             let x = *x;
             let y = *y;
             let x2 = intpow(x, 2, P);
@@ -37,6 +46,7 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
             disc.sub(&tmp);
             let mut z = self.f.from_int(long_multiply(3, long_multiply(x, y, P), P));
             let mut candidates = Vec::new();
+
             match disc.int_sqrt() {
                 Some(FpNum{value: 0}) => {
                     z.multiply(&inv2, self.f);
@@ -52,7 +62,9 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
                     z.multiply(&inv2, self.f);
                     candidates.push(z);
                 },
-                None => {}
+                None => {
+                    failures += 1;
+                }
             }
 
             let it: Vec<(&FpNum<P>, bool)> = candidates.iter()
@@ -62,14 +74,19 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
             let Some(disjoint) = results.get_mut(&x) else { continue; };
             for (z, pred) in it {
                 if pred {
+                    disjoint.associate(&x, &z.value);
                     disjoint.associate(&y, &z.value);
                 } else {
+                    disjoint.update(&x, false);
                     disjoint.update(&y, false);
                 }
             }
         }
 
-        OrbitTesterResults { results }
+        OrbitTesterResults { 
+            failures,
+            results 
+        }
     }
 
     pub fn new(f: &FpStar<P>) -> OrbitTester<P> {
@@ -88,5 +105,9 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
 impl OrbitTesterResults {
     pub fn results(&self) -> impl Iterator<Item = (&u128, &Disjoint<u128, bool>)> {
         self.results.iter()
+    }
+
+    pub fn failures(&self) -> u128 {
+        self.failures
     }
 }

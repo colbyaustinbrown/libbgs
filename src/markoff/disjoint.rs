@@ -56,7 +56,7 @@ where
     pub fn associate(&mut self, one: &K, two: &K) {
         match (self.disjoint.get(one), self.disjoint.get(two)) {
             (None, None) => {
-                let op = SetPtr::new(Set::new(self.default.clone()));
+                let op = SetPtr::new(self.default.clone());
                 self.orbits.insert(one.clone());
                 self.disjoint.insert(two.clone(), op.point());
                 self.disjoint.insert(one.clone(), op);
@@ -93,7 +93,14 @@ where
     }
 
     pub fn update(&mut self, k: &K, v: V) {
-        let Some(orbit) = self.disjoint.get(k) else { return; };
+        let orbit = match self.disjoint.get(k) {
+            Some(orbit) => orbit,
+            None => {
+                self.orbits.insert(k.clone());
+                self.disjoint.insert(k.clone(), SetPtr::new(v.clone()));
+                self.disjoint.get(k).unwrap()
+            }
+        };
         let (ptr,set) = unsafe { orbit.root() };
         ptr.ptr.replace(Right(Set {
             rank: set.rank,
@@ -121,9 +128,9 @@ impl<V: Default> Default for Set<V> {
 }
 
 impl<V> SetPtr<V> {
-    fn new(orbit: Set<V>) -> SetPtr<V> {
+    fn new(v: V) -> SetPtr<V> {
         SetPtr { 
-            ptr: Rc::new(RefCell::new(Right(orbit)))
+            ptr: Rc::new(RefCell::new(Right(Set::new(v))))
         }
     }
 
