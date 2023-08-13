@@ -10,7 +10,7 @@ use libbgs::markoff::coord::*;
 // use libbgs::markoff::triple::*;
 use libbgs::orbit_tester::*;
     
-const BIG_P: u128 = 1_000_000_000_000_000_124_398;
+const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
 fn main() {
     /*
@@ -80,10 +80,14 @@ fn main() {
         .add_flag(flags::NO_UPPER_HALF)
         .add_flag(flags::NO_PARABOLIC)
         .add_flag(flags::LEQ);
+    println!("Adding these targets from F_p: ");
     for d in fp.maximal_divisors(LIMIT) {
+        println!("\t{d:?}");
         fp_stream_builder = fp_stream_builder.add_target(d);
     }
+    println!("Adding these targets from F_p^2: ");
     for d in fp2_fact.maximal_divisors(LIMIT) {
+        println!("\t{d:?}");
         fp2_stream_builder = fp2_stream_builder.add_target(d);
     }
     let stream = fp_stream_builder.build()
@@ -111,6 +115,7 @@ fn main() {
 
     let mut tester = OrbitTester::new(&FpStar::<BIG_P> {});
     let mut count = 0;
+    println!("Loading coordinates into the Orbit Tester.");
     for x in stream {
         count += 1;
         tester = tester.add_target(x.v());

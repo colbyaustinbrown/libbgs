@@ -148,6 +148,11 @@ mod tests {
     }
 
     #[test]
+    fn calculates_r_big() {
+        let f = QuadField::<BIG_P>::make();
+    }
+
+    #[test]
     fn powers_up() {
         let f49 = QuadField::<7>::make();
         let mut x = QuadNum::from_ints(3, 4);
