@@ -66,12 +66,9 @@ fn main() {
 
     let fp = Factorization::new(vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]);
     let fp2_fact = Factorization::new(vec![(2, 4), (3, 1), (5, 2), (11, 2), (17, 1), (19, 1), (23, 1), (97, 1), (757, 1), (1453, 1), (8689, 1)]);
-    let fp2 = QuadField::make(
-        FpStar::<BIG_P> {},
-        fp2_fact.clone()
-    );
+    let fp2 = QuadField::<BIG_P>::make();
     let fp_decomp = SylowDecomp::new(&FpStar::<BIG_P> {}, fp.clone());
-    let fp2_decomp = SylowDecomp::new(&fp2, fp2_fact);
+    let fp2_decomp = SylowDecomp::new(&fp2, fp2_fact.clone());
 
     const LIMIT: u128 = 500;
 
@@ -86,7 +83,7 @@ fn main() {
     for d in fp.maximal_divisors(LIMIT) {
         fp_stream_builder = fp_stream_builder.add_target(d);
     }
-    for d in fp2.pplusone().maximal_divisors(LIMIT) {
+    for d in fp2_fact.maximal_divisors(LIMIT) {
         fp2_stream_builder = fp2_stream_builder.add_target(d);
     }
     let stream = fp_stream_builder.build()
