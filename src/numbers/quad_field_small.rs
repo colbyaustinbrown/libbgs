@@ -67,18 +67,20 @@ impl SemigroupElem for QuadNumSml {
         self.a0 == 1 && self.a1 == 0
     }
 
-    fn multiply(&mut self, other: &QuadNumSml, f: &QuadFieldSml) {
-        let a0_old = self.a0;
+    fn multiply(&self, other: &QuadNumSml, f: &QuadFieldSml) -> QuadNumSml {
         let p = f.p();
-        self.a0 = (long_multiply(self.a0, other.a0, p) + long_multiply(self.a1, long_multiply(other.a1, f.r(), p), p)) % p;
-        self.a1 = (long_multiply(self.a1, other.a0, p) + long_multiply(a0_old, other.a1, p)) % p;
+        QuadNumSml {
+            a0: (long_multiply(self.a0, other.a0, p) + long_multiply(self.a1, long_multiply(other.a1, f.r(), p), p)) % p,
+            a1: (long_multiply(self.a1, other.a0, p) + long_multiply(self.a0, other.a1, p)) % p
+        }
     }
 
-    fn square(&mut self, f: &QuadFieldSml) {
-        let a0_old = self.a0;
+    fn square(&self, f: &QuadFieldSml) -> QuadNumSml {
         let p = f.p();
-        self.a0 = (long_multiply(self.a0, self.a0, p) + long_multiply(self.a1, long_multiply(self.a1, f.r(), p), p)) % p;
-        self.a1 = (long_multiply(self.a1, a0_old, p) + long_multiply(a0_old, self.a1, p)) % p;
+        QuadNumSml {
+            a0: (long_multiply(self.a0, self.a0, p) + long_multiply(self.a1, long_multiply(self.a1, f.r(), p), p)) % p,
+            a1: (long_multiply(self.a1, self.a0, p) + long_multiply(self.a0, self.a1, p)) % p
+        }
     }
 }
 

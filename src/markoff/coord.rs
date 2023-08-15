@@ -95,7 +95,7 @@ fn either_multiply<const P: u128>(a: &mut Either<QuadNum<P>, FpNum<P>>, b: &Eith
         (r @ Right(_), Left(y)) => {
             let v = r.clone().unwrap_right().value;
             let mut res = QuadNum::from_ints(v, 0);
-            res.multiply(y, fp2);
+            res = res.multiply(y, fp2);
             *r = Left(res);
         },
         (Right(x), Right(y)) => {

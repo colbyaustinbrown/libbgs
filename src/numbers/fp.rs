@@ -61,7 +61,7 @@ impl<const P: u128> FpNum<P> {
         };
         let fp2 = QuadFieldSml::new(P, r);
         let mut x = QuadNumSml::from_ints(a, 1);
-        x.pow((P + 1) / 2, &fp2);
+        x = x.pow((P + 1) / 2, &fp2);
         Some(fp.from_int(x.a0))
     }
 }
@@ -104,18 +104,18 @@ impl<const P: u128> SemigroupElem for FpNum<P> {
         self.value == 1
     }
 
-    fn multiply(&mut self, other: &FpNum<P>, _: &FpStar<P>) {
-        self.value = long_multiply(self.value, other.value, P);
+    fn multiply(&self, other: &FpNum<P>, _: &FpStar<P>) -> FpNum<P> {
+        FpNum { value: long_multiply(self.value, other.value, P) }
     }
 
-    fn square(&mut self, _: &FpStar<P>) {
-        self.value = long_multiply(self.value, self.value, P);
+    fn square(&self, _: &FpStar<P>) -> FpNum<P> {
+        FpNum { value: long_multiply(self.value, self.value, P) }
     }
 }
 
 impl<const P: u128> GroupElem for FpNum<P> {
-    fn invert(&mut self, g: &FpStar<P>) {
-        self.pow(P - 2, g); 
+    fn invert(&self, g: &FpStar<P>) -> FpNum<P> {
+        self.pow(P - 2, g) 
     }
 }
 
@@ -139,7 +139,7 @@ mod tests {
         let mut x = p.from_int(3);
         assert_eq!(3, x.value);
         let five = p.from_int(5);
-        x.multiply(&five, &p);
+        x = x.multiply(&five, &p);
         assert_eq!(1, x.value);
         assert_eq!(5, five.value);
     }
@@ -148,11 +148,11 @@ mod tests {
     fn squares() {
         let p = FpStar::<7> {};
         let mut x = p.from_int(3);
-        x.square(&p);
+        x = x.square(&p);
         assert_eq!(2, x.value);
 
         let mut x = p.from_int(2);
-        x.square(&p);
+        x = x.square(&p);
         assert_eq!(4, x.value);
     }
 
@@ -160,15 +160,15 @@ mod tests {
     fn powers_up() {
         let p = FpStar::<7> {};
         let mut x = p.from_int(2);
-        x.pow(5, &p);
+        x = x.pow(5, &p);
         assert_eq!(4, x.value);
 
         let mut x = p.from_int(3);
-        x.pow(3, &p);
+        x =x.pow(3, &p);
         assert_eq!(6, x.value);
 
         let mut x = p.from_int(5);
-        x.pow(p.p() - 1, &p);
+        x = x.pow(p.p() - 1, &p);
         assert!(x.is_one(&p));
     }
 
@@ -176,7 +176,7 @@ mod tests {
     fn powers_up_big() {
         let p = FpStar::<BIG_P> {};
         let mut x = p.from_int(3);
-        x.pow(BIG_P - 1, &FpStar::<BIG_P> {});
+        x = x.pow(BIG_P - 1, &FpStar::<BIG_P> {});
         println!("x is {x:?}");
         assert!(x.is_one(&p));
     }
@@ -217,7 +217,7 @@ mod tests {
         let g = SylowDecomp::new(&FpStar::<13> {}, fact.clone());
         for i in 1..13 {
             let mut x = SylowElem::new(vec![i % 4, i % 3]);
-            x.pow(x.order(&g).value(), &g);
+            x = x.pow(x.order(&g).value(), &g);
             assert!(x.is_one(&g));
         }
     }
@@ -233,7 +233,7 @@ mod tests {
                 .collect()
         );
         let or = x.order(&g).value();
-        x.pow(or, &g);
+        x = x.pow(or, &g);
         assert!(x.is_one(&g));
     }
 
@@ -245,7 +245,7 @@ mod tests {
             match x.int_sqrt() {
                 None => { nonresidues += 1; }
                 Some(mut y) => {
-                    y.pow(2, &p);
+                    y = y.pow(2, &p);
                     assert_eq!(x, y);
                 }
             }
@@ -259,9 +259,11 @@ mod tests {
         for i in 2..13 {
             let mut x = p.from_int(i);
             let y = x.clone();
-            x.invert(&p);
+            println!("{x:?}");
+            x = x.invert(&p);
+            println!("{x:?}");
             assert!(!x.is_one(&p));
-            x.multiply(&y, &p);
+            x = x.multiply(&y, &p);
             assert!(x.is_one(&p));
         }
     }

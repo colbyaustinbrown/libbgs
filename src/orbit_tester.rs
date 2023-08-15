@@ -24,16 +24,14 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
         }
 
         let mut inv2 = self.f.from_int(2);
-        inv2.invert(self.f);
+        inv2 = inv2.invert(self.f);
 
-        let mut i = 0;
         let mut failures = 0;
 
         for (x,y) in self.targets.iter()
             .combinations_with_replacement(2)
             .map(|v| (v[0], v[1]))
         {
-            i += 1;
             let x = *x;
             let y = *y;
             let x2 = intpow(x, 2, P);

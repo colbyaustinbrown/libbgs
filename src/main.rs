@@ -1,5 +1,4 @@
 use either::Either::*;
-use either::Either;
 
 use libbgs::numbers::fp::*;
 use libbgs::numbers::quad_field::*;
@@ -98,14 +97,14 @@ fn main() {
         )
         .map(|e| e.either(
             |(l, mut l_i)| { 
-                l_i.invert(&fp2_decomp);
+                l_i = l_i.invert(&fp2_decomp);
                 Left((
                     l.to_product(&fp2_decomp), 
                     l_i.to_product(&fp2_decomp)
                 ))
             },
             |(r, mut r_i)| { 
-                r_i.invert(&fp_decomp);
+                r_i = r_i.invert(&fp_decomp);
                 Right((
                     r.to_product(&fp_decomp), 
                     r_i.to_product(&fp_decomp)

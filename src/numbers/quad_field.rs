@@ -50,8 +50,8 @@ impl<const P: u128> QuadField<P> {
         }
 
         let mut r = fp.from_int(self.r);
-        r.invert(&fp);
-        x.multiply(&r, &fp);
+        r = r.invert(&fp);
+        x = x.multiply(&r, &fp);
         let a1 = x.int_sqrt().unwrap();
         Left(QuadNum {
             a0: 0,
@@ -90,16 +90,18 @@ impl<const P: u128> SemigroupElem for QuadNum<P> {
         self.a0 == 1 && self.a1 == 0
     }
 
-    fn multiply(&mut self, other: &QuadNum<P>, f: &QuadField<P>) {
-        let a0_old = self.a0;
-        self.a0 = (long_multiply(self.a0, other.a0, P) + long_multiply(self.a1, long_multiply(other.a1, f.r(), P), P)) % P;
-        self.a1 = (long_multiply(self.a1, other.a0, P) + long_multiply(a0_old, other.a1, P)) % P;
+    fn multiply(&self, other: &QuadNum<P>, f: &QuadField<P>) -> QuadNum<P> {
+        QuadNum {
+            a0: (long_multiply(self.a0, other.a0, P) + long_multiply(self.a1, long_multiply(other.a1, f.r(), P), P)) % P,
+            a1: (long_multiply(self.a1, other.a0, P) + long_multiply(self.a0, other.a1, P)) % P
+        }
     }
 
-    fn square(&mut self, f: &QuadField<P>) {
-        let a0_old = self.a0;
-        self.a0 = (long_multiply(self.a0, self.a0, P) + long_multiply(self.a1, long_multiply(self.a1, f.r(), P), P)) % P;
-        self.a1 = (long_multiply(self.a1, a0_old, P) + long_multiply(a0_old, self.a1, P)) % P;
+    fn square(&self, f: &QuadField<P>) -> QuadNum<P> {
+        QuadNum {
+            a0: (long_multiply(self.a0, self.a0, P) + long_multiply(self.a1, long_multiply(self.a1, f.r(), P), P)) % P,
+            a1: (long_multiply(self.a1, self.a0, P) + long_multiply(self.a0, self.a1, P)) % P
+        }
     }
 }
 
@@ -116,9 +118,8 @@ impl<const P: u128> SylowDecomposable for QuadField<P> {
         (1..P * 2)
             .map(|i| {
                 let j = standard_affine_shift(P * 2, i);
-                let mut p = self.steinitz(j);
-                p.pow(pow, self);
-                p
+                let p = self.steinitz(j);
+                p.pow(pow, self)
             })
             .find_map(|c| self.is_sylow_generator(&c, fact[i]))
             .unwrap()
@@ -149,14 +150,14 @@ mod tests {
 
     #[test]
     fn calculates_r_big() {
-        let f = QuadField::<BIG_P>::make();
+        QuadField::<BIG_P>::make();
     }
 
     #[test]
     fn powers_up() {
         let f49 = QuadField::<7>::make();
         let mut x = QuadNum::from_ints(3, 4);
-        x.pow(48, &f49);
+        x = x.pow(48, &f49);
         assert!(x.is_one(&f49));
     }
 
@@ -167,8 +168,8 @@ mod tests {
             a0: 3,
             a1: 5
         };
-        x.pow(BIG_P - 1, &fp2);
-        x.pow(BIG_P + 1, &fp2);
+        x = x.pow(BIG_P - 1, &fp2);
+        x = x.pow(BIG_P + 1, &fp2);
         println!("{x:?}");
         assert!(x.is_one(&fp2));
     }
@@ -180,7 +181,7 @@ mod tests {
             let mut x = fp2.int_sqrt(i);
             let y = x.clone();
             assert_ne!(x, i);
-            x.multiply(&y, &fp2);
+            x = x.multiply(&y, &fp2);
             assert_eq!(x, i);
         }
     }

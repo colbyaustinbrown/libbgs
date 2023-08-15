@@ -9,7 +9,7 @@ fn find_sqrt() {
         let mut x = fp.int_sqrt(i);
         let y = x.clone();
         assert_ne!(x, i);
-        x.multiply(&y, &fp);
+        x = x.multiply(&y, &fp);
         assert_eq!(x, i);
     }
 }

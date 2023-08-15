@@ -12,9 +12,9 @@ pub trait SylowDecomposable: Semigroup {
     fn is_sylow_generator(&self, candidate: &Self::Elem, d: (u128, u128)) -> Option<Self::Elem> {
         let pow = self.size() / intpow(d.0, d.1, 0);
         let mut res = candidate.clone();
-        res.pow(pow, self);
+        res = res.pow(pow, self);
         let mut check = res.clone();
-        check.pow(intpow(d.0, d.1 - 1, 0), self);
+        check = check.pow(intpow(d.0, d.1 - 1, 0), self);
         if check.is_one(self) { None } else { Some(res) }
     }
 }
@@ -100,8 +100,8 @@ impl<'a, C: SylowDecomposable> SylowElem<'a, C> {
             .filter(|i| self.coords[*i] > 0)
             .fold(g.parent.one(), |mut x, i| {
                 let mut y = g.generators[i].clone();
-                y.pow(self.coords[i], g.parent);
-                x.multiply(&y, g.parent);
+                y = y.pow(self.coords[i], g.parent);
+                x = x.multiply(&y, g.parent);
                 x
             })
     }
@@ -112,12 +112,12 @@ impl<'a, C: SylowDecomposable> SylowElem<'a, C> {
                 let mut x = self.clone();
                 for j in 0..g.len() {
                     if j == i { continue; }
-                    x.pow(g.fact.factor(j), g);
+                    x = x.pow(g.fact.factor(j), g);
                 }
 
                 let mut r = 0;
                 while !x.is_one(g) {
-                    x.pow(g.fact[i].0, g);
+                    x = x.pow(g.fact[i].0, g);
                     r += 1;
                 }
                 (g.fact[i].0, r)
@@ -135,24 +135,39 @@ where C: SylowDecomposable + 'a {
         self.coords.iter().all(|x| { *x == 0 })
     }
 
-    fn multiply(&mut self, other: &SylowElem<C>, g: &SylowDecomp<C>) {
-        let len = g.generators.len();
-        for i in 0..usize::max(len, len) {
-            self.coords[i] = (self.coords[i] + other.coords[i]) % g.fact.factor(i);
+    fn multiply(&self, other: &SylowElem<C>, g: &SylowDecomp<C>) -> SylowElem<'a, C> {
+        SylowElem {
+            coords: self.coords
+                .iter()
+                .zip(other.coords.clone())
+                .enumerate()
+                .map(|(i, (x, y))| (x + y) % g.fact.factor(i))
+                .collect(),
+            _group: PhantomData
         }
     }
 
-    fn square(&mut self, g: &SylowDecomp<C>) {
-        for i in 0..g.generators.len() {
-            self.coords[i] = self.coords[i] * 2 % g.fact.factor(i);
+    fn square(&self, g: &SylowDecomp<C>) -> SylowElem<'a, C> {
+        SylowElem {
+            coords: self.coords
+                .iter()
+                .enumerate()
+                .map(|(i, x)| x * 2 % g.fact.factor(i))
+                .collect(),
+            _group: PhantomData
         }
     }
 }
 
 impl<'a, C: SylowDecomposable> GroupElem for SylowElem<'a, C> {
-    fn invert(&mut self, g: &Self::Group) {
-        for i in 0..self.coords.len() {
-            self.coords[i] = g.fact.factor(i) - self.coords[i];
+    fn invert(&self, g: &Self::Group) -> SylowElem<'a, C> {
+        SylowElem {
+            coords: self.coords
+                .iter()
+                .enumerate()
+                .map(|(i, x)| g.fact.factor(i) - x)
+                .collect(),
+            _group: PhantomData
         }
     }
 }
@@ -180,7 +195,7 @@ pub mod tests {
         let mut y = x.clone();
         for _ in 1..d {
             if y.is_one(g) {return false;}
-            y.multiply(x, g);
+            y = y.multiply(x, g);
         }
         y.is_one(g)
     }
@@ -190,9 +205,9 @@ pub mod tests {
         let mut y = x.clone();
         for _ in 0..d.1 {
             assert!(!y.is_one(g));
-            y.pow(d.0, g);
+            y = y.pow(d.0, g);
         }
-        y.pow(d.0, g);
+        y = y.pow(d.0, g);
         assert!(y.is_one(g));
     }
 }

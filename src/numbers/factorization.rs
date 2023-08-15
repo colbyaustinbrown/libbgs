@@ -21,12 +21,12 @@ where Self: SemigroupElem<Group = G> {
                 let mut x = self.clone();
                 for j in 0..g.factors().len() {
                     if j == i { continue; }
-                    x.pow(g.factors().factor(j), g);
+                    x = x.pow(g.factors().factor(j), g);
                 }
 
                 let mut r = 0;
                 while !x.is_one(g) {
-                    x.pow(g.factors()[i].0, g);
+                    x = x.pow(g.factors()[i].0, g);
                     r += 1;
                 }
                 (g.factors()[i].0, r)

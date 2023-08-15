@@ -16,9 +16,7 @@ const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
 fn run_tester<'a>(stream: impl Iterator<Item = &'a u128>) {
     let mut tester = OrbitTester::new(&FpStar::<BIG_P> {});
-    let mut count = 0;
     for x in stream {
-        count += 1;
         tester = tester.add_target(*x);
     }
 
@@ -58,14 +56,14 @@ fn criterion_benchmark(c: &mut Criterion) {
         )
         .map(|e| e.either(
             |(l, mut l_i)| { 
-                l_i.invert(&fp2_decomp);
+                l_i = l_i.invert(&fp2_decomp);
                 Left((
                     l.to_product(&fp2_decomp), 
                     l_i.to_product(&fp2_decomp)
                 ))
             },
             |(r, mut r_i)| { 
-                r_i.invert(&fp_decomp);
+                r_i = r_i.invert(&fp_decomp);
                 Right((
                     r.to_product(&fp_decomp), 
                     r_i.to_product(&fp_decomp)

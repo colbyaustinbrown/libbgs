@@ -294,7 +294,7 @@ mod tests {
         assert_eq!(coords.len(), 1);
         let mut x = coords[0].clone();
         assert!(!x.is_one(&g));
-        x.pow(2, &g);
+        x = x.pow(2, &g);
         assert!(x.is_one(&g));
 
         let stream = SylowStreamBuilder::new(&g)
@@ -307,7 +307,7 @@ mod tests {
             for _ in 1..3 {
                 let y = x.clone();
                 assert!(!x.is_one(&g));
-                x.multiply(&y, &g);
+                x = x.multiply(&y, &g);
             }
             assert!(x.is_one(&g));
         }
@@ -336,7 +336,7 @@ mod tests {
             .build();
         let mut x = stream.next();
         assert_eq!(x.as_ref().map(|a| a.is_one(&g)), Some(false));
-        x.as_mut().map(|a| {a.pow(705737, &g); a});
+        x = x.as_mut().map(|a| a.pow(705737, &g));
         assert_eq!(x.map(|a| a.is_one(&g)), Some(true));
     }
 
@@ -426,7 +426,7 @@ mod tests {
             .build();
         for mut x in stream {
             assert!(!x.is_one(&g));
-            x.square(&g);
+            x = x.square(&g);
             assert!(!x.is_one(&g));
         }
     }

@@ -9,20 +9,21 @@ pub trait Semigroup: Eq {
 pub trait SemigroupElem: Clone + PartialEq + Eq + fmt::Debug {
     type Group: Semigroup<Elem = Self>;
     fn is_one(&self, g: &Self::Group) -> bool;
-    fn multiply(&mut self, other: &Self, g: &Self::Group);
-    fn square(&mut self, g: &Self::Group);
+    fn multiply(&self, other: &Self, g: &Self::Group) -> Self;
+    fn square(&self, g: &Self::Group) -> Self;
 
-    fn pow(&mut self, mut n: u128, g: &Self::Group) where Self: Sized {
+    fn pow(&self, mut n: u128, g: &Self::Group) -> Self {
         let mut y = Self::Group::one(g);
+        let mut res = self.clone();
         while n > 1 {
             // println!("{n} {:?} {:?}", &self, y);
             if n % 2 == 1 {
-                y.multiply(self, g);
+                y = y.multiply(&res, g);
             }
-            self.square(g);
+            res = res.square(g);
             n >>= 1;
         }
-        self.multiply(&y, g);
+        res.multiply(&y, g)
     }
 }
 
