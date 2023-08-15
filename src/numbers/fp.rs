@@ -1,3 +1,5 @@
+use std::ops::*;
+
 pub use crate::numbers::semigroup::*;
 use crate::util::long_multiply;
 use crate::numbers::sylow::*;
@@ -9,7 +11,7 @@ pub use crate::numbers::group::*;
 #[derive(PartialEq, Clone, Copy, Debug, Eq)]
 pub struct FpStar<const P: u128> {}
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FpNum<const P: u128> {
     pub value: u128
 }
@@ -26,19 +28,76 @@ impl<const P: u128> FpStar<P> {
     }
 }
 
-impl<const P: u128> FpNum<P> {
-    pub fn add(&mut self, other: &FpNum<P>) {
+impl<const P: u128> Add<Self> for FpNum<P> {
+    type Output = FpNum<P>;
+    fn add(self, other: Self) -> FpNum<P> {
+        FpNum { value: (self.value + other.value) % P }
+    }
+}
+
+impl<const P: u128> AddAssign<&Self> for FpNum<P> {
+    fn add_assign(&mut self, other: &Self) {
         self.value += other.value;
         self.value %= P;
     }
+}
 
-    pub fn sub(&mut self, other: &FpNum<P>) {
+impl<const P: u128> Sub<Self> for FpNum<P> {
+    type Output = FpNum<P>;
+    fn sub(self, other: Self) -> FpNum<P> {
+        let mut value = self.value;
+        while value < other.value {
+            value += P;
+        }
+        value -= other.value;
+        FpNum { value } 
+    }
+}
+
+impl<const P: u128> SubAssign<&Self> for FpNum<P> {
+    fn sub_assign(&mut self, other: &Self) {
         while self.value < other.value {
             self.value += P;
         }
         self.value -= other.value;
     }
+}
 
+impl<const P: u128> SubAssign<Self> for FpNum<P> {
+    fn sub_assign(&mut self, other: Self) {
+        *self -= &other;
+    }
+}
+
+impl<const P: u128> Mul<&Self> for FpNum<P> {
+    type Output = FpNum<P>;
+    fn mul(self, other: &FpNum<P>) -> FpNum<P> {
+        FpNum { value: long_multiply(self.value, other.value, P) }
+    }
+}
+
+impl<const P: u128> Mul<Self> for FpNum<P> {
+    type Output = FpNum<P>;
+
+    fn mul(self, other: FpNum<P>) -> FpNum<P> {
+        FpNum { value: long_multiply(self.value, other.value, P) }
+    }
+}
+
+impl<const P: u128> MulAssign<&Self> for FpNum<P> {
+    fn mul_assign(&mut self, other: &Self) {
+        self.value = long_multiply(self.value, other.value, P);
+    }
+}
+
+impl<const P: u128> Mul<FpNum<P>> for u128 {
+    type Output = FpNum<P>;
+    fn mul(self, other: FpNum<P>) -> FpNum<P> {
+        FpNum { value: long_multiply(self, other.value, P) }
+    }
+}
+
+impl<const P: u128> FpNum<P> {
     pub fn int_sqrt(&self) -> Option<FpNum<P>> {
         let fp = FpStar::<P> {};
         if self.value == 0 { 
