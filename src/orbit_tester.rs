@@ -34,9 +34,6 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
             .map(|v| (v[0], v[1]))
         {
             i += 1;
-            if i % 10_000 == 0 {
-                println!("Running pair #{i}.");
-            }
             let x = *x;
             let y = *y;
             let x2 = intpow(x, 2, P);
