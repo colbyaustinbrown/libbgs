@@ -25,7 +25,7 @@ where Self: SemigroupElem<Group = G> {
                 }
 
                 let mut r = 0;
-                while !x.is_one() {
+                while !x.is_one(g) {
                     x.pow(g.factors()[i].0, g);
                     r += 1;
                 }

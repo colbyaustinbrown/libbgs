@@ -8,7 +8,7 @@ pub trait Semigroup: Eq {
 
 pub trait SemigroupElem: Clone + PartialEq + Eq + fmt::Debug {
     type Group: Semigroup<Elem = Self>;
-    fn is_one(&self) -> bool;
+    fn is_one(&self, g: &Self::Group) -> bool;
     fn multiply(&mut self, other: &Self, g: &Self::Group);
     fn square(&mut self, g: &Self::Group);
 

@@ -15,7 +15,7 @@ pub trait SylowDecomposable: Semigroup {
         res.pow(pow, self);
         let mut check = res.clone();
         check.pow(intpow(d.0, d.1 - 1, 0), self);
-        if check.is_one() { None } else { Some(res) }
+        if check.is_one(self) { None } else { Some(res) }
     }
 }
 
@@ -116,7 +116,7 @@ impl<'a, C: SylowDecomposable> SylowElem<'a, C> {
                 }
 
                 let mut r = 0;
-                while !x.is_one() {
+                while !x.is_one(g) {
                     x.pow(g.fact[i].0, g);
                     r += 1;
                 }
@@ -131,7 +131,7 @@ impl<'a, C> SemigroupElem for SylowElem<'a, C>
 where C: SylowDecomposable + 'a {
     type Group = SylowDecomp<'a, C>;
 
-    fn is_one(&self) -> bool {
+    fn is_one(&self, _: &SylowDecomp<C>) -> bool {
         self.coords.iter().all(|x| { *x == 0 })
     }
 
@@ -179,21 +179,21 @@ pub mod tests {
     pub fn test_is_generator_small<C: SylowDecomposable> (x: &C::Elem, d: u128, g: &C) -> bool {
         let mut y = x.clone();
         for _ in 1..d {
-            if y.is_one() {return false;}
+            if y.is_one(g) {return false;}
             y.multiply(x, g);
         }
-        y.is_one()
+        y.is_one(g)
     }
 
     // utility method for external tests
     pub fn test_is_generator_big<C: SylowDecomposable>(x: &C::Elem, d: (u128, u128), g: &C) {
         let mut y = x.clone();
         for _ in 0..d.1 {
-            assert!(!y.is_one());
+            assert!(!y.is_one(g));
             y.pow(d.0, g);
         }
         y.pow(d.0, g);
-        assert!(y.is_one());
+        assert!(y.is_one(g));
     }
 }
 
