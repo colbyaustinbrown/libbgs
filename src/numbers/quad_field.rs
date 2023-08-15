@@ -39,7 +39,7 @@ impl<const P: u128> QuadField<P> {
     }
 
     pub fn steinitz(&self, i: u128) -> QuadNum<P> {
-        QuadNum::from_ints(i % P, i / P)
+        Self::from_ints(i % P, i / P)
     }
 
     pub fn int_sqrt_either(&self, x: u128) -> Either<QuadNum<P>, FpNum<P>> {
@@ -60,21 +60,21 @@ impl<const P: u128> QuadField<P> {
     }
 
     pub fn int_sqrt(&self, x: u128) -> QuadNum<P> {
-        self.int_sqrt_either(x).left_or_else(|n| QuadNum::from_ints(n.value, 0))
+        self.int_sqrt_either(x).left_or_else(|n| Self::from_ints(n.value, 0))
     }
 
     pub fn r(&self) -> u128 {
         self.r
+    }
+
+    pub fn from_ints(a0: u128, a1: u128) -> QuadNum<P> {
+        QuadNum { a0, a1 }
     }
 }
 
 impl<const P: u128> QuadNum<P> {
     pub fn is_zero(&self) -> bool {
         self.a0 == 0 && self.a1 == 0
-    }
-
-    pub fn from_ints(a0: u128, a1: u128) -> Self {
-        QuadNum { a0, a1 }
     }
 
     pub fn add(&mut self, other: QuadNum<P>) {
@@ -156,7 +156,7 @@ mod tests {
     #[test]
     fn powers_up() {
         let f49 = QuadField::<7>::make();
-        let mut x = QuadNum::from_ints(3, 4);
+        let mut x = QuadField::from_ints(3, 4);
         x = x.pow(48, &f49);
         assert!(x.is_one(&f49));
     }

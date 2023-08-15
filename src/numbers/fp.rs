@@ -5,7 +5,7 @@ use crate::util::long_multiply;
 use crate::numbers::sylow::*;
 use crate::util::*;
 use crate::numbers::factorization::*;
-use crate::numbers::quad_field_small::*;
+use crate::numbers::quad_field::*;
 pub use crate::numbers::group::*;
 
 #[derive(PartialEq, Clone, Copy, Debug, Eq)]
@@ -118,8 +118,8 @@ impl<const P: u128> FpNum<P> {
             if legendre(r, P) == (P - 1) { break (a,r); }
             i += 1;
         };
-        let fp2 = QuadFieldSml::new(P, r);
-        let mut x = QuadNumSml::from_ints(a, 1);
+        let fp2 = QuadField::<P>::new(r);
+        let mut x = QuadField::from_ints(a, 1);
         x = x.pow((P + 1) / 2, &fp2);
         Some(fp.from_int(x.a0))
     }
