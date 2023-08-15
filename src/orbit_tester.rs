@@ -22,7 +22,7 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
             results.insert(*x, Disjoint::new(true, |x,y| *x && *y));
         }
 
-        let mut inv2 = self.f.from_int(2);
+        let mut inv2 = FpNum::from(2);
         inv2 = inv2.invert(self.f);
 
         let mut failures = 0;
@@ -31,14 +31,14 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
             .combinations_with_replacement(2)
             .map(|v| (v[0], v[1]))
         {
-            let x = self.f.from_int(*x);
-            let y = self.f.from_int(*y);
+            let x = FpNum::from(*x);
+            let y = FpNum::from(*y);
             let disc = 9 * x * y - 4 * (x * x + y * y);
             let z = 3 * x * y;
             let mut candidates = Vec::new();
 
             match disc.int_sqrt() {
-                Some(FpNum{value: 0}) => {
+                Some(FpNum(0)) => {
                     candidates.push(z * inv2);
                 },
                 Some(x) => {
@@ -52,16 +52,16 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
 
             let it: Vec<(&FpNum<P>, bool)> = candidates.iter()
                 .map(|z| {
-                    (z, results.contains_key(&z.value))
+                    (z, results.contains_key(&z.0))
                 }).collect();
-            let Some(disjoint) = results.get_mut(&x.value) else { continue; };
+            let Some(disjoint) = results.get_mut(&x.0) else { continue; };
             for (z, pred) in it {
                 if pred {
-                    disjoint.associate(&x.value, &z.value);
-                    disjoint.associate(&y.value, &z.value);
+                    disjoint.associate(&x.0, &z.0);
+                    disjoint.associate(&y.0, &z.0);
                 } else {
-                    disjoint.update(&x.value, false);
-                    disjoint.update(&y.value, false);
+                    disjoint.update(&x.0, false);
+                    disjoint.update(&y.0, false);
                 }
             }
         }

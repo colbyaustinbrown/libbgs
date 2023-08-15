@@ -12,54 +12,70 @@ pub use crate::numbers::group::*;
 pub struct FpStar<const P: u128> {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct FpNum<const P: u128> {
-    pub value: u128
-}
+pub struct FpNum<const P: u128>(pub u128);
 
-impl<const P: u128> FpStar<P> {
-    pub fn from_int(&self, value: u128) -> FpNum<P> {
-        FpNum {
-            value
-        }
+impl<const P: u128> From<u128> for FpNum<P> {
+    fn from(value: u128) -> FpNum<P> {
+        FpNum(value)
     }
-
-    pub fn p(&self) -> u128 {
-        P
+}
+impl<const P: u128> From<FpNum<P>> for u128 {
+    fn from(value: FpNum<P>) -> u128 {
+        value.0
+    }
+}
+impl<const P: u128> From<&FpNum<P>> for u128 {
+    fn from(value: &FpNum<P>) -> u128 {
+        value.0
     }
 }
 
 impl<const P: u128> Add<Self> for FpNum<P> {
     type Output = FpNum<P>;
     fn add(self, other: Self) -> FpNum<P> {
-        FpNum { value: (self.value + other.value) % P }
+        FpNum((self.0 + other.0) % P)
+    }
+}
+
+impl<const P: u128> AddAssign<Self> for FpNum<P> {
+    fn add_assign(&mut self, other: Self) {
+        self.0 += other.0;
+        self.0 %= P;
     }
 }
 
 impl<const P: u128> AddAssign<&Self> for FpNum<P> {
     fn add_assign(&mut self, other: &Self) {
-        self.value += other.value;
-        self.value %= P;
+        self.0 += other.0;
+        self.0 %= P;
+    }
+}
+
+impl<const P: u128> AddAssign<u128> for FpNum<P> {
+    fn add_assign(&mut self, other: u128) {
+        self.0 += other;
+        self.0 %= P;
     }
 }
 
 impl<const P: u128> Sub<Self> for FpNum<P> {
     type Output = FpNum<P>;
     fn sub(self, other: Self) -> FpNum<P> {
-        let mut value = self.value;
-        while value < other.value {
+        let mut value = self.0;
+        while value < other.0 {
             value += P;
         }
-        value -= other.value;
-        FpNum { value } 
+        value -= other.0;
+        FpNum(value)
     }
 }
 
 impl<const P: u128> SubAssign<&Self> for FpNum<P> {
     fn sub_assign(&mut self, other: &Self) {
-        while self.value < other.value {
-            self.value += P;
+        while self.0 < other.0 {
+            self.0 += P;
         }
-        self.value -= other.value;
+        self.0 -= other.0;
     }
 }
 
@@ -69,10 +85,19 @@ impl<const P: u128> SubAssign<Self> for FpNum<P> {
     }
 }
 
+impl<const P: u128> SubAssign<u128> for FpNum<P> {
+    fn sub_assign(&mut self, other: u128) {
+        while self.0 < other {
+            self.0 += P;
+        }
+        self.0 -= other;
+    }
+}
+
 impl<const P: u128> Mul<&Self> for FpNum<P> {
     type Output = FpNum<P>;
     fn mul(self, other: &FpNum<P>) -> FpNum<P> {
-        FpNum { value: long_multiply(self.value, other.value, P) }
+        FpNum(long_multiply(self.0, other.0, P))
     }
 }
 
@@ -80,54 +105,53 @@ impl<const P: u128> Mul<Self> for FpNum<P> {
     type Output = FpNum<P>;
 
     fn mul(self, other: FpNum<P>) -> FpNum<P> {
-        FpNum { value: long_multiply(self.value, other.value, P) }
+        FpNum(long_multiply(self.0, other.0, P))
     }
 }
 
 impl<const P: u128> MulAssign<&Self> for FpNum<P> {
     fn mul_assign(&mut self, other: &Self) {
-        self.value = long_multiply(self.value, other.value, P);
+        self.0 = long_multiply(self.0, other.0, P);
     }
 }
 
 impl<const P: u128> Mul<FpNum<P>> for u128 {
     type Output = FpNum<P>;
     fn mul(self, other: FpNum<P>) -> FpNum<P> {
-        FpNum { value: long_multiply(self, other.value, P) }
+        FpNum(long_multiply(self, other.0, P))
     }
 }
 
 impl<const P: u128> FpNum<P> {
     pub fn int_sqrt(&self) -> Option<FpNum<P>> {
-        let fp = FpStar::<P> {};
-        if self.value == 0 { 
-            return Some(fp.from_int(0));
+        if self.0 == 0 { 
+            return Some(FpNum::from(0));
         }
 
         // Cipolla's algorithm
-        let l = legendre(self.value, P);
+        let l = legendre(self.0, P);
         if l == 0 { 
-            return Some(fp.from_int(0));
+            return Some(FpNum::from(0));
         } else if l == P - 1{
             return None;
         }
         let mut i = 1;
         let (a,r) = loop {
             let a = standard_affine_shift(P, i);
-            let r = (intpow(a, 2, P) + P - self.value) % P;
+            let r = (intpow(a, 2, P) + P - self.0) % P;
             if legendre(r, P) == (P - 1) { break (a,r); }
             i += 1;
         };
         let fp2 = QuadField::<P>::new(r);
         let mut x = QuadField::from_ints(a, 1);
         x = x.pow((P + 1) / 2, &fp2);
-        Some(fp.from_int(x.a0))
+        Some(FpNum::from(x.a0))
     }
 }
 
 impl<const P: u128> PartialEq<u128> for FpNum<P> {
     fn eq(&self, other: &u128) -> bool {
-        self.value == *other
+        self.0 == *other
     }
 }
 
@@ -139,7 +163,7 @@ impl<const P: u128> Semigroup for FpStar<P> {
     }
 
     fn one(&self) -> FpNum<P> {
-        self.from_int(1)
+        FpNum::from(1)
     }
 }
 
@@ -148,9 +172,9 @@ impl<const P: u128> Group for FpStar<P> {}
 impl<const P: u128> SylowDecomposable for FpStar<P> {
     fn find_sylow_generator(&self, i: usize, fact: &Factorization) -> FpNum<P> {
         match fact[i] {
-            (2,1) => self.from_int(self.size()),
+            (2,1) => FpNum::from(self.size()),
             _ => (1..self.size())
-                .map(|i| self.from_int(standard_affine_shift(P, i)))
+                .map(|i| FpNum::from(standard_affine_shift(P, i)))
                 .find_map(|c| self.is_sylow_generator(&c, fact[i]))
                 .unwrap()
         }
@@ -160,15 +184,15 @@ impl<const P: u128> SylowDecomposable for FpStar<P> {
 impl<const P: u128> SemigroupElem for FpNum<P> {
     type Group = FpStar<P>;
     fn is_one(&self, _: &FpStar<P>) -> bool {
-        self.value == 1
+        self.0 == 1
     }
 
     fn multiply(&self, other: &FpNum<P>, _: &FpStar<P>) -> FpNum<P> {
-        FpNum { value: long_multiply(self.value, other.value, P) }
+        FpNum(long_multiply(self.0, other.0, P))
     }
 
     fn square(&self, _: &FpStar<P>) -> FpNum<P> {
-        FpNum { value: long_multiply(self.value, self.value, P) }
+        FpNum(long_multiply(self.0, self.0, P))
     }
 }
 
@@ -195,46 +219,46 @@ mod tests {
     #[test]
     fn multiplies() {
         let p = FpStar::<7> {};
-        let mut x = p.from_int(3);
-        assert_eq!(3, x.value);
-        let five = p.from_int(5);
+        let mut x = FpNum::from(3);
+        assert_eq!(3, x.0);
+        let five = FpNum::from(5);
         x = x.multiply(&five, &p);
-        assert_eq!(1, x.value);
-        assert_eq!(5, five.value);
+        assert_eq!(1, x.0);
+        assert_eq!(5, five.0);
     }
 
     #[test]
     fn squares() {
         let p = FpStar::<7> {};
-        let mut x = p.from_int(3);
+        let mut x = FpNum::from(3);
         x = x.square(&p);
-        assert_eq!(2, x.value);
+        assert_eq!(2, x.0);
 
-        let mut x = p.from_int(2);
+        let mut x = FpNum::from(2);
         x = x.square(&p);
-        assert_eq!(4, x.value);
+        assert_eq!(4, x.0);
     }
 
     #[test]
     fn powers_up() {
         let p = FpStar::<7> {};
-        let mut x = p.from_int(2);
+        let mut x = FpNum::from(2);
         x = x.pow(5, &p);
-        assert_eq!(4, x.value);
+        assert_eq!(4, x.0);
 
-        let mut x = p.from_int(3);
+        let mut x = FpNum::from(3);
         x =x.pow(3, &p);
-        assert_eq!(6, x.value);
+        assert_eq!(6, x.0);
 
-        let mut x = p.from_int(5);
-        x = x.pow(p.p() - 1, &p);
+        let mut x = FpNum::from(5);
+        x = x.pow(6, &p);
         assert!(x.is_one(&p));
     }
 
     #[test]
     fn powers_up_big() {
         let p = FpStar::<BIG_P> {};
-        let mut x = p.from_int(3);
+        let mut x = FpNum::from(3);
         x = x.pow(BIG_P - 1, &FpStar::<BIG_P> {});
         println!("x is {x:?}");
         assert!(x.is_one(&p));
@@ -300,7 +324,7 @@ mod tests {
     fn calculates_square_roots() {
         let p = FpStar::<13> {};
         let mut nonresidues = 0;
-        for x in (1..13).map(|i| p.from_int(i)) {
+        for x in (1..13).map(|i| FpNum::from(i)) {
             match x.int_sqrt() {
                 None => { nonresidues += 1; }
                 Some(mut y) => {
@@ -316,7 +340,7 @@ mod tests {
     fn inverts() {
         let p = FpStar::<13> {};
         for i in 2..13 {
-            let mut x = p.from_int(i);
+            let mut x = FpNum::from(i);
             let y = x.clone();
             println!("{x:?}");
             x = x.invert(&p);

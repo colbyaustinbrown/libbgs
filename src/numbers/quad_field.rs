@@ -44,23 +44,23 @@ impl<const P: u128> QuadField<P> {
 
     pub fn int_sqrt_either(&self, x: u128) -> Either<QuadNum<P>, FpNum<P>> {
         let fp = FpStar::<P> {};
-        let mut x = fp.from_int(x);
+        let mut x = FpNum::from(x);
         if let Some(y) = x.int_sqrt() {
-            return Right(fp.from_int(y.value));
+            return Right(y);
         }
 
-        let mut r = fp.from_int(self.r);
+        let mut r = FpNum::from(self.r);
         r = r.invert(&fp);
         x = x.multiply(&r, &fp);
         let a1 = x.int_sqrt().unwrap();
         Left(QuadNum {
             a0: 0,
-            a1: a1.value
+            a1: a1.into()
         })
     }
 
     pub fn int_sqrt(&self, x: u128) -> QuadNum<P> {
-        self.int_sqrt_either(x).left_or_else(|n| Self::from_ints(n.value, 0))
+        self.int_sqrt_either(x).left_or_else(|n| Self::from_ints(n.into(), 0))
     }
 
     pub fn r(&self) -> u128 {

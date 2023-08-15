@@ -26,9 +26,9 @@ impl<const P: u128> Coord<P> {
                 Left(x)
             },
             Right(mut x) => {
-                x.value += v3;
-                if x.value % 2 == 1 { x.value += P; } 
-                x.value /= 2;
+                x.0 += v3;
+                if x.0 % 2 == 1 { x.0 += P; } 
+                x.0 /= 2;
                 Right(x)
             }
         };
@@ -44,8 +44,8 @@ impl<const P: u128> Coord<P> {
                 l.0.add(l.1);
                 l.0.a0
             }, |mut r| {
-                r.0.value = (r.0.value + r.1.value) % P;
-                r.0.value
+                r.0 += r.1;
+                r.0.into()
             }),
             chi: chis
                 .map_left(|x| x.0)
@@ -90,10 +90,10 @@ fn either_multiply<const P: u128>(a: &mut Either<QuadNum<P>, FpNum<P>>, b: &Eith
             x.multiply(y, fp2);
         },
         (Left(x), Right(y)) => {
-            x.multiply(&QuadField::from_ints(y.value, 0), fp2); 
+            x.multiply(&QuadField::from_ints(y.into(), 0), fp2); 
         },
         (r @ Right(_), Left(y)) => {
-            let v = r.clone().unwrap_right().value;
+            let v = r.clone().unwrap_right().into();
             let mut res = QuadField::from_ints(v, 0);
             res = res.multiply(y, fp2);
             *r = Left(res);

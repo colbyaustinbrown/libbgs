@@ -58,20 +58,18 @@ impl<const P: u128> MarkoffTriple<P> {
     }
 
     pub fn get_from_ab(x: &Rc<Coord<P>>, y: &Rc<Coord<P>>, f: &QuadField<P>) -> Vec<Self> {
-        let fp = FpStar::<P> {};
         let a = x.v();
         let b = y.v();
         let a2 = intpow(a, 2, P);
         let b2 = intpow(b, 2, P);
-        let mut disc = fp.from_int(long_multiply(long_multiply(9, a2, P), b2, P));
-        disc.value += P;
-        disc.value -= long_multiply(4, a2 + b2, P);
-        disc.value %= P;
+        let mut disc = FpNum::<P>::from(long_multiply(long_multiply(9, a2, P), b2, P));
+        disc += P;
+        disc -= long_multiply(4, a2 + b2, P);
 
         let mut res = long_multiply(3, long_multiply(a, b, P), P);
         if res % 2 == 1 { res += P };
         res /= 2;
-        match disc.int_sqrt().map(|z| z.value) {
+        match disc.int_sqrt().map(|z| z.into()) {
             None => Vec::new(),
             Some(0) => vec![res],
             Some(mut d) => {

@@ -279,7 +279,7 @@ mod tests {
         let mut stream = SylowStreamBuilder::new(&g)
             .add_target(vec![1, 0])
             .build();
-        assert_eq!(stream.next().map(|s| { println!("s is {s:?}"); s.to_product(&g).value}), Some(6));
+        assert_eq!(stream.next().map(|s| { println!("s is {s:?}"); s.to_product(&g).into()}), Some(6));
         assert_eq!(stream.next(), None);
     }
 
