@@ -18,11 +18,11 @@ impl<const P: u128> Coord<P> {
         let disc = (disc + P - 4) % P;
         let chi = match fp.int_sqrt_either(disc) {
             Left(mut x) => {
-                x.a0 += v3;
-                if x.a0 % 2 == 1 { x.a0 += P; }
-                if x.a1 % 2 == 1 { x.a1 += P; }
-                x.a0 /= 2;
-                x.a1 /= 2;
+                x.0 += v3;
+                if x.0 % 2 == 1 { x.0 += P; }
+                if x.1 % 2 == 1 { x.1 += P; }
+                x.0 /= 2;
+                x.1 /= 2;
                 Left(x)
             },
             Right(mut x) => {
@@ -41,8 +41,8 @@ impl<const P: u128> Coord<P> {
     pub fn from_chi(chis: Either<(QuadNum<P>, QuadNum<P>), (FpNum<P>, FpNum<P>)>) -> Coord<P> {
         Coord {
             v: chis.clone().either(|mut l| {
-                l.0.add(l.1);
-                l.0.a0
+                l.0 += l.1;
+                l.0.0
             }, |mut r| {
                 r.0 += r.1;
                 r.0.into()
@@ -90,11 +90,11 @@ fn either_multiply<const P: u128>(a: &mut Either<QuadNum<P>, FpNum<P>>, b: &Eith
             x.multiply(y, fp2);
         },
         (Left(x), Right(y)) => {
-            x.multiply(&QuadField::from_ints(y.into(), 0), fp2); 
+            x.multiply(&QuadNum::from((y.into(), 0)), fp2); 
         },
         (r @ Right(_), Left(y)) => {
             let v = r.clone().unwrap_right().into();
-            let mut res = QuadField::from_ints(v, 0);
+            let mut res = QuadNum::from((v, 0));
             res = res.multiply(y, fp2);
             *r = Left(res);
         },

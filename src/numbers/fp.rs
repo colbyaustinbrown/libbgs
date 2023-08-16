@@ -143,9 +143,9 @@ impl<const P: u128> FpNum<P> {
             i += 1;
         };
         let fp2 = QuadField::<P>::new(r);
-        let mut x = QuadField::from_ints(a, 1);
+        let mut x = QuadNum::from((a, 1));
         x = x.pow((P + 1) / 2, &fp2);
-        Some(FpNum::from(x.a0))
+        Some(FpNum::from(x.0))
     }
 }
 
@@ -188,11 +188,11 @@ impl<const P: u128> SemigroupElem for FpNum<P> {
     }
 
     fn multiply(&self, other: &FpNum<P>, _: &FpStar<P>) -> FpNum<P> {
-        FpNum(long_multiply(self.0, other.0, P))
+        *self * *other
     }
 
     fn square(&self, _: &FpStar<P>) -> FpNum<P> {
-        FpNum(long_multiply(self.0, self.0, P))
+        *self * *self
     }
 }
 
