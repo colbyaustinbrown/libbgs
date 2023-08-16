@@ -1,5 +1,3 @@
-use either::Either::*;
-
 use libbgs::numbers::fp::*;
 use libbgs::numbers::quad_field::*;
 use libbgs::numbers::factorization::*;
