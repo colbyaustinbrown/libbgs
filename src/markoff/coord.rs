@@ -4,6 +4,7 @@ use std::rc::Rc;
 use crate::numbers::quad_field::*;
 use crate::numbers::fp::*;
 use crate::numbers::factorization::*;
+use crate::numbers::sylow::*;
 
 #[derive(Debug)]
 pub struct Coord<const P: u128> {
@@ -38,18 +39,21 @@ impl<const P: u128> Coord<P> {
         }
     }
 
-    pub fn from_chi(chis: Either<(QuadNum<P>, QuadNum<P>), (FpNum<P>, FpNum<P>)>) -> Coord<P> {
+    pub fn from_chi_fp<'a, 'b: 'a>(chi: &SylowElem<'a, FpStar<P>>, decomp: &SylowDecomp<'b, FpStar<P>>) -> Coord<P> {
+        let chi_inv = chi.invert(decomp).to_product(decomp);
+        let chi = chi.to_product(decomp);
         Coord {
-            v: chis.clone().either(|mut l| {
-                l.0 += l.1;
-                l.0.0
-            }, |mut r| {
-                r.0 += r.1;
-                r.0.into()
-            }),
-            chi: chis
-                .map_left(|x| x.0)
-                .map_right(|x| x.0)
+            v: (chi + chi_inv).into(),
+            chi: Right(chi)
+        }
+    }
+
+    pub fn from_chi_quad<'a, 'b: 'a>(chi: &SylowElem<'a, QuadField<P>>, decomp: &SylowDecomp<'b, QuadField<P>>) -> Coord<P> {
+        let chi_inv = chi.invert(decomp).to_product(decomp);
+        let chi = chi.to_product(decomp);
+        Coord {
+            v: (chi + chi_inv).0,
+            chi: Left(chi)
         }
     }
 

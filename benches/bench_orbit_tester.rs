@@ -50,27 +50,14 @@ fn criterion_benchmark(c: &mut Criterion) {
     }
 
     let stream = fp_stream_builder.build()
-        .map(|x| Right((x.clone(), x)))
+        .map(|x| {
+            Coord::from_chi_fp(&x, &fp_decomp)
+        })
         .chain(fp2_stream_builder.build()
-            .map(|x| Left((x.clone(), x)))
-        )
-        .map(|e| e.either(
-            |(l, mut l_i)| { 
-                l_i = l_i.invert(&fp2_decomp);
-                Left((
-                    l.to_product(&fp2_decomp), 
-                    l_i.to_product(&fp2_decomp)
-                ))
-            },
-            |(r, mut r_i)| { 
-                r_i = r_i.invert(&fp_decomp);
-                Right((
-                    r.to_product(&fp_decomp), 
-                    r_i.to_product(&fp_decomp)
-                ))
-            }
-        ))
-        .map(Coord::from_chi);
+            .map(|x| {
+                Coord::from_chi_quad(&x, &fp2_decomp)
+            })
+        );
 
     let mut targets = HashSet::new();
     for x in stream {

@@ -11,7 +11,7 @@ pub struct QuadField<const P: u128> {
     r: u128
 }
 
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub struct QuadNum<const P: u128>(pub u128, pub u128);
 
 impl<const P: u128> Semigroup for QuadField<P> {
@@ -70,6 +70,13 @@ impl<const P: u128> From<(u128, u128)> for QuadNum<P> {
 impl<const P: u128> QuadNum<P> {
     pub fn is_zero(&self) -> bool {
         self.0 == 0 && self.1 == 0
+    }
+}
+
+impl<const P: u128> Add<Self> for QuadNum<P> {
+    type Output = QuadNum<P>;
+    fn add(self, other: Self) -> QuadNum<P> {
+        QuadNum((self.0 + other.0) % P, (self.1 + other.1) % P)
     }
 }
 

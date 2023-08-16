@@ -115,6 +115,12 @@ impl<const P: u128> MulAssign<&Self> for FpNum<P> {
     }
 }
 
+impl<const P: u128> MulAssign<Self> for FpNum<P> {
+    fn mul_assign(&mut self, other: Self) {
+        self.0 = long_multiply(self.0, other.0, P);
+    }
+}
+
 impl<const P: u128> Mul<FpNum<P>> for u128 {
     type Output = FpNum<P>;
     fn mul(self, other: FpNum<P>) -> FpNum<P> {
@@ -230,12 +236,12 @@ mod tests {
     #[test]
     fn squares() {
         let p = FpStar::<7> {};
-        let mut x = FpNum::from(3);
-        x = x.square(&p);
+        let mut x = FpNum::<7>::from(3);
+        x *= x;
         assert_eq!(2, x.0);
 
-        let mut x = FpNum::from(2);
-        x = x.square(&p);
+        let mut x = FpNum::<7>::from(2);
+        x *= x;
         assert_eq!(4, x.0);
     }
 
