@@ -64,7 +64,10 @@ fn criterion_benchmark(c: &mut Criterion) {
         targets.insert(x.v());
     }
 
-    c.bench_function("run orbit tester", |b| b.iter(|| run_tester(targets.iter())));
+    let mut group = c.benchmark_group("orbits");
+    group.sample_size(20);
+    group.bench_function("run orbit tester", |b| b.iter(|| run_tester(targets.iter())));
+    group.finish();
 }
 
 criterion_group!(benches, criterion_benchmark);
