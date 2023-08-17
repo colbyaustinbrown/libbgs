@@ -23,11 +23,8 @@ pub trait SylowDecomposable: Group {
 
     fn is_sylow_generator(&self, candidate: &Self::Elem, d: (u128, u128)) -> Option<Self::Elem> {
         let pow = self.size() / intpow(d.0, d.1, 0);
-        let mut res = candidate.clone();
-        res = res.pow(pow, self);
-        let mut check = res.clone();
-        check = check.pow(intpow(d.0, d.1 - 1, 0), self);
-        if check.is_one(self) {
+        let res = candidate.pow(pow, self);
+        if res.pow(intpow(d.0, d.1 - 1, 0), self).is_one(self) {
             None
         } else {
             Some(res)
@@ -101,8 +98,7 @@ impl<'a, C: SylowDecomposable> SylowElem<'a, C> {
         (0..g.len())
             .filter(|i| self.coords[*i] > 0)
             .fold(g.parent.one(), |x, i| {
-                let mut y = g.generators[i].clone();
-                y = y.pow(self.coords[i], g.parent);
+                let y = g.generators[i].pow(self.coords[i], g.parent);
                 x.multiply(&y, g.parent)
             })
     }
@@ -145,7 +141,7 @@ where
             coords: self
                 .coords
                 .iter()
-                .zip(other.coords.clone())
+                .zip(&other.coords)
                 .enumerate()
                 .map(|(i, (x, y))| (x + y) % g.fact.factor(i))
                 .collect(),

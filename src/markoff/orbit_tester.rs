@@ -59,11 +59,11 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
             let Some(disjoint) = results.get_mut(&x.0) else { continue; };
             for (z, pred) in it {
                 if pred {
-                    disjoint.associate(&x.0, &z.0);
-                    disjoint.associate(&y.0, &z.0);
+                    disjoint.associate(x.0, z.0);
+                    disjoint.associate(y.0, z.0);
                 } else {
-                    disjoint.update(&x.0, false);
-                    disjoint.update(&y.0, false);
+                    disjoint.update(x.0, false);
+                    disjoint.update(y.0, false);
                 }
             }
         }

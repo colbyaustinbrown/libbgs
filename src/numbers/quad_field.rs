@@ -185,9 +185,8 @@ mod tests {
         let fp2 = QuadField::<BIG_P>::make();
         for i in 3..1003 {
             let mut x = fp2.int_sqrt(i);
-            let y = x.clone();
             assert_ne!(x, i);
-            x = x.multiply(&y, &fp2);
+            x = x.multiply(&x, &fp2);
             assert_eq!(x, i);
         }
     }

@@ -52,21 +52,21 @@ where
             })
     }
 
-    pub fn associate(&mut self, one: &K, two: &K) {
-        match (self.disjoint.get(one), self.disjoint.get(two)) {
+    pub fn associate(&mut self, one: K, two: K) {
+        match (self.disjoint.get(&one), self.disjoint.get(&two)) {
             (None, None) => {
                 let op = SetPtr::new(self.default.clone());
                 self.orbits.insert(one.clone());
-                self.disjoint.insert(two.clone(), op.point());
-                self.disjoint.insert(one.clone(), op);
+                self.disjoint.insert(two, op.point());
+                self.disjoint.insert(one, op);
             }
             (Some(x), None) => {
                 let (root, _) = unsafe { x.root() };
-                self.disjoint.insert(two.clone(), root.point());
+                self.disjoint.insert(two, root.point());
             }
             (None, Some(y)) => {
                 let (root, _) = unsafe { y.root() };
-                self.disjoint.insert(one.clone(), root.point());
+                self.disjoint.insert(one, root.point());
             }
             (Some(x), Some(y)) => {
                 let (p1, o1) = unsafe { x.root() };
@@ -79,7 +79,7 @@ where
                         p2.ptr.replace(Left(p1.point()));
                     }
                     Ordering::Equal => {
-                        self.orbits.remove(one);
+                        self.orbits.remove(&one);
                         p1.ptr.replace(Left(p2.point()));
                         p2.ptr.replace(Right(Set {
                             rank: o2.rank,
@@ -91,20 +91,20 @@ where
         }
     }
 
-    pub fn update(&mut self, k: &K, v: V) {
-        let orbit = match self.disjoint.get(k) {
-            Some(orbit) => orbit,
+    pub fn update(&mut self, k: K, v: V) {
+        match self.disjoint.get(&k) {
+            Some(orbit) => {
+                let (ptr, set) = unsafe { orbit.root() };
+                ptr.ptr.replace(Right(Set {
+                    rank: set.rank,
+                    data: v,
+                }));
+            }
             None => {
                 self.orbits.insert(k.clone());
-                self.disjoint.insert(k.clone(), SetPtr::new(v.clone()));
-                self.disjoint.get(k).unwrap()
+                self.disjoint.insert(k, SetPtr::new(v.clone()));
             }
-        };
-        let (ptr, set) = unsafe { orbit.root() };
-        ptr.ptr.replace(Right(Set {
-            rank: set.rank,
-            data: v,
-        }));
+        }
     }
 }
 
@@ -153,7 +153,7 @@ mod tests {
         let mut disjoint: Disjoint<u32, ()> = Disjoint::new((), |_, _| ());
         let assocs = vec![(1, 2), (2, 3), (4, 5), (6, 7), (8, 9), (6, 2), (9, 4)];
         for (x, y) in assocs {
-            disjoint.associate(&x, &y);
+            disjoint.associate(x, y);
         }
         let orbits: Vec<(&u32, Ref<Set<()>>)> = disjoint.get_orbits().collect();
         assert_eq!(orbits.len(), 2);
