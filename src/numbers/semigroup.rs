@@ -2,12 +2,14 @@ use std::fmt;
 
 pub trait Semigroup: Eq {
     type Elem: SemigroupElem<Group = Self>;
+
     fn size(&self) -> u128;
     fn one(&self) -> Self::Elem;
 }
 
 pub trait SemigroupElem: Clone + PartialEq + Eq + fmt::Debug {
     type Group: Semigroup<Elem = Self>;
+
     fn is_one(&self, g: &Self::Group) -> bool;
     fn multiply(&self, other: &Self, g: &Self::Group) -> Self;
     fn square(&self, g: &Self::Group) -> Self;
@@ -26,4 +28,3 @@ pub trait SemigroupElem: Clone + PartialEq + Eq + fmt::Debug {
         res.multiply(&y, g)
     }
 }
-

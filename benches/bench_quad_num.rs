@@ -14,7 +14,7 @@ fn find_sqrt() {
     }
 }
 
-fn criterion_benchmark(c: &mut Criterion ){
+fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("find sqrt", |b| b.iter(|| find_sqrt()));
 }
 

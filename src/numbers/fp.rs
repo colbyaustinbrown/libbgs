@@ -1,18 +1,96 @@
 use std::ops::*;
 
-pub use crate::numbers::semigroup::*;
-use crate::util::long_multiply;
-use crate::numbers::sylow::*;
-use crate::util::*;
 use crate::numbers::factorization::*;
 use crate::numbers::quad_field::*;
+use crate::numbers::sylow::*;
+use crate::util::long_multiply;
+
 pub use crate::numbers::group::*;
+pub use crate::numbers::semigroup::*;
 
 #[derive(PartialEq, Clone, Copy, Debug, Eq)]
 pub struct FpStar<const P: u128> {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FpNum<const P: u128>(pub u128);
+
+impl<const P: u128> FpNum<P> {
+    pub fn int_sqrt(&self) -> Option<FpNum<P>> {
+        if self.0 == 0 {
+            return Some(FpNum::from(0));
+        }
+
+        // Cipolla's algorithm
+        let l = legendre(self.0, P);
+        if l == 0 {
+            return Some(FpNum::from(0));
+        } else if l == P - 1 {
+            return None;
+        }
+
+        let mut i = 1;
+        let (a, r) = loop {
+            let a = standard_affine_shift(P, i);
+            let r = (intpow(a, 2, P) + P - self.0) % P;
+            if legendre(r, P) == (P - 1) {
+                break (a, r);
+            }
+            i += 1;
+        };
+
+        let fp2 = QuadField::<P>::new(r);
+        let x = QuadNum::from((a, 1)).pow((P + 1) / 2, &fp2);
+        Some(FpNum::from(x.0))
+    }
+}
+
+impl<const P: u128> Semigroup for FpStar<P> {
+    type Elem = FpNum<P>;
+
+    fn size(&self) -> u128 {
+        P - 1
+    }
+
+    fn one(&self) -> FpNum<P> {
+        FpNum::from(1)
+    }
+}
+
+impl<const P: u128> Group for FpStar<P> {}
+
+impl<const P: u128> SylowDecomposable for FpStar<P> {
+    fn find_sylow_generator(&self, i: usize, fact: &Factorization) -> FpNum<P> {
+        match fact[i] {
+            (2, 1) => FpNum::from(self.size()),
+            _ => (1..self.size())
+                .map(|i| FpNum::from(standard_affine_shift(P, i)))
+                .find_map(|c| self.is_sylow_generator(&c, fact[i]))
+                .unwrap(),
+        }
+    }
+}
+
+impl<const P: u128> SemigroupElem for FpNum<P> {
+    type Group = FpStar<P>;
+
+    fn is_one(&self, _: &FpStar<P>) -> bool {
+        self.0 == 1
+    }
+
+    fn multiply(&self, other: &FpNum<P>, _: &FpStar<P>) -> FpNum<P> {
+        *self * *other
+    }
+
+    fn square(&self, _: &FpStar<P>) -> FpNum<P> {
+        *self * *self
+    }
+}
+
+impl<const P: u128> GroupElem for FpNum<P> {
+    fn invert(&self, g: &FpStar<P>) -> FpNum<P> {
+        self.pow(P - 2, g)
+    }
+}
 
 impl<const P: u128> From<u128> for FpNum<P> {
     fn from(value: u128) -> FpNum<P> {
@@ -128,83 +206,9 @@ impl<const P: u128> Mul<FpNum<P>> for u128 {
     }
 }
 
-impl<const P: u128> FpNum<P> {
-    pub fn int_sqrt(&self) -> Option<FpNum<P>> {
-        if self.0 == 0 { 
-            return Some(FpNum::from(0));
-        }
-
-        // Cipolla's algorithm
-        let l = legendre(self.0, P);
-        if l == 0 { 
-            return Some(FpNum::from(0));
-        } else if l == P - 1{
-            return None;
-        }
-        let mut i = 1;
-        let (a,r) = loop {
-            let a = standard_affine_shift(P, i);
-            let r = (intpow(a, 2, P) + P - self.0) % P;
-            if legendre(r, P) == (P - 1) { break (a,r); }
-            i += 1;
-        };
-        let fp2 = QuadField::<P>::new(r);
-        let mut x = QuadNum::from((a, 1));
-        x = x.pow((P + 1) / 2, &fp2);
-        Some(FpNum::from(x.0))
-    }
-}
-
 impl<const P: u128> PartialEq<u128> for FpNum<P> {
     fn eq(&self, other: &u128) -> bool {
         self.0 == *other
-    }
-}
-
-impl<const P: u128> Semigroup for FpStar<P> {
-    type Elem = FpNum<P>;
-
-    fn size(&self) -> u128 {
-        P - 1
-    }
-
-    fn one(&self) -> FpNum<P> {
-        FpNum::from(1)
-    }
-}
-
-impl<const P: u128> Group for FpStar<P> {}
-
-impl<const P: u128> SylowDecomposable for FpStar<P> {
-    fn find_sylow_generator(&self, i: usize, fact: &Factorization) -> FpNum<P> {
-        match fact[i] {
-            (2,1) => FpNum::from(self.size()),
-            _ => (1..self.size())
-                .map(|i| FpNum::from(standard_affine_shift(P, i)))
-                .find_map(|c| self.is_sylow_generator(&c, fact[i]))
-                .unwrap()
-        }
-    }
-}
-
-impl<const P: u128> SemigroupElem for FpNum<P> {
-    type Group = FpStar<P>;
-    fn is_one(&self, _: &FpStar<P>) -> bool {
-        self.0 == 1
-    }
-
-    fn multiply(&self, other: &FpNum<P>, _: &FpStar<P>) -> FpNum<P> {
-        *self * *other
-    }
-
-    fn square(&self, _: &FpStar<P>) -> FpNum<P> {
-        *self * *self
-    }
-}
-
-impl<const P: u128> GroupElem for FpNum<P> {
-    fn invert(&self, g: &FpStar<P>) -> FpNum<P> {
-        self.pow(P - 2, g) 
     }
 }
 
@@ -235,7 +239,6 @@ mod tests {
 
     #[test]
     fn squares() {
-        let p = FpStar::<7> {};
         let mut x = FpNum::<7>::from(3);
         x *= x;
         assert_eq!(2, x.0);
@@ -253,7 +256,7 @@ mod tests {
         assert_eq!(4, x.0);
 
         let mut x = FpNum::from(3);
-        x =x.pow(3, &p);
+        x = x.pow(3, &p);
         assert_eq!(6, x.0);
 
         let mut x = FpNum::from(5);
@@ -272,7 +275,7 @@ mod tests {
 
     #[test]
     fn sylow_one_is_one() {
-        let p = Factorization::new(vec![(2,2), (3,1)]);
+        let p = Factorization::new(vec![(2, 2), (3, 1)]);
         let g = SylowDecomp::new(&FpStar::<13> {}, p.clone());
         let one = g.one();
         assert!(one.is_one(&g));
@@ -291,7 +294,15 @@ mod tests {
 
     #[test]
     fn sylow_finds_generators_big() {
-        let fact = Factorization::new(vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]);
+        let fact = Factorization::new(vec![
+            (2, 1),
+            (7, 1),
+            (13, 1),
+            (29, 2),
+            (43, 1),
+            (705737, 1),
+            (215288719, 1),
+        ]);
         let g = SylowDecomp::new(&FpStar::<BIG_P> {}, fact.clone());
         for i in 0..g.generators.len() {
             let gen = &g.generators[i];
@@ -302,7 +313,7 @@ mod tests {
 
     #[test]
     fn sylow_order() {
-        let fact = Factorization::new(vec![(2,2), (3,1)]);
+        let fact = Factorization::new(vec![(2, 2), (3, 1)]);
         let g = SylowDecomp::new(&FpStar::<13> {}, fact.clone());
         for i in 1..13 {
             let mut x = SylowElem::new(vec![i % 4, i % 3]);
@@ -313,13 +324,23 @@ mod tests {
 
     #[test]
     fn sylow_order_big() {
-        let fact = Factorization::new(vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]);
+        let fact = Factorization::new(vec![
+            (2, 1),
+            (7, 1),
+            (13, 1),
+            (29, 2),
+            (43, 1),
+            (705737, 1),
+            (215288719, 1),
+        ]);
         let g = SylowDecomp::new(&FpStar::<BIG_P> {}, fact);
         let n = 123456789;
         let mut x = SylowElem::new(
-            g.factors().as_array().iter()
-                .map(|(p,d)| n % intpow(*p, *d, 0))
-                .collect()
+            g.factors()
+                .as_array()
+                .iter()
+                .map(|(p, d)| n % intpow(*p, *d, 0))
+                .collect(),
         );
         let or = x.order(&g).value();
         x = x.pow(or, &g);
@@ -332,7 +353,9 @@ mod tests {
         let mut nonresidues = 0;
         for x in (1..13).map(|i| FpNum::from(i)) {
             match x.int_sqrt() {
-                None => { nonresidues += 1; }
+                None => {
+                    nonresidues += 1;
+                }
                 Some(mut y) => {
                     y = y.pow(2, &p);
                     assert_eq!(x, y);
@@ -357,4 +380,3 @@ mod tests {
         }
     }
 }
-

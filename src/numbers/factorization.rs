@@ -1,7 +1,9 @@
 use std::ops::Index;
 
-pub use crate::util::*;
 pub use crate::numbers::semigroup::*;
+pub use crate::util::*;
+
+use crate::numbers::factor_stream::*;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Factorization {
@@ -9,18 +11,22 @@ pub struct Factorization {
     prime_powers: Vec<(u128, u128)>,
 }
 
-pub trait Factored: {
+pub trait Factored {
     fn factors(&self) -> &Factorization;
 }
 
-pub trait FactoredElem<G: Factored>: SemigroupElem 
-where Self: SemigroupElem<Group = G> {
-   fn order(&self, g: &G) -> Factorization {
+pub trait FactoredElem<G: Factored>: SemigroupElem
+where
+    Self: SemigroupElem<Group = G>,
+{
+    fn order(&self, g: &G) -> Factorization {
         let prime_powers: Vec<(u128, u128)> = (0..g.factors().len())
             .map(|i| {
                 let mut x = self.clone();
                 for j in 0..g.factors().len() {
-                    if j == i { continue; }
+                    if j == i {
+                        continue;
+                    }
                     x = x.pow(g.factors().factor(j), g);
                 }
 
@@ -39,10 +45,11 @@ where Self: SemigroupElem<Group = G> {
 impl Factorization {
     pub fn new(prime_powers: Vec<(u128, u128)>) -> Factorization {
         Factorization {
-            value: prime_powers.iter()
+            value: prime_powers
+                .iter()
                 .map(|(p, r)| intpow(*p, *r, 0))
                 .product(),
-            prime_powers
+            prime_powers,
         }
     }
 
@@ -78,69 +85,3 @@ impl Index<usize> for Factorization {
         &self.prime_powers[index]
     }
 }
-
-struct FactorStream<'a> {
-    source: &'a [(u128, u128)],
-    stack: Vec<(usize, Vec<u128>)>,
-    limit: u128,
-    maximal_only: bool
-}
-
-impl<'a> FactorStream<'a> {
-    fn new(source: &'a [(u128, u128)], limit: u128) -> FactorStream {
-        FactorStream {
-            source,
-            limit,
-            stack: vec![(0, vec![0 ; source.len()])],
-            maximal_only: true
-        }
-    }
-}
-
-impl<'a> Iterator for FactorStream<'a> {
-    type Item = Vec<u128>;
-
-    fn next(&mut self) -> Option<Vec<u128>> {
-        let Some((i, state)) = self.stack.pop() else { return None; };
-        // println!("{state:?}");
-        let prod: u128 = state.iter()
-            .zip(self.source)
-            .map(|(d, (p, _))| {
-                intpow(*p, *d, 0)
-            })
-            .product();
-        let mut maximal = true;
-        for j in i..self.source.len() {
-            if state[j] == self.source[j].1 { continue; }
-            // Assumption: the primes in a factorization are in increasing order.
-            // If not, the break below should be a continue.
-            if prod * self.source[j].0 > self.limit { break; } 
-            let mut next = state.clone();
-            next[j] += 1;
-            self.stack.push((j, next));
-            maximal = false;
-        }
-        maximal &= prod * self.source[0].0 > self.limit;
-        if self.maximal_only && !maximal { self.next() } 
-        else { Some(state) }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_stream() {
-        let facts = Factorization::new(vec![(2,3), (3,2), (5,1)]);
-        let stream = FactorStream::new(&facts.prime_powers, 25);
-        let mut count = 0;
-        for x in stream {
-            println!("{x:?}");
-            // assert!(x < 25);
-            count += 1;
-        }
-        assert_eq!(count, 4);
-    }
-}
-

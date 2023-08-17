@@ -1,10 +1,10 @@
+use libbgs::markoff::coord::*;
+use libbgs::numbers::factorization::*;
 use libbgs::numbers::fp::*;
 use libbgs::numbers::quad_field::*;
-use libbgs::numbers::factorization::*;
 use libbgs::numbers::sylow::*;
 use libbgs::numbers::sylow_stream::*;
 // use libbgs::numbers::group::*;
-use libbgs::markoff::coord::*;
 // use libbgs::markoff::triple::*;
 use libbgs::markoff::orbit_tester::*;
 
@@ -48,7 +48,7 @@ fn main() {
         .add_flag(flags::LEQ);
 
     let tester_builder = OrbitTester::new(&fp);
-    for x in builder.build() { 
+    for x in builder.build() {
 
     }
     for y in builder.build() {
@@ -62,8 +62,28 @@ fn main() {
     println!("total: {count}");
     */
 
-    let fp = Factorization::new(vec![(2, 1), (7, 1), (13, 1), (29, 2), (43, 1), (705737, 1), (215288719, 1)]);
-    let fp2_fact = Factorization::new(vec![(2, 4), (3, 1), (5, 2), (11, 2), (17, 1), (19, 1), (23, 1), (97, 1), (757, 1), (1453, 1), (8689, 1)]);
+    let fp = Factorization::new(vec![
+        (2, 1),
+        (7, 1),
+        (13, 1),
+        (29, 2),
+        (43, 1),
+        (705737, 1),
+        (215288719, 1),
+    ]);
+    let fp2_fact = Factorization::new(vec![
+        (2, 4),
+        (3, 1),
+        (5, 2),
+        (11, 2),
+        (17, 1),
+        (19, 1),
+        (23, 1),
+        (97, 1),
+        (757, 1),
+        (1453, 1),
+        (8689, 1),
+    ]);
     let fp2 = QuadField::<BIG_P>::make();
     let fp_decomp = SylowDecomp::new(&FpStar::<BIG_P> {}, fp.clone());
     let fp2_decomp = SylowDecomp::new(&fp2, fp2_fact.clone());
@@ -88,14 +108,13 @@ fn main() {
         println!("\t{d:?}");
         fp2_stream_builder = fp2_stream_builder.add_target(d);
     }
-    let stream = fp_stream_builder.build()
-        .map(|x| {
-            Coord::from_chi_fp(&x, &fp_decomp)
-        })
-        .chain(fp2_stream_builder.build()
-            .map(|x| {
-                Coord::from_chi_quad(&x, &fp2_decomp)
-            })
+    let stream = fp_stream_builder
+        .build()
+        .map(|x| Coord::from_chi_fp(&x, &fp_decomp))
+        .chain(
+            fp2_stream_builder
+                .build()
+                .map(|x| Coord::from_chi_quad(&x, &fp2_decomp)),
         );
 
     let mut tester = OrbitTester::new(&FpStar::<BIG_P> {});
@@ -123,7 +142,9 @@ fn main() {
 
         for (key, set) in orbits {
             if set.data {
-                println!("For coordinate {x}: Representative: {key} is an orbit of small coordinates."); 
+                println!(
+                    "For coordinate {x}: Representative: {key} is an orbit of small coordinates."
+                );
             } else {
                 big_count += 1;
             }
@@ -133,4 +154,3 @@ fn main() {
     println!("{big_count} orbits had big coordinates.");
     println!("There were {} pairs of coordinates which did not form the first two coordinates in the solution of the Markoff equation.", results.failures());
 }
-
