@@ -1,10 +1,9 @@
 use std::fmt;
 use std::marker::PhantomData;
 
-pub use crate::numbers::semigroup::*;
+pub use crate::numbers::group::*;
 
 use crate::numbers::factorization::*;
-use crate::numbers::group::*;
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct SylowDecomp<'a, C: SylowDecomposable> {
@@ -19,7 +18,7 @@ pub struct SylowElem<'a, C: SylowDecomposable> {
     pub coords: Vec<u128>,
 }
 
-pub trait SylowDecomposable: Semigroup {
+pub trait SylowDecomposable: Group {
     fn find_sylow_generator(&self, i: usize, fact: &Factorization) -> Self::Elem;
 
     fn is_sylow_generator(&self, candidate: &Self::Elem, d: (u128, u128)) -> Option<Self::Elem> {
@@ -58,7 +57,7 @@ impl<'a, C: SylowDecomposable> SylowDecomp<'a, C> {
     }
 }
 
-impl<'a, C: SylowDecomposable> Semigroup for SylowDecomp<'a, C> {
+impl<'a, C: SylowDecomposable> Group for SylowDecomp<'a, C> {
     type Elem = SylowElem<'a, C>;
 
     fn one(&self) -> SylowElem<'a, C> {
@@ -72,8 +71,6 @@ impl<'a, C: SylowDecomposable> Semigroup for SylowDecomp<'a, C> {
         self.parent.size()
     }
 }
-
-impl<'a, C: SylowDecomposable> Group for SylowDecomp<'a, C> {}
 
 impl<'a, C: SylowDecomposable> Factored for SylowDecomp<'a, C> {
     fn factors(&self) -> &Factorization {
@@ -133,7 +130,7 @@ impl<'a, C: SylowDecomposable> SylowElem<'a, C> {
     }
 }
 
-impl<'a, C> SemigroupElem for SylowElem<'a, C>
+impl<'a, C> GroupElem for SylowElem<'a, C>
 where
     C: SylowDecomposable + 'a,
 {
@@ -167,9 +164,7 @@ where
             _group: PhantomData,
         }
     }
-}
 
-impl<'a, C: SylowDecomposable> GroupElem for SylowElem<'a, C> {
     fn invert(&self, g: &Self::Group) -> SylowElem<'a, C> {
         SylowElem {
             coords: self

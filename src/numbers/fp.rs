@@ -6,7 +6,6 @@ use crate::numbers::sylow::*;
 use crate::util::long_multiply;
 
 pub use crate::numbers::group::*;
-pub use crate::numbers::semigroup::*;
 
 #[derive(PartialEq, Clone, Copy, Debug, Eq)]
 pub struct FpStar<const P: u128> {}
@@ -44,7 +43,7 @@ impl<const P: u128> FpNum<P> {
     }
 }
 
-impl<const P: u128> Semigroup for FpStar<P> {
+impl<const P: u128> Group for FpStar<P> {
     type Elem = FpNum<P>;
 
     fn size(&self) -> u128 {
@@ -55,8 +54,6 @@ impl<const P: u128> Semigroup for FpStar<P> {
         FpNum::from(1)
     }
 }
-
-impl<const P: u128> Group for FpStar<P> {}
 
 impl<const P: u128> SylowDecomposable for FpStar<P> {
     fn find_sylow_generator(&self, i: usize, fact: &Factorization) -> FpNum<P> {
@@ -70,7 +67,7 @@ impl<const P: u128> SylowDecomposable for FpStar<P> {
     }
 }
 
-impl<const P: u128> SemigroupElem for FpNum<P> {
+impl<const P: u128> GroupElem for FpNum<P> {
     type Group = FpStar<P>;
 
     fn is_one(&self, _: &FpStar<P>) -> bool {
@@ -83,12 +80,6 @@ impl<const P: u128> SemigroupElem for FpNum<P> {
 
     fn square(&self, _: &FpStar<P>) -> FpNum<P> {
         *self * *self
-    }
-}
-
-impl<const P: u128> GroupElem for FpNum<P> {
-    fn invert(&self, g: &FpStar<P>) -> FpNum<P> {
-        self.pow(P - 2, g)
     }
 }
 

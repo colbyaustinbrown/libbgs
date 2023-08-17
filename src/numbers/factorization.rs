@@ -1,6 +1,6 @@
 use std::ops::Index;
 
-pub use crate::numbers::semigroup::*;
+pub use crate::numbers::group::*;
 pub use crate::util::*;
 
 use crate::numbers::factor_stream::*;
@@ -15,9 +15,9 @@ pub trait Factored {
     fn factors(&self) -> &Factorization;
 }
 
-pub trait FactoredElem<G: Factored>: SemigroupElem
+pub trait FactoredElem<G: Factored>: GroupElem
 where
-    Self: SemigroupElem<Group = G>,
+    Self: GroupElem<Group = G>,
 {
     fn order(&self, g: &G) -> Factorization {
         let prime_powers: Vec<(u128, u128)> = (0..g.factors().len())

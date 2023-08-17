@@ -50,7 +50,7 @@ impl<const P: u128> QuadField<P> {
     }
 }
 
-impl<const P: u128> Semigroup for QuadField<P> {
+impl<const P: u128> Group for QuadField<P> {
     type Elem = QuadNum<P>;
 
     fn size(&self) -> u128 {
@@ -83,7 +83,7 @@ impl<const P: u128> QuadNum<P> {
     }
 }
 
-impl<const P: u128> SemigroupElem for QuadNum<P> {
+impl<const P: u128> GroupElem for QuadNum<P> {
     type Group = QuadField<P>;
 
     fn is_one(&self, _f: &QuadField<P>) -> bool {
