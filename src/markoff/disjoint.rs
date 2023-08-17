@@ -11,9 +11,7 @@ pub struct Set<V> {
 }
 
 #[derive(Debug)]
-pub struct SetPtr<V> {
-    ptr: Rc<RefCell<Either<SetPtr<V>, Set<V>>>>,
-}
+pub struct SetPtr<V>(Rc<RefCell<Either<SetPtr<V>, Set<V>>>>);
 
 // TODO: disjoint should not be pub (nor should SetPtr above)
 // made public for debugging purposes
@@ -46,7 +44,7 @@ where
             .iter()
             .filter_map(|key| self.disjoint.get(key).map(|r| (key, r)))
             .filter_map(|(key, op)| {
-                Ref::filter_map(op.ptr.borrow(), |e| e.as_ref().right())
+                Ref::filter_map(op.0.borrow(), |e| e.as_ref().right())
                     .ok()
                     .map(|r| (key, r))
             })
@@ -73,15 +71,15 @@ where
                 let (p2, o2) = unsafe { y.root() };
                 match o1.rank.cmp(&o2.rank) {
                     Ordering::Less => {
-                        p1.ptr.replace(Left(p2.point()));
+                        p1.0.replace(Left(p2.point()));
                     }
                     Ordering::Greater => {
-                        p2.ptr.replace(Left(p1.point()));
+                        p2.0.replace(Left(p1.point()));
                     }
                     Ordering::Equal => {
                         self.orbits.remove(&one);
-                        p1.ptr.replace(Left(p2.point()));
-                        p2.ptr.replace(Right(Set {
+                        p1.0.replace(Left(p2.point()));
+                        p2.0.replace(Right(Set {
                             rank: o2.rank,
                             data: (self.combine)(&o1.data, &o2.data),
                         }));
@@ -95,7 +93,7 @@ where
         match self.disjoint.get(&k) {
             Some(orbit) => {
                 let (ptr, set) = unsafe { orbit.root() };
-                ptr.ptr.replace(Right(Set {
+                ptr.0.replace(Right(Set {
                     rank: set.rank,
                     data: v,
                 }));
@@ -125,19 +123,15 @@ impl<V: Default> Default for Set<V> {
 
 impl<V> SetPtr<V> {
     fn new(v: V) -> SetPtr<V> {
-        SetPtr {
-            ptr: Rc::new(RefCell::new(Right(Set::new(v)))),
-        }
+        SetPtr(Rc::new(RefCell::new(Right(Set::new(v)))))
     }
 
     fn point(&self) -> SetPtr<V> {
-        SetPtr {
-            ptr: Rc::clone(&self.ptr),
-        }
+        SetPtr(Rc::clone(&self.0))
     }
 
     unsafe fn root(&self) -> (&SetPtr<V>, &Set<V>) {
-        match &*self.ptr.as_ptr() {
+        match &*self.0.as_ptr() {
             Left(l) => l.root(),
             Right(r) => (self, r),
         }
