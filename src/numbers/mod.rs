@@ -5,4 +5,3 @@ pub mod sylow;
 pub mod sylow_stream;
 pub mod group;
 pub mod fp;
-pub mod hasse;
