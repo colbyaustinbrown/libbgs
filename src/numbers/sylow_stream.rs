@@ -214,7 +214,7 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> SylowStream<'a, C> {
     }
 
     fn get_status(&self, rs: &[u128], i: usize) -> u8 {
-        let mut coords = 0;
+        let mut status = 0;
         for t in &self.targets {
             let skip = rs.iter().zip(t).take(i).any(|(r, t)| {
                 self.has_flag(flags::LEQ) && r > t || !self.has_flag(flags::LEQ) && r != t
@@ -225,18 +225,18 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> SylowStream<'a, C> {
 
             match t[i].overflowing_sub(rs[i]) {
                 (0, false) => {
-                    coords |= statuses::EQ;
+                    status |= statuses::EQ;
                 }
                 (1, false) => {
-                    coords |= statuses::ONE_AWAY | statuses::KEEP_GOING;
+                    status |= statuses::ONE_AWAY | statuses::KEEP_GOING;
                 }
                 (_, false) => {
-                    coords |= statuses::KEEP_GOING;
+                    status |= statuses::KEEP_GOING;
                 }
                 (_, true) => {}
             }
         }
-        coords
+        status
     }
 
     fn push_next_seeds(&mut self, seed: &Seed<'a, C>, start: usize) -> bool {
