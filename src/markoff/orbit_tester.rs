@@ -1,4 +1,4 @@
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashMap, HashSet};
 
 use itertools::*;
 
@@ -7,19 +7,19 @@ use crate::numbers::fp::*;
 
 pub struct OrbitTester<'a, const P: u128> {
     f: &'a FpStar<P>,
-    targets: HashSet<u128>
+    targets: HashSet<u128>,
 }
 
 pub struct OrbitTesterResults {
     failures: u128,
-    results: HashMap<u128, Disjoint<u128, bool>>
+    results: HashMap<u128, Disjoint<u128, bool>>,
 }
 
 impl<'a, const P: u128> OrbitTester<'a, P> {
     pub fn run(self) -> OrbitTesterResults {
         let mut results = HashMap::with_capacity(self.targets.len());
         for x in &self.targets {
-            results.insert(*x, Disjoint::new(true, |x,y| *x && *y));
+            results.insert(*x, Disjoint::new(true, |x, y| *x && *y));
         }
 
         let mut inv2 = FpNum::from(2);
@@ -27,7 +27,9 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
 
         let mut failures = 0;
 
-        for (x,y) in self.targets.iter()
+        for (x, y) in self
+            .targets
+            .iter()
             .combinations_with_replacement(2)
             .map(|v| (v[0], v[1]))
         {
@@ -40,20 +42,20 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
             match disc.int_sqrt() {
                 Some(FpNum(0)) => {
                     candidates.push(z * inv2);
-                },
+                }
                 Some(x) => {
                     candidates.push((z + x) * inv2);
                     candidates.push((z - x) * inv2);
-                },
+                }
                 None => {
                     failures += 1;
                 }
             }
 
-            let it: Vec<(&FpNum<P>, bool)> = candidates.iter()
-                .map(|z| {
-                    (z, results.contains_key(&z.0))
-                }).collect();
+            let it: Vec<(&FpNum<P>, bool)> = candidates
+                .iter()
+                .map(|z| (z, results.contains_key(&z.0)))
+                .collect();
             let Some(disjoint) = results.get_mut(&x.0) else { continue; };
             for (z, pred) in it {
                 if pred {
@@ -66,16 +68,13 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
             }
         }
 
-        OrbitTesterResults { 
-            failures,
-            results 
-        }
+        OrbitTesterResults { failures, results }
     }
 
     pub fn new(f: &FpStar<P>) -> OrbitTester<P> {
         OrbitTester {
             f,
-            targets: HashSet::new()
+            targets: HashSet::new(),
         }
     }
 

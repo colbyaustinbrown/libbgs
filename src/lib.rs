@@ -2,7 +2,6 @@
 pub mod numbers;
 pub mod markoff;
 pub mod util;
-pub mod orbit_tester;
 
 #[cfg(test)]
 mod tests {

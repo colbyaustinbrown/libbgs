@@ -6,8 +6,8 @@ use libbgs::numbers::sylow_stream::*;
 // use libbgs::numbers::group::*;
 use libbgs::markoff::coord::*;
 // use libbgs::markoff::triple::*;
-use libbgs::orbit_tester::*;
-    
+use libbgs::markoff::orbit_tester::*;
+
 const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
 fn main() {

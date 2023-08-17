@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use either::Either::*;
 
 use libbgs::markoff::coord::Coord;
-use libbgs::orbit_tester::*;
+use libbgs::markoff::orbit_tester::*;
 use libbgs::numbers::sylow_stream::*;
 use libbgs::numbers::group::*;
 use libbgs::numbers::sylow::*;
