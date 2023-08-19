@@ -36,16 +36,16 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
             let x = FpNum::from(*x);
             let y = FpNum::from(*y);
             let disc = 9 * x * y - 4 * (x * x + y * y);
-            let z = 3 * x * y;
+            let neg_b = 3 * x * y;
             let mut candidates = Vec::new();
 
             match disc.int_sqrt() {
                 Some(FpNum(0)) => {
-                    candidates.push(z * inv2);
+                    candidates.push(neg_b * inv2);
                 }
-                Some(x) => {
-                    candidates.push((z + x) * inv2);
-                    candidates.push((z - x) * inv2);
+                Some(root_disc) => {
+                    candidates.push((neg_b + root_disc) * inv2);
+                    candidates.push((neg_b - root_disc) * inv2);
                 }
                 None => {
                     failures += 1;
