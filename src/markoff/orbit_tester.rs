@@ -12,14 +12,14 @@ pub struct OrbitTester<'a, const P: u128> {
 
 pub struct OrbitTesterResults {
     failures: u128,
-    results: HashMap<u128, Disjoint<u128, bool>>,
+    results: HashMap<u128, Disjoint<u128>>,
 }
 
 impl<'a, const P: u128> OrbitTester<'a, P> {
     pub fn run(self) -> OrbitTesterResults {
         let mut results = HashMap::with_capacity(self.targets.len());
         for x in &self.targets {
-            results.insert(*x, Disjoint::new(true, |x, y| *x && *y));
+            results.insert(*x, Disjoint::new());
         }
 
         let mut inv2 = FpNum::from(2);
@@ -61,9 +61,6 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
                 if pred {
                     disjoint.associate(x.0, z.0);
                     disjoint.associate(y.0, z.0);
-                } else {
-                    disjoint.update(x.0, false);
-                    disjoint.update(y.0, false);
                 }
             }
         }
@@ -85,7 +82,7 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
 }
 
 impl OrbitTesterResults {
-    pub fn results(&self) -> impl Iterator<Item = (&u128, &Disjoint<u128, bool>)> {
+    pub fn results(&self) -> impl Iterator<Item = (&u128, &Disjoint<u128>)> {
         self.results.iter()
     }
 
