@@ -1,6 +1,9 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::thread;
 
 use itertools::*;
+use rayon::prelude::*;
 
 use crate::markoff::disjoint::Disjoint;
 use crate::numbers::fp::*;
@@ -11,9 +14,11 @@ pub struct OrbitTester<'a, const P: u128> {
 }
 
 pub struct OrbitTesterResults {
-    failures: u128,
+    failures: u64,
     results: HashMap<u128, Disjoint<u128>>,
 }
+
+type Msg = (u128, u128, u128);
 
 impl<'a, const P: u128> OrbitTester<'a, P> {
     pub fn run(self) -> OrbitTesterResults {
@@ -25,47 +30,60 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
         let mut inv2 = FpNum::from(2);
         inv2 = inv2.invert(self.f);
 
-        let mut failures = 0;
+        // TOOD: is it a problem that this is a u64 and not a u128?
+        let failures = AtomicU64::new(0);
+        let (tx, rx) = std::sync::mpsc::sync_channel::<Msg>(1024);
 
-        for (x, y) in self
-            .targets
+        let handle = thread::spawn(move || {
+            for (x, y, z) in rx.iter() {
+                if results.contains_key(&z) {
+                    results.get_mut(&x).map(|disjoint| {
+                        disjoint.associate(y, z);
+                    });
+                    results.get_mut(&y).map(|disjoint| {
+                        disjoint.associate(x, z);
+                    });
+                }
+            }
+
+            results
+        });
+
+        self.targets
             .iter()
             .combinations_with_replacement(2)
             .map(|v| (v[0], v[1]))
-        {
-            let x = FpNum::from(*x);
-            let y = FpNum::from(*y);
-            let disc = 9 * x * y - 4 * (x * x + y * y);
-            let neg_b = 3 * x * y;
-            let mut candidates = Vec::new();
+            .par_bridge()
+            .for_each(|(x, y)| {
+                let x = FpNum::from(*x);
+                let y = FpNum::from(*y);
+                let disc = 9 * x * y - 4 * (x * x + y * y);
+                let neg_b = 3 * x * y;
 
-            match disc.int_sqrt() {
-                Some(FpNum(0)) => {
-                    candidates.push(neg_b * inv2);
+                match disc.int_sqrt() {
+                    Some(FpNum(0)) => {
+                        let z = neg_b * inv2;
+                        _ = tx.send((x.0, y.0, z.0));
+                    }
+                    Some(root_disc) => {
+                        let z = (neg_b + root_disc) * inv2;
+                        _ = tx.send((x.0, y.0, z.0));
+                        let z = (neg_b - root_disc) * inv2;
+                        _ = tx.send((x.0, y.0, z.0));
+                    }
+                    None => {
+                        failures.fetch_add(1, Ordering::Relaxed);
+                    }
                 }
-                Some(root_disc) => {
-                    candidates.push((neg_b + root_disc) * inv2);
-                    candidates.push((neg_b - root_disc) * inv2);
-                }
-                None => {
-                    failures += 1;
-                }
-            }
+            });
+        drop(tx);
 
-            let it: Vec<(&FpNum<P>, bool)> = candidates
-                .iter()
-                .map(|z| (z, results.contains_key(&z.0)))
-                .collect();
-            let Some(disjoint) = results.get_mut(&x.0) else { continue; };
-            for (z, pred) in it {
-                if pred {
-                    disjoint.associate(x.0, z.0);
-                    disjoint.associate(y.0, z.0);
-                }
-            }
+        let results = handle.join().unwrap();
+
+        OrbitTesterResults {
+            failures: failures.into_inner(),
+            results,
         }
-
-        OrbitTesterResults { failures, results }
     }
 
     pub fn new(f: &FpStar<P>) -> OrbitTester<P> {
@@ -86,7 +104,7 @@ impl OrbitTesterResults {
         self.results.iter()
     }
 
-    pub fn failures(&self) -> u128 {
+    pub fn failures(&self) -> u64 {
         self.failures
     }
 }
