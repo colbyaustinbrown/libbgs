@@ -2,6 +2,11 @@
 name = "libbgs"
 version = "0.1.0"
 edition = "2021"
+authors = ["Colby Brown <colbyabrown@math.ucdavis.edu>"]
+repository = "https://github.com/colbyaustinbrown/libbgs"
+license = "MPL-2.0"
+categories = ["mathematics"]
+publish = false
 
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }
