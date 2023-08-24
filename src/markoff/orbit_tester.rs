@@ -7,6 +7,7 @@ use rayon::prelude::*;
 
 use crate::markoff::disjoint::Disjoint;
 use crate::numbers::fp::*;
+use crate::numbers::group::GroupElem;
 
 pub struct OrbitTester<'a, const P: u128> {
     f: &'a FpStar<P>,
