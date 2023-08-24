@@ -48,8 +48,9 @@ impl<const P: u128> Coord<P> {
     ) -> Coord<P> {
         let chi_inv = chi.invert(decomp).to_product(decomp);
         let chi = chi.to_product(decomp);
+        let v = (chi + chi_inv) * FpNum::from(3).invert(decomp.parent);
         Coord {
-            v: (chi + chi_inv).into(),
+            v: v.into(),
             chi: Right(chi),
         }
     }
