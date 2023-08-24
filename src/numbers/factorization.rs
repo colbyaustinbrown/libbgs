@@ -15,33 +15,6 @@ pub trait Factored {
     fn factors(&self) -> &Factorization;
 }
 
-pub trait FactoredElem<G: Factored>: GroupElem
-where
-    Self: GroupElem<Group = G>,
-{
-    fn order(&self, g: &G) -> Factorization {
-        let prime_powers: Vec<(u128, u128)> = (0..g.factors().len())
-            .map(|i| {
-                let mut x = self.clone();
-                for j in 0..g.factors().len() {
-                    if j == i {
-                        continue;
-                    }
-                    x = x.pow(g.factors().factor(j), g);
-                }
-
-                let mut r = 0;
-                while !x.is_one(g) {
-                    x = x.pow(g.factors()[i].0, g);
-                    r += 1;
-                }
-                (g.factors()[i].0, r)
-            })
-            .collect();
-        Factorization::new(prime_powers)
-    }
-}
-
 impl Factorization {
     pub fn new(prime_powers: Vec<(u128, u128)>) -> Factorization {
         Factorization {

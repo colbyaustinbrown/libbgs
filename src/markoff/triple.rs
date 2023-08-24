@@ -4,6 +4,7 @@ use crate::markoff::coord::*;
 use crate::numbers::fp::*;
 use crate::numbers::quad_field::*;
 use crate::util::*;
+use crate::numbers::factorization::*;
 
 pub enum Pos {
     A,
@@ -35,15 +36,13 @@ impl<const P: u128> MarkoffTriple<P> {
         }
     }
 
-    /*
-    pub fn ord(&self, pos: Pos, f: &QuadField) -> u128 {
+    pub fn ord(&self, pos: Pos, f: &QuadField<P>, minusonesize: &Factorization, plusonesize: &Factorization) -> u128 {
         match pos {
             Pos::A => &self.a,
             Pos::B => &self.b,
             Pos::C => &self.c
-        }.get_ord(f).value()
+        }.get_ord(f, minusonesize, plusonesize).value()
     }
-    */
 
     pub fn rot<'a>(
         &'a self,

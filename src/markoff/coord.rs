@@ -93,11 +93,9 @@ impl<const P: u128> Coord<P> {
         })
     }
 
-    /*
-    pub fn get_ord(&self, fp: &QuadField) -> Factorization {
-        self.chi().as_ref().either(|l| l.order(fp), |r| r.order(fp.pminusone()))
+    pub fn get_ord(&self, fp: &QuadField<P>, minusonesize: &Factorization, plusonesize: &Factorization) -> Factorization {
+        self.chi().as_ref().either(|l| l.order(fp, plusonesize), |r| r.order(&FpStar::<P> {}, minusonesize))
     }
-    */
 }
 
 impl<const P: u128> PartialEq for Coord<P> {
