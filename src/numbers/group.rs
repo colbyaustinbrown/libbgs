@@ -32,7 +32,7 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
 
     fn invert(&self, g: &Self::Group) -> Self {
         let res = self.clone();
-        res.pow(g.size() - 1, g) 
+        res.pow(g.size() - 1, g)
     }
 
     fn order(&self, parent: &Self::Group, parent_size: &Factorization) -> Factorization {
@@ -40,8 +40,10 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
             .map(|i| {
                 let mut x = self.clone();
                 for j in 0..parent_size.len() {
-                    if j == i { continue; }
-                    x = x.pow(parent_size.factor(j), parent); 
+                    if j == i {
+                        continue;
+                    }
+                    x = x.pow(parent_size.factor(j), parent);
                 }
 
                 let mut r = 0;

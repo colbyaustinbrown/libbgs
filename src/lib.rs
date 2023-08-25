@@ -1,6 +1,6 @@
 #![allow(dead_code)]
-pub mod numbers;
 pub mod markoff;
+pub mod numbers;
 pub mod util;
 
 #[cfg(test)]
@@ -9,9 +9,7 @@ mod tests {
 
     #[test]
     fn fact_works() {
-        let fact = Factorization::new(
-            vec![(2, 3)]
-        );
+        let fact = Factorization::new(vec![(2, 3)]);
         assert_eq!(fact.value(), 8);
     }
 }

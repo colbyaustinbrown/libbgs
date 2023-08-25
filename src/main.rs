@@ -11,7 +11,7 @@ fn main() {
     for a in 0..P {
         for b in 0..P {
             for c in 0..P {
-                if (a*a + b*b + c*c + 3*a*b*c*P - 3*a*b*c) % P != 0 {
+                if (a * a + b * b + c * c + 3 * a * b * c * P - 3 * a * b * c) % P != 0 {
                     continue;
                 }
                 let x = MarkoffTriple::make(a, b, c, &fp2);
