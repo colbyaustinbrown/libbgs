@@ -48,6 +48,9 @@ impl<const P: u128> Coord<P> {
     ) -> Coord<P> {
         let chi_inv = chi.invert(decomp).to_product(decomp);
         let chi = chi.to_product(decomp);
+
+        // We use the non-normalized equation:
+        // x^2 + y^2 + z^2 - xyz = 0
         let v = (chi + chi_inv) * FpNum::from(3).invert(decomp.parent);
         Coord {
             v: v.into(),

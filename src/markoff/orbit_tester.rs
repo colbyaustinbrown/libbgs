@@ -58,8 +58,10 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
             .for_each(|(x, y)| {
                 let x = FpNum::from(*x);
                 let y = FpNum::from(*y);
-                let disc = 9 * x * y - 4 * (x * x + y * y);
-                let neg_b = 3 * x * y;
+
+                // We use the non-normalized equation: x^2 + y^2 + z^2 - xyz = 0
+                let disc = x * y - 4 * (x * x + y * y);
+                let neg_b = x * y;
 
                 match disc.int_sqrt() {
                     Some(FpNum(0)) => {
