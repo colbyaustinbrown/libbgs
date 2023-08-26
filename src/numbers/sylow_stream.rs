@@ -14,6 +14,7 @@ pub struct SylowStreamBuilder<'a, C: SylowDecomposable + std::fmt::Debug> {
     decomp: &'a SylowDecomp<'a, C>,
     mode: u8,
     targets: Vec<Vec<u128>>,
+    has_trivial: bool
 }
 
 pub struct SylowStream<'a, C: SylowDecomposable + std::fmt::Debug> {
@@ -56,6 +57,7 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> SylowStreamBuilder<'a, C> {
             decomp,
             mode: flags::NONE,
             targets: Vec::new(),
+            has_trivial: false,
         }
     }
 
@@ -65,14 +67,18 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> SylowStreamBuilder<'a, C> {
     }
 
     pub fn add_target(mut self, t: Vec<u128>) -> SylowStreamBuilder<'a, C> {
-        self.targets.push(t);
+        if t.iter().all(|x| *x == 0) {
+            self.has_trivial = true;
+        } else {
+            self.targets.push(t);
+        }
         self
     }
 
     pub fn build(&self) -> SylowStream<'a, C> {
         let mut stack = Vec::new();
 
-        if self.mode & flags::LEQ != 0 && self.mode & flags::NO_PARABOLIC == 0 {
+        if self.has_trivial || (self.mode & flags::LEQ != 0 && self.mode & flags::NO_PARABOLIC == 0) {
             stack.push(StackElem::Res(self.decomp.one()));
         }
 
