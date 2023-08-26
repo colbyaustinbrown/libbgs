@@ -51,7 +51,7 @@ impl<const P: u128> Coord<P> {
 
         // We use the non-normalized equation:
         // x^2 + y^2 + z^2 - xyz = 0
-        let v = (chi + chi_inv) * FpNum::from(3).invert(decomp.parent);
+        let v = chi + chi_inv;
         Coord {
             v: v.into(),
             chi: Right(chi),
@@ -64,6 +64,9 @@ impl<const P: u128> Coord<P> {
     ) -> Coord<P> {
         let chi_inv = chi.invert(decomp).to_product(decomp);
         let chi = chi.to_product(decomp);
+
+        // We use the non-normalized equation:
+        // x^2 + y^2 + z^2 - xyz = 0
         Coord {
             v: (chi + chi_inv).0,
             chi: Left(chi),
@@ -85,9 +88,7 @@ impl<const P: u128> Coord<P> {
         fp: &'a QuadField<P>,
     ) -> impl Iterator<Item = (Rc<Coord<P>>, Rc<Coord<P>>)> + 'a {
         std::iter::successors(Some((Rc::clone(b), Rc::clone(c))), move |(y, z)| {
-            let tmp = long_multiply(3, self.v(), P);
-            let tmp = long_multiply(tmp, z.v(), P);
-            let (b_, c_) = (Rc::clone(z), Rc::new(Coord::new(tmp + P - y.v(), fp)));
+            let (b_, c_) = (Rc::clone(z), Rc::new(Coord::new(self.v() * z.v() + P - y.v(), fp)));
             if &b_ == b && &c_ == c {
                 None
             } else {
