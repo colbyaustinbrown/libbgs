@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![warn(missing_docs)]
 pub mod markoff;
 pub mod numbers;
 pub mod util;
