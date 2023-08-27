@@ -5,22 +5,45 @@ pub use crate::numbers::group::*;
 
 use crate::numbers::factorization::*;
 
+/// A decomposition of a finite cyclic group into the direct sum of its Sylow subgroups.
+/// In particular, this group represents the right hand side of the isomorphism
+/// $$G \cong \bigoplus_{i = 1}^n \mathbb{Z} / p_i^{t_i} \mathbb{Z}$$
+/// where
+/// $$|G| = \prod_{i = 1}^n p_i^{t_i}$$
+/// and $G$ is a finite cyclic group.
 #[derive(PartialEq, Eq, Debug)]
 pub struct SylowDecomp<'a, C: SylowDecomposable> {
+    /// Deprecated. Do not access this field directly.
+    #[deprecated]
     pub parent: &'a C,
+    /// Deprecated. Do not access this field directly.
+    #[deprecated]
     pub fact: Factorization,
+    /// Deprecated. Do not access this field directly.
+    #[deprecated]
     pub generators: Vec<C::Elem>,
 }
 
+/// An element of the decomposition of a finite cyclic group into the direct sum of its Sylow
+/// subgroups.
 #[derive(Eq, PartialEq)]
 pub struct SylowElem<'a, C: SylowDecomposable> {
     _group: PhantomData<fn(&'a C) -> &'a C>,
+    /// The powers on the generators of the Sylow subgroups.
+    /// In particular, if an element of a group $G$ with generators $g_1,\ldots,g_n$ is
+    /// $$g = \prod_{i = 1}^n g_i^{r_i},$$
+    /// then the coordinates of that element are $r_1,\ldots,r_n$.
     pub coords: Vec<u128>,
 }
 
+/// Groups that can be decomposed into a direct sum of cyclic Sylow subgroups.
+/// In particular, these groups must be finite and cyclic.
 pub trait SylowDecomposable: Group {
+    /// Finds a Sylow generator for the Sylow subgroup of prime power index `i`.
     fn find_sylow_generator(&self, i: usize, fact: &Factorization) -> Self::Elem;
 
+    /// True if the given element is a generator of the Sylow subgroup of the prime power
+    /// represented by `d`.
     fn is_sylow_generator(&self, candidate: &Self::Elem, d: (u128, u128)) -> Option<Self::Elem> {
         let pow = self.size() / intpow(d.0, d.1, 0);
         let res = candidate.pow(pow, self);
@@ -33,6 +56,9 @@ pub trait SylowDecomposable: Group {
 }
 
 impl<'a, C: SylowDecomposable> SylowDecomp<'a, C> {
+    /// Returns a decomposition for the group.
+    /// This method may be expensive because it calls `find_sylow_generator` for each Sylow
+    /// subgroup.
     pub fn new(parent: &C, fact: Factorization) -> SylowDecomp<C> {
         let length = fact.len();
         let generators = (0..length)
@@ -87,6 +113,7 @@ impl<'a, C: SylowDecomposable> SylowDecomposable for SylowDecomp<'a, C> {
 }
 
 impl<'a, C: SylowDecomposable> SylowElem<'a, C> {
+    /// Returns an element of the Sylow decomposition with the given coordinates.
     pub fn new(coords: Vec<u128>) -> SylowElem<'a, C> {
         SylowElem {
             _group: PhantomData,
@@ -94,6 +121,7 @@ impl<'a, C: SylowDecomposable> SylowElem<'a, C> {
         }
     }
 
+    /// Returns the element of the original group with the given coordinates.
     pub fn to_product(&self, g: &SylowDecomp<C>) -> C::Elem {
         (0..g.len())
             .filter(|i| self.coords[*i] > 0)
@@ -103,6 +131,8 @@ impl<'a, C: SylowDecomposable> SylowElem<'a, C> {
             })
     }
 
+    /// Returns the order of this element, that is, the smallest positive power to which this
+    /// element raised is equal to one.
     pub fn order(&self, g: &'a SylowDecomp<C>) -> Factorization {
         let prime_powers: Vec<(u128, u128)> = (0..g.len())
             .map(|i| {
@@ -189,10 +219,13 @@ impl<'a, C: SylowDecomposable> fmt::Debug for SylowElem<'a, C> {
     }
 }
 
+/// Utility methods for use in other tests.
+/// These methods should probably not be used outside of this crate.
 pub mod tests {
     use super::*;
 
-    // utility method for external tests
+    /// True if `x` is of order `d`, False otherwise.
+    /// Expensive and intended for use only with small values of `d`.
     pub fn test_is_generator_small<C: SylowDecomposable>(x: &C::Elem, d: u128, g: &C) -> bool {
         let mut y = x.clone();
         for _ in 1..d {
@@ -204,7 +237,8 @@ pub mod tests {
         y.is_one(g)
     }
 
-    // utility method for external tests
+    /// True if `x` is not of order prime power dividing `d`, but is a prime power of `d`.
+    /// Much cheaper than `test_is_generator_small`, but may return a false positive.
     pub fn test_is_generator_big<C: SylowDecomposable>(x: &C::Elem, d: (u128, u128), g: &C) {
         let mut y = x.clone();
         for _ in 0..d.1 {
