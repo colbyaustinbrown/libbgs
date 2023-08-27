@@ -35,7 +35,7 @@ fn main() {
     let fp_decomp = SylowDecomp::new(&FpStar::<BIG_P> {}, fp.clone());
     let fp2_decomp = SylowDecomp::new(&fp2, fp2_fact.clone());
 
-    const LIMIT: u128 = 500;
+    const LIMIT: u128 = 100;
 
     let mut fp_stream_builder = SylowStreamBuilder::new(&fp_decomp)
         .add_flag(flags::NO_UPPER_HALF)
