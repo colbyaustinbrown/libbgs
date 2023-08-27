@@ -3,13 +3,29 @@ use crate::numbers::sylow::*;
 
 const STACK_ADDITION_LIMIT: u8 = 127;
 
+/// Bitwise flags for configuring a SylowStreamBuilder.
+/// May be combined with the bitwise integer OR operator, `|`.
 pub mod flags {
+    /// Stream will behave with all default options.
+    /// Identity when used with the `|` operator.
     pub const NONE: u8 = 0x01;
+
+    /// Stream will yield half as many elements as the default.
+    /// Precisely, the stream will yield either $\chi$ or $\chi^{-1}$, but not both, for every
+    /// $\chi \in F_{p^2}$.
+    /// Even more precisely, for every $x$ the builder yields, the first non-zero coordinate is
+    /// guarantied to be less than half the maximum of the its corresponding prime power.
     pub const NO_UPPER_HALF: u8 = 0x02;
+
+    /// Stream will yield any element less than or equal to a target.
+    /// Guaranteed to only  return 1 value of `\chi` for each threat; guaranteed 1 `for` 1.
     pub const LEQ: u8 = 0x04;
+
+    //  Stream will yield elements in a parabolic order.
     pub const NO_PARABOLIC: u8 = 0x08;
 }
 
+/// A builder for a stream yielding elements of particular orders, as their Sylow decompositions.
 pub struct SylowStreamBuilder<'a, C: SylowDecomposable + std::fmt::Debug> {
     decomp: &'a SylowDecomp<'a, C>,
     mode: u8,
@@ -17,6 +33,7 @@ pub struct SylowStreamBuilder<'a, C: SylowDecomposable + std::fmt::Debug> {
     has_trivial: bool
 }
 
+/// A stream yielding elements of particular orders, as their Sylow decompositions.
 pub struct SylowStream<'a, C: SylowDecomposable + std::fmt::Debug> {
     decomp: &'a SylowDecomp<'a, C>,
     mode: u8,
@@ -52,6 +69,7 @@ mod statuses {
 }
 
 impl<'a, C: SylowDecomposable + std::fmt::Debug> SylowStreamBuilder<'a, C> {
+    /// Returns a new `SylowStreamBuilder`, yielding elements of the type associated with `decomp`.
     pub fn new(decomp: &'a SylowDecomp<'a, C>) -> SylowStreamBuilder<'a, C> {
         SylowStreamBuilder {
             decomp,
@@ -61,11 +79,15 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> SylowStreamBuilder<'a, C> {
         }
     }
 
+    /// Adds a flag to the `SylowStreamBuilder`, modifying its yields.
     pub fn add_flag(mut self, mode: u8) -> SylowStreamBuilder<'a, C> {
         self.mode |= mode;
         self
     }
 
+    /// Adds a target order to this `SylowStreamBuilder`.
+    /// The `SylowStream` built from this builder will only yield elements of the orders of
+    /// `target`s, or elements of order dividing `target` if `target 
     pub fn add_target(mut self, t: Vec<u128>) -> SylowStreamBuilder<'a, C> {
         if t.iter().all(|x| *x == 0) {
             self.has_trivial = true;
@@ -75,6 +97,8 @@ impl<'a, C: SylowDecomposable + std::fmt::Debug> SylowStreamBuilder<'a, C> {
         self
     }
 
+    /// Returns a SylowStream yielding the elements requested via the constructor, `add_flag`, and
+    /// `flag_target` invocations.
     pub fn build(&self) -> SylowStream<'a, C> {
         let mut stack = Vec::new();
 
