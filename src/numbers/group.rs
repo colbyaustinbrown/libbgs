@@ -30,7 +30,7 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
         res.multiply(&y, g)
     }
 
-    fn invert(&self, g: &Self::Group) -> Self {
+    fn inverse(&self, g: &Self::Group) -> Self {
         let res = self.clone();
         res.pow(g.size() - 1, g)
     }

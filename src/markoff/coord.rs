@@ -46,7 +46,7 @@ impl<const P: u128> Coord<P> {
         chi: &SylowElem<'a, FpStar<P>>,
         decomp: &SylowDecomp<'b, FpStar<P>>,
     ) -> Coord<P> {
-        let chi_inv = chi.invert(decomp).to_product(decomp);
+        let chi_inv = chi.inverse(decomp).to_product(decomp);
         let chi = chi.to_product(decomp);
 
         // We use the non-normalized equation:
@@ -62,7 +62,7 @@ impl<const P: u128> Coord<P> {
         chi: &SylowElem<'a, QuadField<P>>,
         decomp: &SylowDecomp<'b, QuadField<P>>,
     ) -> Coord<P> {
-        let chi_inv = chi.invert(decomp).to_product(decomp);
+        let chi_inv = chi.inverse(decomp).to_product(decomp);
         let chi = chi.to_product(decomp);
 
         // We use the non-normalized equation:

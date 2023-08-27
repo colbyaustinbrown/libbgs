@@ -161,7 +161,7 @@ where
         }
     }
 
-    fn invert(&self, g: &Self::Group) -> SylowElem<'a, C> {
+    fn inverse(&self, g: &Self::Group) -> SylowElem<'a, C> {
         SylowElem {
             coords: self
                 .coords

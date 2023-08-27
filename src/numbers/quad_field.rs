@@ -30,7 +30,7 @@ impl<const P: u128> QuadField<P> {
         }
 
         let fp = FpStar::<P> {};
-        let r = FpNum::from(self.r).invert(&fp);
+        let r = FpNum::from(self.r).inverse(&fp);
         x = x.multiply(&r, &fp);
         let a1 = x.int_sqrt().unwrap();
         Left(QuadNum(0, a1.into()))
