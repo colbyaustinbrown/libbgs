@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::numbers::factorization::*;
 
-/// A group, satisfying the group axioms:
+/// Types that represent groups, satisfying the group axioms:
 /// * Has an associative binary operator (multiplication)
 /// * Has an identity
 /// * Every element has an inverse
@@ -23,7 +23,7 @@ pub trait Group: Eq {
     fn one(&self) -> Self::Elem;
 }
 
-/// The elements of a group, which can be multiplied together according to the axioms of a group.
+/// Types that represent the elements of a group.
 ///
 /// Most methods here are "context dependent", in that they require the group to which the elements
 /// belong to be passed as a parameter. Since a `struct` implementing `Group` is more accurately

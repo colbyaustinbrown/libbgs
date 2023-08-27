@@ -12,7 +12,7 @@ pub struct Factorization {
     prime_powers: Vec<(u128, u128)>,
 }
 
-/// Has a notion of being factored into prime powers
+/// Types that have a size or order which can be expressed as a product of prime powers.
 pub trait Factored {
     /// The prime factorization of this object.
     fn factors(&self) -> &Factorization;
