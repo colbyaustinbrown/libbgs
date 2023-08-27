@@ -7,13 +7,17 @@ use crate::util::long_multiply;
 
 pub use crate::numbers::group::*;
 
+/// The finite field of size `P`. Isomorphic to $\mathbb{Z} / P\mathbb{Z}$.
 #[derive(PartialEq, Clone, Copy, Debug, Eq)]
 pub struct FpStar<const P: u128> {}
 
+/// An integer modulo `P`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FpNum<const P: u128>(pub u128);
 
 impl<const P: u128> FpNum<P> {
+    /// Calculates this number's square root, if it is a quadratic residue; otherwise, returns
+    /// `None`.
     pub fn int_sqrt(&self) -> Option<FpNum<P>> {
         if self.0 == 0 {
             return Some(FpNum::from(0));

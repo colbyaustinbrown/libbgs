@@ -6,23 +6,48 @@ use crate::numbers::factorization::*;
 use crate::numbers::fp::*;
 use crate::numbers::sylow::*;
 
+/// The finite field of size `P^2`. Isomorphic to $\mathbb{Z} / P^2\mathbb{Z}$.
+/// Each `QuadField` has a fixed quadratic nonresidue `r` used as a basis element for the numbers
+/// outside of the prime subfield.
 #[derive(PartialEq, Eq, Debug)]
 pub struct QuadField<const P: u128> {
+    /// The basis element for the numbers outside of the prime subfield.
     r: u128,
 }
 
+/// An integer modulo `P^2`. An element $x$ is represented as $x = a_0 + a_1\sqrt{r}$, where $r$ is
+/// the fixed basis element.
+///
+/// The association between a `QuadNum` instance and a `QuadField` (hence, the fixed basis element
+/// `r`), is implicit.
+/// You must ensure that operations on `QuadNum` instances are associated to the same choice of
+/// `r`.
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub struct QuadNum<const P: u128>(pub u128, pub u128);
+pub struct QuadNum<const P: u128>(
+    /// The value $a_0$, when writing this `QuadNum` as $a_0 + a_1\sqrt{r}$.
+    pub u128, 
+    /// The value $a_1$, when writing this `QuadNum` as $a_0 + a_1\sqrt{r}$.
+    pub u128,
+);
 
 impl<const P: u128> QuadField<P> {
+    /// Returns a new `QuadField` instance with the given `r` value.
+    /// You must ensure that `r` is a quadratic nonresidue modulo `P`.
     pub fn new(r: u128) -> QuadField<P> {
         QuadField { r }
     }
 
+    /// Returns a new `QuadField` instance.
+    /// The `r` value chosen is arbitrary, but it is guaranteed to be the same between invocations
+    /// for the same `P`.
     pub fn make() -> QuadField<P> {
         QuadField::new(find_nonresidue(P))
     }
 
+    /// Calculates the square root of an integer modulo `P`, casting to an `FpNum<P>` if `x` is a
+    /// quadratic residue.
+    /// Returns a `Left` `QuadNum<P>` if `x` is a quadratic nonresidue, or a `Right` `FpNum<P>` if
+    /// `x` is a quadratic residue (including 0).
     pub fn int_sqrt_either(&self, x: u128) -> Either<QuadNum<P>, FpNum<P>> {
         let mut x = FpNum::from(x);
         if let Some(y) = x.int_sqrt() {
@@ -36,15 +61,19 @@ impl<const P: u128> QuadField<P> {
         Left(QuadNum(0, a1.into()))
     }
 
+    /// Calculates the square root af in integer modulo `P`.
     pub fn int_sqrt(&self, x: u128) -> QuadNum<P> {
         self.int_sqrt_either(x)
             .left_or_else(|n| QuadNum::from((n.into(), 0)))
     }
 
+    /// Returns the Steinitz polynomial of index `i` associated to this quadritic field.
+    // TODO add citation
     pub fn steinitz(&self, i: u128) -> QuadNum<P> {
         QuadNum::from((i % P, i / P))
     }
 
+    /// Gets the quadratic nonresidue being used as a basis element.
     pub fn r(&self) -> u128 {
         self.r
     }
@@ -78,6 +107,7 @@ impl<const P: u128> SylowDecomposable for QuadField<P> {
 }
 
 impl<const P: u128> QuadNum<P> {
+    /// True if this number is zero; false otherwise.
     pub fn is_zero(&self) -> bool {
         self.0 == 0 && self.1 == 0
     }
