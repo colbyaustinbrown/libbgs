@@ -1,0 +1,2 @@
+[alias]
+gen-docs = "doc --no-deps"
