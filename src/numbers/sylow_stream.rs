@@ -21,7 +21,7 @@ pub mod flags {
     /// Guaranteed to only  return 1 value of `\chi` for each threat; guaranteed 1 `for` 1.
     pub const LEQ: u8 = 0x04;
 
-    //  Stream will yield elements in a parabolic order.
+    ///  Stream will yield elements in a parabolic order.
     pub const NO_PARABOLIC: u8 = 0x08;
 }
 
