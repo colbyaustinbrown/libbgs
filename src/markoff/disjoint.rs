@@ -14,7 +14,7 @@ impl<K: Eq + Clone + std::hash::Hash> Disjoint<K> {
         }
     }
 
-    pub fn get_orbits(&self) -> impl Iterator<Item = (&K, u128)> {
+    pub fn get_sets(&self) -> impl Iterator<Item = (&K, u128)> {
         self.orbits
             .iter()
             .filter_map(|key| self.disjoint.get(key).map(|e| (key, e)))
@@ -70,7 +70,7 @@ mod tests {
         for (x, y) in assocs {
             disjoint.associate(x, y);
         }
-        let orbits: Vec<(&u32, u128)> = disjoint.get_orbits().collect();
+        let orbits: Vec<(&u32, u128)> = disjoint.get_sets().collect();
         assert_eq!(orbits.len(), 2);
     }
 }

@@ -74,7 +74,7 @@ fn main() {
 
     let mut repless_count = 0;
     for (x, disjoint) in results.results() {
-        let mut orbits = disjoint.get_orbits().peekable();
+        let mut orbits = disjoint.get_sets().peekable();
 
         if orbits.peek().is_none() {
             repless_count += 1;
