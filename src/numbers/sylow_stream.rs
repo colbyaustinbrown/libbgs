@@ -1,5 +1,5 @@
-use crate::numbers::factorization::*;
-use crate::numbers::sylow::*;
+use crate::numbers::*;
+use crate::util::*;
 
 const STACK_ADDITION_LIMIT: u8 = 127;
 

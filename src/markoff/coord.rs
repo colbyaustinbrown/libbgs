@@ -1,10 +1,8 @@
 use either::*;
 use std::rc::Rc;
 
-use crate::numbers::factorization::*;
-use crate::numbers::fp::*;
-use crate::numbers::quad_field::*;
-use crate::numbers::sylow::*;
+use crate::numbers::*;
+use crate::util::*;
 
 #[derive(Debug)]
 pub struct Coord<const P: u128> {

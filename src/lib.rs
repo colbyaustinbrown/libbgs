@@ -5,7 +5,7 @@ pub mod util;
 
 #[cfg(test)]
 mod tests {
-    use crate::numbers::factorization::*;
+    use crate::numbers::*;
 
     #[test]
     fn fact_works() {

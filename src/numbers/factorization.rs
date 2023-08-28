@@ -1,9 +1,7 @@
 use std::ops::Index;
 
-pub use crate::numbers::group::*;
-pub use crate::util::*;
-
-use crate::numbers::factor_stream::*;
+use crate::numbers::FactorStream;
+use crate::util::intpow;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Factorization {

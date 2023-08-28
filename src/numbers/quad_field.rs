@@ -2,9 +2,8 @@ use std::ops::*;
 
 use either::*;
 
-use crate::numbers::factorization::*;
-use crate::numbers::fp::*;
-use crate::numbers::sylow::*;
+use crate::numbers::*;
+use crate::util::*;
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct QuadField<const P: u128> {

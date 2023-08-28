@@ -1,9 +1,8 @@
 use std::fmt;
 use std::marker::PhantomData;
 
-pub use crate::numbers::group::*;
-
-use crate::numbers::factorization::*;
+use crate::numbers::*;
+use crate::util::*;
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct SylowDecomp<'a, C: SylowDecomposable> {

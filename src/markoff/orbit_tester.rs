@@ -5,9 +5,8 @@ use std::thread;
 use itertools::*;
 use rayon::prelude::*;
 
-use crate::markoff::disjoint::Disjoint;
-use crate::numbers::fp::*;
-use crate::numbers::group::GroupElem;
+use crate::markoff::Disjoint;
+use crate::numbers::{FpNum, FpStar, GroupElem};
 
 pub struct OrbitTester<'a, const P: u128> {
     f: &'a FpStar<P>,

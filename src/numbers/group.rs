@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::numbers::factorization::*;
+use crate::numbers::Factorization;
 
 pub trait Group: Eq {
     type Elem: GroupElem<Group = Self>;
