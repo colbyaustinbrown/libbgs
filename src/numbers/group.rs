@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::numbers::factorization::*;
+use crate::numbers::Factorization;
 
 /// Types that represent groups, satisfying the group axioms:
 /// * Has an associative binary operator (multiplication)
@@ -62,7 +62,7 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
     }
 
     /// Returns the multiplicative inverse of this element.
-    fn invert(&self, g: &Self::Group) -> Self {
+    fn inverse(&self, g: &Self::Group) -> Self {
         let res = self.clone();
         res.pow(g.size() - 1, g)
     }

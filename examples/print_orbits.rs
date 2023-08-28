@@ -1,6 +1,5 @@
-use libbgs::markoff::triple::*;
-use libbgs::numbers::factorization::*;
-use libbgs::numbers::quad_field::*;
+use libbgs::markoff::*;
+use libbgs::numbers::*;
 
 const P: u128 = 13;
 

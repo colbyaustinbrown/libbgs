@@ -1,9 +1,8 @@
 use std::fmt;
 use std::marker::PhantomData;
 
-pub use crate::numbers::group::*;
-
-use crate::numbers::factorization::*;
+use crate::numbers::*;
+use crate::util::*;
 
 /// A decomposition of a finite cyclic group into the direct sum of its Sylow subgroups.
 /// In particular, this group represents the right hand side of the isomorphism
@@ -191,7 +190,7 @@ where
         }
     }
 
-    fn invert(&self, g: &Self::Group) -> SylowElem<'a, C> {
+    fn inverse(&self, g: &Self::Group) -> SylowElem<'a, C> {
         SylowElem {
             coords: self
                 .coords

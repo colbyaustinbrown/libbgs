@@ -2,9 +2,8 @@ use std::ops::*;
 
 use either::*;
 
-use crate::numbers::factorization::*;
-use crate::numbers::fp::*;
-use crate::numbers::sylow::*;
+use crate::numbers::*;
+use crate::util::*;
 
 /// The finite field of size `P^2`. Isomorphic to $\mathbb{Z} / P^2\mathbb{Z}$.
 /// Each `QuadField` has a fixed quadratic nonresidue `r` used as a basis element for the numbers
@@ -55,7 +54,7 @@ impl<const P: u128> QuadField<P> {
         }
 
         let fp = FpStar::<P> {};
-        let r = FpNum::from(self.r).invert(&fp);
+        let r = FpNum::from(self.r).inverse(&fp);
         x = x.multiply(&r, &fp);
         let a1 = x.int_sqrt().unwrap();
         Left(QuadNum(0, a1.into()))

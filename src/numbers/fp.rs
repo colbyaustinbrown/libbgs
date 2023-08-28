@@ -1,11 +1,7 @@
 use std::ops::*;
 
-use crate::numbers::factorization::*;
-use crate::numbers::quad_field::*;
-use crate::numbers::sylow::*;
-use crate::util::long_multiply;
-
-pub use crate::numbers::group::*;
+use crate::numbers::*;
+use crate::util::*;
 
 /// The finite field of size `P`. Isomorphic to $\mathbb{Z} / P\mathbb{Z}$.
 #[derive(PartialEq, Clone, Copy, Debug, Eq)]
@@ -361,13 +357,13 @@ mod tests {
     }
 
     #[test]
-    fn inverts() {
+    fn inverses() {
         let p = FpStar::<13> {};
         for i in 2..13 {
             let mut x = FpNum::from(i);
             let y = x.clone();
             println!("{x:?}");
-            x = x.invert(&p);
+            x = x.inverse(&p);
             println!("{x:?}");
             assert!(!x.is_one(&p));
             x = x.multiply(&y, &p);

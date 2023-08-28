@@ -5,9 +5,8 @@ use std::thread;
 use itertools::*;
 use rayon::prelude::*;
 
-use crate::markoff::disjoint::Disjoint;
-use crate::numbers::fp::*;
-use crate::numbers::group::GroupElem;
+use crate::markoff::Disjoint;
+use crate::numbers::{FpNum, FpStar, GroupElem};
 
 pub struct OrbitTester<'a, const P: u128> {
     f: &'a FpStar<P>,
@@ -29,7 +28,7 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
         }
 
         let mut inv2 = FpNum::from(2);
-        inv2 = inv2.invert(self.f);
+        inv2 = inv2.inverse(self.f);
 
         // TOOD: is it a problem that this is a u64 and not a u128?
         let failures = AtomicU64::new(0);
