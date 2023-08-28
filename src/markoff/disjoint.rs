@@ -1,12 +1,14 @@
 use either::{Either, Left, Right};
 use std::collections::{HashMap, HashSet};
 
+/// A set of disjoint sets of instances of `K`.
 pub struct Disjoint<K> {
     disjoint: HashMap<K, Either<K, u128>>,
     orbits: HashSet<K>,
 }
 
 impl<K: Eq + Clone + std::hash::Hash> Disjoint<K> {
+    /// Creates a new, empty set of disjoint sets.
     pub fn new() -> Disjoint<K> {
         Disjoint {
             disjoint: HashMap::new(),
@@ -14,6 +16,10 @@ impl<K: Eq + Clone + std::hash::Hash> Disjoint<K> {
         }
     }
 
+    /// Returns an `Iterator` yielding, for each disjoint set, a representative and the size of the
+    /// disjoint set, respectively.
+    /// There are no guarantees about which element will be the chosen representative.
+    /// This instance of `Disjoint` must outlive all yielded `K` values.
     pub fn get_orbits(&self) -> impl Iterator<Item = (&K, u128)> {
         self.orbits
             .iter()
@@ -21,6 +27,10 @@ impl<K: Eq + Clone + std::hash::Hash> Disjoint<K> {
             .filter_map(|(k, e)| e.as_ref().right().map(|d| (k, *d)))
     }
 
+    /// Merge two disjoint sets; specifically, if `one` is in $S$ and `two` is in $T$, then
+    /// $S$ and $T$ are replaced by $S \cup T$.
+    /// If either `one` or `two` were not previously in this set of disjoint sets, then they are
+    /// considered to be singletons, and then merged.
     pub fn associate(&mut self, one: K, two: K) {
         match (self.root(&one), self.root(&two)) {
             (None, None) => {
