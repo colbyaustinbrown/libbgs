@@ -1,3 +1,5 @@
+//! Various number theory utility methods used throughout the libbgs crate.
+
 fn gcd(mut a: u128, mut b: u128) -> u128 {
     let mut t;
     while b != 0 {
@@ -8,6 +10,7 @@ fn gcd(mut a: u128, mut b: u128) -> u128 {
     a
 }
 
+/// Returns `x` to the power of `n`, modulo `m`.
 pub fn intpow(mut x: u128, mut n: u128, m: u128) -> u128 {
     if n == 0 {
         return 1;
@@ -35,6 +38,9 @@ pub fn intpow(mut x: u128, mut n: u128, m: u128) -> u128 {
     }
 }
 
+/// Returns a pseudo-random integer modulo `q`, unique for every `i` between `0` and `q`.
+/// This acts suitably well as a random number generator for several modular arithmetic operations,
+/// including randomly searching for quadratic (non) residues.
 pub fn standard_affine_shift(q: u128, i: u128) -> u128 {
     let mut m = 4 * q / 5;
     while gcd(m, q) != 1 {
@@ -44,6 +50,9 @@ pub fn standard_affine_shift(q: u128, i: u128) -> u128 {
     (m * i + a) % q
 }
 
+/// Returns the product of `a` and `b` modulo `m`.
+/// This function will panic if `m >= 2^127`.
+/// Otherwise, it is guarenteed that there will not be integer overflow.
 pub fn long_multiply(mut a: u128, mut b: u128, m: u128) -> u128 {
     a %= m;
     b %= m;
@@ -74,10 +83,15 @@ pub fn long_multiply(mut a: u128, mut b: u128, m: u128) -> u128 {
     res
 }
 
+/// Returns the Legendre symbol of `a` modulo `p`, i.e.,
+/// $$\left(\frac{a}{p}\right)_L = a^{\frac{p - 1}{2}} \mod p$$.
 pub fn legendre(a: u128, p: u128) -> u128 {
     intpow(a, (p - 1) / 2, p)
 }
 
+/// Returns a quadratic non-residue modulo `p`.
+/// That is, it returns an integer $a \in \mathbb{Z} / p\mathbb{Z}$ such that there is no $x$
+/// satisfying $x^2 = a \mod p$.
 pub fn find_nonresidue(p: u128) -> u128 {
     if p % 4 == 3 {
         p - 1
