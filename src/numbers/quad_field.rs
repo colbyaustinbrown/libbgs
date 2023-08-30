@@ -195,8 +195,8 @@ mod tests {
         let pplusone = Factorization::new(vec![(2, 1), (3, 2)]);
         let f289 = QuadField::<17>::make();
         let g = SylowDecomp::new(&f289, pplusone);
-        for i in 0..g.generators.len() {
-            let gen = &g.generators[i];
+        for i in 0..g.generators().len() {
+            let gen = &g.generators()[i];
             let d = g.factors().factor(i);
             test_is_generator_small(gen, d, &f289);
         }
@@ -219,8 +219,8 @@ mod tests {
         ]);
         let fp2 = QuadField::<BIG_P>::make();
         let g = SylowDecomp::new(&fp2, fp2_fact);
-        for i in 0..g.generators.len() {
-            let gen = &g.generators[i];
+        for i in 0..g.generators().len() {
+            let gen = &g.generators()[i];
             let d = g.factors()[i];
             test_is_generator_big(gen, d, &fp2);
         }

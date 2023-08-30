@@ -6,9 +6,9 @@ use crate::util::*;
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct SylowDecomp<'a, C: SylowDecomposable> {
-    pub parent: &'a C,
-    pub fact: Factorization,
-    pub generators: Vec<C::Elem>,
+    parent: &'a C,
+    fact: Factorization,
+    generators: Vec<C::Elem>,
 }
 
 #[derive(Eq, PartialEq)]
@@ -44,12 +44,16 @@ impl<'a, C: SylowDecomposable> SylowDecomp<'a, C> {
         }
     }
 
-    fn size(&self) -> u128 {
-        self.parent.size()
+    pub fn len(&self) -> usize {
+        self.generators.len()
     }
 
-    fn len(&self) -> usize {
-        self.generators.len()
+    pub fn parent(&self) -> &C {
+        self.parent
+    }
+
+    pub fn generators(&self) -> &[C::Elem] {
+        &self.generators
     }
 }
 

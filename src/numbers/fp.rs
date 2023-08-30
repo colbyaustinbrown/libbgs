@@ -278,9 +278,9 @@ mod tests {
     fn sylow_finds_generators() {
         let p = Factorization::new(vec![(2, 2), (7, 1)]);
         let g = SylowDecomp::new(&FpStar::<29> {}, p.clone());
-        for i in 0..g.generators.len() {
-            let gen = &g.generators[i];
-            let d = g.fact.factor(i);
+        for i in 0..g.generators().len() {
+            let gen = &g.generators()[i];
+            let d = g.factors().factor(i);
             test_is_generator_small::<FpStar<29>>(gen, d, &FpStar::<29> {});
         }
     }
@@ -297,8 +297,8 @@ mod tests {
             (215288719, 1),
         ]);
         let g = SylowDecomp::new(&FpStar::<BIG_P> {}, fact.clone());
-        for i in 0..g.generators.len() {
-            let gen = &g.generators[i];
+        for i in 0..g.generators().len() {
+            let gen = &g.generators()[i];
             let d = fact[i];
             test_is_generator_big::<FpStar<BIG_P>>(gen, d, &FpStar::<BIG_P> {});
         }
