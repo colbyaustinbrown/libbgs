@@ -199,6 +199,12 @@ impl<const P: u128> PartialEq<u128> for FpNum<P> {
     }
 }
 
+impl<const P: u128> std::fmt::Display for FpNum<P> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        self.0.fmt(f)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

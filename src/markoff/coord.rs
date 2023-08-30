@@ -1,18 +1,14 @@
 use either::*;
-use std::rc::Rc;
 
 use crate::numbers::*;
 use crate::util::*;
 
-#[derive(Debug)]
-pub struct Coord<const P: u128> {
-    v: u128,
-    chi: Either<QuadNum<P>, FpNum<P>>,
-}
+#[derive(PartialEq, Clone, Copy, Eq, Debug)]
+pub struct Coord<const P: u128>(FpNum<P>);
 
 impl<const P: u128> Coord<P> {
-    pub fn new(v: u128, fp: &QuadField<P>) -> Coord<P> {
-        let v3 = long_multiply(v, 3, P);
+    pub fn to_chi(&self, fp: &QuadField<P>) -> Either<QuadNum<P>, FpNum<P>> {
+        let v3 = long_multiply(self.0.0, 3, P);
         let disc = intpow(v3, 2, P);
         let disc = (disc + P - 4) % P;
         let chi = fp.int_sqrt_either(disc).map_either(
@@ -37,7 +33,7 @@ impl<const P: u128> Coord<P> {
                 x
             },
         );
-        Coord { v: v % P, chi }
+        chi
     }
 
     pub fn from_chi_fp<'a, 'b: 'a>(
@@ -49,11 +45,7 @@ impl<const P: u128> Coord<P> {
 
         // We use the non-normalized equation:
         // x^2 + y^2 + z^2 - xyz = 0
-        let v = chi + chi_inv;
-        Coord {
-            v: v.into(),
-            chi: Right(chi),
-        }
+        Coord(chi + chi_inv)
     }
 
     pub fn from_chi_quad<'a, 'b: 'a>(
@@ -65,29 +57,17 @@ impl<const P: u128> Coord<P> {
 
         // We use the non-normalized equation:
         // x^2 + y^2 + z^2 - xyz = 0
-        Coord {
-            v: (chi + chi_inv).0,
-            chi: Left(chi),
-        }
-    }
-
-    pub fn v(&self) -> u128 {
-        self.v
-    }
-
-    pub fn chi(&self) -> &Either<QuadNum<P>, FpNum<P>> {
-        &self.chi
+        Coord(FpNum::from((chi + chi_inv).0))
     }
 
     pub fn rot<'a>(
-        self: &'a Rc<Self>,
-        b: &'a Rc<Coord<P>>,
-        c: &'a Rc<Coord<P>>,
-        fp: &'a QuadField<P>,
-    ) -> impl Iterator<Item = (Rc<Coord<P>>, Rc<Coord<P>>)> + 'a {
-        std::iter::successors(Some((Rc::clone(b), Rc::clone(c))), move |(y, z)| {
-            let (b_, c_) = (Rc::clone(z), Rc::new(Coord::new(self.v() * z.v() + P - y.v(), fp)));
-            if &b_ == b && &c_ == c {
+        self,
+        b: Coord<P>,
+        c: Coord<P>,
+    ) -> impl Iterator<Item = (Coord<P>, Coord<P>)> {
+        std::iter::successors(Some((b, c)), move |(y, z)| {
+            let (b_, c_) = (*z, Coord::from(self.0 * z.0 + P.into() - y.0));
+            if b_ == b && c_ == c {
                 None
             } else {
                 Some((b_, c_))
@@ -101,16 +81,33 @@ impl<const P: u128> Coord<P> {
         minusonesize: &Factorization,
         plusonesize: &Factorization,
     ) -> Factorization {
-        self.chi().as_ref().either(
+        self.to_chi(fp).as_ref().either(
             |l| l.order(fp, plusonesize),
             |r| r.order(&FpStar::<P> {}, minusonesize),
         )
     }
 }
 
-impl<const P: u128> PartialEq for Coord<P> {
-    fn eq(&self, other: &Self) -> bool {
-        self.v == other.v
+impl<const P: u128> From<u128> for Coord<P> {
+    fn from(value: u128) -> Coord<P> {
+        Coord(FpNum::from(value))
     }
 }
-impl<const P: u128> Eq for Coord<P> {}
+
+impl<const P: u128> From<FpNum<P>> for Coord<P> {
+    fn from(value: FpNum<P>) -> Coord<P> {
+        Coord(value)
+    }
+}
+
+impl<const P: u128> From<Coord<P>> for u128 {
+    fn from(value: Coord<P>) -> u128 {
+        u128::from(value.0)
+    }
+}
+
+impl<const P: u128> std::fmt::Display for Coord<P> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        self.0.fmt(f)
+    }
+}

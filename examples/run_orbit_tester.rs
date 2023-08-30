@@ -64,7 +64,7 @@ fn main() {
     println!("Loading coordinates into the Orbit Tester.");
     for x in stream {
         count += 1;
-        tester = tester.add_target(x.v());
+        tester = tester.add_target(u128::from(x));
     }
     println!("Loaded {count} coordinates into the Orbit Tester.");
 

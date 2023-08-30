@@ -13,14 +13,12 @@ fn main() {
                 if (a*a + b*b + c*c + 3*a*b*c*P - 3*a*b*c) % P != 0 {
                     continue;
                 }
-                let x = MarkoffTriple::make(a, b, c, &fp2);
-                for m in x.rot(Pos::A, &fp2) {
+                for (y, z) in Coord::from(a).rot(Coord::from(b), Coord::from(c)) {
                     println!(
-                        "{} {} {} ({})",
-                        m.a.v(),
-                        m.b.v(),
-                        m.c.v(),
-                        m.ord(Pos::C, &fp2, &fp_facts, &fp2_facts)
+                        "{a} {} {} ({})",
+                        y,
+                        z,
+                        z.get_ord(&fp2, &fp_facts, &fp2_facts).value()
                     );
                 }
                 println!();
