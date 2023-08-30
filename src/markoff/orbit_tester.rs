@@ -8,11 +8,13 @@ use rayon::prelude::*;
 use crate::markoff::Disjoint;
 use crate::numbers::{FpNum, FpStar, GroupElem};
 
+/// Configures tests to be run on orbits of the Markoff graph modulo `P`.
 pub struct OrbitTester<'a, const P: u128> {
     f: &'a FpStar<P>,
     targets: HashSet<u128>,
 }
 
+/// The results of a successfully run `OrbitTester`.
 pub struct OrbitTesterResults {
     failures: u64,
     results: HashMap<u128, Disjoint<u128>>,
@@ -21,6 +23,9 @@ pub struct OrbitTesterResults {
 type Msg = (u128, u128, u128);
 
 impl<'a, const P: u128> OrbitTester<'a, P> {
+    /// Consume and run this `OrbitTester`, blocking until completion, and returning the results.
+    /// This method may spawn multiple worker threads, which are guarenteed to be joined before
+    /// `run` returns.
     pub fn run(self) -> OrbitTesterResults {
         let mut results = HashMap::with_capacity(self.targets.len());
         for x in &self.targets {
@@ -88,6 +93,7 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
         }
     }
 
+    /// Creates a new `OrbetTester` with default settings and no targets.
     pub fn new(f: &FpStar<P>) -> OrbitTester<P> {
         OrbitTester {
             f,
@@ -95,6 +101,7 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
         }
     }
 
+    /// Adds a target order to the list of orders to be tested.
     pub fn add_target(mut self, t: u128) -> OrbitTester<'a, P> {
         self.targets.insert(t);
         self
@@ -102,10 +109,15 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
 }
 
 impl OrbitTesterResults {
+    /// The results of the test, as an iterator yielding each coordinate of a target order, along
+    /// with the partitioning of the target orders into disjoint sets, which are subsets of the
+    /// orbits under the fixed first coordinate.
     pub fn results(&self) -> impl Iterator<Item = (&u128, &Disjoint<u128>)> {
         self.results.iter()
     }
 
+    /// Deprecated.
+    #[deprecated]
     pub fn failures(&self) -> u64 {
         self.failures
     }
