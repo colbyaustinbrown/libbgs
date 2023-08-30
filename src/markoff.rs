@@ -1,3 +1,4 @@
+//! Markoff numbers and structures for manipulating, organizing, and investigating them.
 mod coord;
 mod disjoint;
 mod orbit_tester;
