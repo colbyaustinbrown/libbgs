@@ -5,7 +5,7 @@ const P: u128 = 13;
 
 fn main() {
     let fp_facts = Factorization::new(vec![(2, 2), (3, 1)]);
-    let fp2 = QuadField::<P>::make();
+    let fp2 = QuadField::<P> {};
     let fp2_facts = Factorization::new(vec![(2, 1), (7, 1)]);
     for a in 0..P {
         for b in 0..P {

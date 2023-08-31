@@ -26,7 +26,7 @@ fn main() {
         (1453, 1),
         (8689, 1),
     ]);
-    let fp2 = QuadField::<BIG_P>::make();
+    let fp2 = QuadField::<BIG_P> {};
     let fp_decomp = SylowDecomp::new(&FpStar::<BIG_P> {}, fp.clone());
     let fp2_decomp = SylowDecomp::new(&fp2, fp2_fact.clone());
 

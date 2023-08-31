@@ -6,22 +6,12 @@ use crate::numbers::*;
 use crate::util::*;
 
 #[derive(PartialEq, Eq, Debug)]
-pub struct QuadField<const P: u128> {
-    r: u128,
-}
+pub struct QuadField<const P: u128> {}
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub struct QuadNum<const P: u128>(pub u128, pub u128);
 
 impl<const P: u128> QuadField<P> {
-    pub fn new(r: u128) -> QuadField<P> {
-        QuadField { r }
-    }
-
-    pub fn make() -> QuadField<P> {
-        QuadField::new(find_nonresidue(P))
-    }
-
     pub fn int_sqrt_either(&self, x: u128) -> Either<QuadNum<P>, FpNum<P>> {
         let mut x = FpNum::from(x);
         if let Some(y) = x.int_sqrt() {
@@ -29,7 +19,7 @@ impl<const P: u128> QuadField<P> {
         }
 
         let fp = FpStar::<P> {};
-        let r = FpNum::from(self.r).inverse(&fp);
+        let r = FpNum::from(Self::R).inverse(&fp);
         x = x.multiply(&r, &fp);
         let a1 = x.int_sqrt().unwrap();
         Left(QuadNum(0, a1.into()))
@@ -44,9 +34,7 @@ impl<const P: u128> QuadField<P> {
         QuadNum::from((i % P, i / P))
     }
 
-    pub fn r(&self) -> u128 {
-        self.r
-    }
+    pub const R: u128 = FpStar::<P>::find_nonresidue(P);
 }
 
 impl<const P: u128> Group for QuadField<P> {
@@ -89,19 +77,19 @@ impl<const P: u128> GroupElem for QuadNum<P> {
         self.0 == 1 && self.1 == 0
     }
 
-    fn multiply(&self, other: &QuadNum<P>, f: &QuadField<P>) -> QuadNum<P> {
+    fn multiply(&self, other: &QuadNum<P>, _: &QuadField<P>) -> QuadNum<P> {
         QuadNum(
             (long_multiply(self.0, other.0, P)
-                + long_multiply(self.1, long_multiply(other.1, f.r(), P), P))
+                + long_multiply(self.1, long_multiply(other.1, QuadField::<P>::R, P), P))
                 % P,
             (long_multiply(self.1, other.0, P) + long_multiply(self.0, other.1, P)) % P,
         )
     }
 
-    fn square(&self, f: &QuadField<P>) -> QuadNum<P> {
+    fn square(&self, _: &QuadField<P>) -> QuadNum<P> {
         QuadNum(
             (long_multiply(self.0, self.0, P)
-                + long_multiply(self.1, long_multiply(self.1, f.r(), P), P))
+                + long_multiply(self.1, long_multiply(self.1, QuadField::<P>::R, P), P))
                 % P,
             (long_multiply(self.1, self.0, P) + long_multiply(self.0, self.1, P)) % P,
         )
@@ -143,27 +131,26 @@ mod tests {
 
     #[test]
     fn one_is_one() {
-        let f49 = QuadField::<7>::make();
+        let f49 = QuadField::<7> {};
         let one = f49.one();
         assert!(one.is_one(&f49));
     }
 
     #[test]
     fn calculates_r_as_nonresidue() {
-        let f49 = QuadField::<7>::make();
         for i in 2..7 {
-            assert_ne!((i * i) % 7, f49.r());
+            assert_ne!((i * i) % 7, QuadField::<7>::R);
         }
     }
 
     #[test]
     fn calculates_r_big() {
-        QuadField::<BIG_P>::make();
+        QuadField::<BIG_P> {};
     }
 
     #[test]
     fn powers_up() {
-        let f49 = QuadField::<7>::make();
+        let f49 = QuadField::<7> {};
         let mut x = QuadNum::from((3, 4));
         x = x.pow(48, &f49);
         assert!(x.is_one(&f49));
@@ -171,7 +158,7 @@ mod tests {
 
     #[test]
     fn powers_up_big() {
-        let fp2 = QuadField::<BIG_P>::make();
+        let fp2 = QuadField::<BIG_P> {};
         let mut x = QuadNum(3, 5);
         x = x.pow(BIG_P - 1, &fp2);
         x = x.pow(BIG_P + 1, &fp2);
@@ -181,7 +168,7 @@ mod tests {
 
     #[test]
     fn finds_sqrt() {
-        let fp2 = QuadField::<BIG_P>::make();
+        let fp2 = QuadField::<BIG_P> {};
         for i in 3..1003 {
             let mut x = fp2.int_sqrt(i);
             assert_ne!(x, i);
@@ -193,7 +180,7 @@ mod tests {
     #[test]
     fn sylow_finds_generators() {
         let pplusone = Factorization::new(vec![(2, 1), (3, 2)]);
-        let f289 = QuadField::<17>::make();
+        let f289 = QuadField::<17> {};
         let g = SylowDecomp::new(&f289, pplusone);
         for i in 0..g.generators().len() {
             let gen = &g.generators()[i];
@@ -217,7 +204,7 @@ mod tests {
             (1453, 1),
             (8689, 1),
         ]);
-        let fp2 = QuadField::<BIG_P>::make();
+        let fp2 = QuadField::<BIG_P> {};
         let g = SylowDecomp::new(&fp2, fp2_fact);
         for i in 0..g.generators().len() {
             let gen = &g.generators()[i];

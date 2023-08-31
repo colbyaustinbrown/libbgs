@@ -9,33 +9,73 @@ pub struct FpStar<const P: u128> {}
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FpNum<const P: u128>(pub u128);
 
+impl<const P: u128> FpStar<P> {
+    pub const fn find_nonresidue(p: u128) -> u128 {
+        if p % 4 == 3 {
+            p - 1
+        } else if p % 8 == 3 || p % 8 == 5 {
+            2
+        } else {
+            let mut res = 0;
+            let mut i = 0;
+            while i < p {
+                let a = standard_affine_shift(p, i);
+                if intpow(a, (p - 1) / 2, p) == p - 1 {
+                    res = a;
+                    break;
+                }
+                i += 1;
+            }
+            res
+        }
+    }
+}
+
 impl<const P: u128> FpNum<P> {
     pub fn int_sqrt(&self) -> Option<FpNum<P>> {
+        let fp = &FpStar::<P> {};
+
         if self.0 == 0 {
             return Some(FpNum::from(0));
         }
 
-        // Cipolla's algorithm
-        let l = legendre(self.0, P);
-        if l == 0 {
-            return Some(FpNum::from(0));
-        } else if l == P - 1 {
-            return None;
+        // Tonelli algorithm
+        let mut s = 0;
+        let mut q = P - 1;
+        while q % 2 == 0 {
+            s += 1;
+            q /= 2;
         }
 
         let mut i = 1;
-        let (a, r) = loop {
-            let a = standard_affine_shift(P, i);
-            let r = (intpow(a, 2, P) + P - self.0) % P;
-            if legendre(r, P) == (P - 1) {
-                break (a, r);
+        let z = loop {
+            let z = standard_affine_shift(P, i);
+            if legendre(z, P) == (P - 1) {
+                break z;
             }
             i += 1;
         };
+        let mut c = FpNum::from(z).pow(q, fp);
+        let mut r = self.pow((q + 1) / 2, fp);
+        let mut t = self.pow(q, fp);
+        let mut m = s;
 
-        let fp2 = QuadField::<P>::new(r);
-        let x = QuadNum::from((a, 1)).pow((P + 1) / 2, &fp2);
-        Some(FpNum::from(x.0))
+        loop {
+            if t == 1 { return Some(r); }
+            let mut temp = t;
+            let mut i = 0;
+            while temp != 1 {
+                temp = temp.square(fp);
+                i += 1;
+            }
+            if i == m { return None; }
+            let b = c.pow(1 << (m - i - 1), fp);
+
+            r *= b;
+            t *= b.square(fp);
+            c = b.square(fp);
+            m = i;
+        }
     }
 }
 
