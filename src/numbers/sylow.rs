@@ -18,7 +18,9 @@ pub struct SylowElem<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> {
     _phantom: PhantomData<S>,
 }
 
-pub trait SylowDecomposable<S, const L: usize>: Group + Factored<S, L> {
+pub trait SylowDecomposable<S, const L: usize>: Factored<S, L> + Eq {
+    type Elem: GroupElem;
+
     fn find_sylow_generator(&self, i: usize) -> Self::Elem;
 
     fn is_sylow_generator(&self, candidate: &Self::Elem, d: (u128, u128)) -> Option<Self::Elem> {
@@ -57,15 +59,13 @@ impl<'a, const L: usize, S: Eq, C: SylowDecomposable<S, L>> SylowDecomp<'a, S, L
     }
 }
 
-impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> Group for SylowDecomp<'a, S, L, C> {
-    type Elem = SylowElem<'a, S, L, C>;
-}
-
 impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> Factored<S, L> for SylowDecomp<'a, S, L, C> {
     const FACTORS: Factorization<L> = <C as Factored<S, L>>::FACTORS;
 }
 
 impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowDecomposable<S, L> for SylowDecomp<'a, S, L, C> {
+    type Elem = SylowElem<'a, S, L, C>;
+
     fn find_sylow_generator(&self, i: usize) -> Self::Elem {
         let mut coords = vec![0; L];
         coords[i] = 1;
@@ -117,13 +117,11 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowElem<'a, S, L, 
     }
 }
 
-impl<'a, S, const L: usize, C> GroupElem for SylowElem<'a, S, L, C>
+impl<'a, S, const L: usize, C: Eq> GroupElem for SylowElem<'a, S, L, C>
 where
     S: Eq,
     C: SylowDecomposable<S, L> + 'a,
 {
-    type Group = SylowDecomp<'a, S, L, C>;
-
     fn is_one(&self) -> bool {
         self.coords.iter().all(|x| *x == 0)
     }

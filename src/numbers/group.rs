@@ -2,13 +2,7 @@ use std::fmt;
 
 use crate::numbers::Factorization;
 
-pub trait Group: Eq {
-    type Elem: GroupElem<Group = Self>;
-}
-
 pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
-    type Group: Group<Elem = Self>;
-
     fn size() -> u128;
     fn one() -> Self;
 

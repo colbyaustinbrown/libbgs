@@ -77,14 +77,11 @@ impl<const P: u128> FpNum<P> {
     }
 }
 
-impl<const P: u128> Group for FpStar<P> {
-    type Elem = FpNum<P>;
-}
-
 impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for FpStar<P> 
 where
     FpStar<P>: Factored<S, L>
 {
+    type Elem = FpNum<P>;
     fn find_sylow_generator(&self, i: usize) -> FpNum<P> {
         match <Self as Factored<S, L>>::FACTORS[i] {
             (2, 1) => FpNum::from(FpNum::<P>::size()),
@@ -97,8 +94,6 @@ where
 }
 
 impl<const P: u128> GroupElem for FpNum<P> {
-    type Group = FpStar<P>;
-
     fn is_one(&self) -> bool {
         self.0 == 1
     }
