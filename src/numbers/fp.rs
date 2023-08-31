@@ -3,33 +3,8 @@ use std::ops::*;
 use crate::numbers::*;
 use crate::util::*;
 
-#[derive(PartialEq, Clone, Copy, Debug, Eq)]
-pub struct FpStar<const P: u128> {}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FpNum<const P: u128>(pub u128);
-
-impl<const P: u128> FpStar<P> {
-    pub const fn find_nonresidue(p: u128) -> u128 {
-        if p % 4 == 3 {
-            p - 1
-        } else if p % 8 == 3 || p % 8 == 5 {
-            2
-        } else {
-            let mut res = 0;
-            let mut i = 0;
-            while i < p {
-                let a = standard_affine_shift(p, i);
-                if intpow(a, (p - 1) / 2, p) == p - 1 {
-                    res = a;
-                    break;
-                }
-                i += 1;
-            }
-            res
-        }
-    }
-}
 
 impl<const P: u128> FpNum<P> {
     pub fn int_sqrt(&self) -> Option<FpNum<P>> {
@@ -73,6 +48,26 @@ impl<const P: u128> FpNum<P> {
             t *= b.square();
             c = b.square();
             m = i;
+        }
+    }
+
+    pub const fn find_nonresidue(p: u128) -> u128 {
+        if p % 4 == 3 {
+            p - 1
+        } else if p % 8 == 3 || p % 8 == 5 {
+            2
+        } else {
+            let mut res = 0;
+            let mut i = 0;
+            while i < p {
+                let a = standard_affine_shift(p, i);
+                if intpow(a, (p - 1) / 2, p) == p - 1 {
+                    res = a;
+                    break;
+                }
+                i += 1;
+            }
+            res
         }
     }
 }

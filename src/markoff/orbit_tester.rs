@@ -6,10 +6,9 @@ use itertools::*;
 use rayon::prelude::*;
 
 use crate::markoff::Disjoint;
-use crate::numbers::{FpNum, FpStar, GroupElem};
+use crate::numbers::{FpNum, GroupElem};
 
-pub struct OrbitTester<'a, const P: u128> {
-    f: &'a FpStar<P>,
+pub struct OrbitTester<const P: u128> {
     targets: HashSet<u128>,
 }
 
@@ -20,7 +19,7 @@ pub struct OrbitTesterResults {
 
 type Msg = (u128, u128, u128);
 
-impl<'a, const P: u128> OrbitTester<'a, P> {
+impl<const P: u128> OrbitTester<P> {
     pub fn run(self) -> OrbitTesterResults {
         let mut results = HashMap::with_capacity(self.targets.len());
         for x in &self.targets {
@@ -88,14 +87,13 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
         }
     }
 
-    pub fn new(f: &FpStar<P>) -> OrbitTester<P> {
+    pub fn new() -> OrbitTester<P> {
         OrbitTester {
-            f,
             targets: HashSet::new(),
         }
     }
 
-    pub fn add_target(mut self, t: u128) -> OrbitTester<'a, P> {
+    pub fn add_target(mut self, t: u128) -> OrbitTester<P> {
         self.targets.insert(t);
         self
     }

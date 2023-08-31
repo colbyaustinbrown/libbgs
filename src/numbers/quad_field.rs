@@ -29,7 +29,7 @@ impl<const P: u128> QuadField<P> {
             .left_or_else(|n| QuadNum::from((n.into(), 0)))
     }
 
-    pub const R: u128 = FpStar::<P>::find_nonresidue(P);
+    pub const R: u128 = FpNum::<P>::find_nonresidue(P);
 }
 
 impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for QuadNum<P> 
