@@ -4,20 +4,20 @@ use crate::numbers::Factorization;
 
 pub trait Group: Eq {
     type Elem: GroupElem<Group = Self>;
-
-    fn size() -> u128;
-    fn one() -> Self::Elem;
 }
 
 pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
     type Group: Group<Elem = Self>;
+
+    fn size() -> u128;
+    fn one() -> Self;
 
     fn is_one(&self) -> bool;
     fn multiply(&self, other: &Self) -> Self;
     fn square(&self) -> Self;
 
     fn pow(&self, mut n: u128) -> Self {
-        let mut y = Self::Group::one();
+        let mut y = Self::one();
         let mut res = self.clone();
         while n > 1 {
             // println!("{n} {:?} {:?}", &self, y);
@@ -32,7 +32,7 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
 
     fn inverse(&self) -> Self {
         let res = self.clone();
-        res.pow(Self::Group::size() - 1)
+        res.pow(Self::size() - 1)
     }
 
     fn order<const L: usize>(&self, parent_size: &Factorization<L>) -> Factorization<L> {

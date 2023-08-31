@@ -79,7 +79,7 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> Sy
         let mut stack = Vec::new();
 
         if self.has_trivial || (self.mode & flags::LEQ != 0 && self.mode & flags::NO_PARABOLIC == 0) {
-            stack.push(StackElem::Res(SylowDecomp::one()));
+            stack.push(StackElem::Res(SylowElem::one()));
         }
 
         for i in 0..L {
@@ -94,7 +94,7 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> Sy
                     }
                 }
 
-                let mut coords = SylowDecomp::one();
+                let mut coords = SylowElem::one();
                 let mut rs = vec![0; L];
                 let mut step = intpow(p, d - 1, 0);
 

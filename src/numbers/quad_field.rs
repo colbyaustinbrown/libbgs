@@ -38,14 +38,6 @@ impl<const P: u128> QuadField<P> {
 
 impl<const P: u128> Group for QuadField<P> {
     type Elem = QuadNum<P>;
-
-    fn size() -> u128 {
-        P + 1
-    }
-
-    fn one() -> QuadNum<P> {
-        QuadNum(1, 0)
-    }
 }
 
 impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for QuadField<P> 
@@ -95,6 +87,14 @@ impl<const P: u128> GroupElem for QuadNum<P> {
                 % P,
             (long_multiply(self.1, self.0, P) + long_multiply(self.0, self.1, P)) % P,
         )
+    }
+
+    fn size() -> u128 {
+        P + 1
+    }
+
+    fn one() -> QuadNum<P> {
+        QuadNum(1, 0)
     }
 }
 

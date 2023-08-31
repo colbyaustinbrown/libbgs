@@ -79,14 +79,6 @@ impl<const P: u128> FpNum<P> {
 
 impl<const P: u128> Group for FpStar<P> {
     type Elem = FpNum<P>;
-
-    fn size() -> u128 {
-        P - 1
-    }
-
-    fn one() -> FpNum<P> {
-        FpNum::from(1)
-    }
 }
 
 impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for FpStar<P> 
@@ -95,8 +87,8 @@ where
 {
     fn find_sylow_generator(&self, i: usize) -> FpNum<P> {
         match <Self as Factored<S, L>>::FACTORS[i] {
-            (2, 1) => FpNum::from(Self::size()),
-            (p, t) => (1..Self::size())
+            (2, 1) => FpNum::from(FpNum::<P>::size()),
+            (p, t) => (1..FpNum::<P>::size())
                 .map(|j| FpNum::from(standard_affine_shift(P, j)))
                 .find_map(|c| self.is_sylow_generator(&c, (p, t)))
                 .unwrap(),
@@ -117,6 +109,14 @@ impl<const P: u128> GroupElem for FpNum<P> {
 
     fn square(&self) -> FpNum<P> {
         *self * *self
+    }
+
+    fn size() -> u128 {
+        P - 1
+    }
+
+    fn one() -> FpNum<P> {
+        FpNum::from(1)
     }
 }
 

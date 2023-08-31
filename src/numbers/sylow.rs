@@ -22,7 +22,7 @@ pub trait SylowDecomposable<S, const L: usize>: Group + Factored<S, L> {
     fn find_sylow_generator(&self, i: usize) -> Self::Elem;
 
     fn is_sylow_generator(&self, candidate: &Self::Elem, d: (u128, u128)) -> Option<Self::Elem> {
-        let pow = Self::size() / intpow(d.0, d.1, 0);
+        let pow = Self::Elem::size() / intpow(d.0, d.1, 0);
         let res = candidate.pow(pow);
         if res.pow(intpow(d.0, d.1 - 1, 0)).is_one() {
             None
@@ -59,18 +59,6 @@ impl<'a, const L: usize, S: Eq, C: SylowDecomposable<S, L>> SylowDecomp<'a, S, L
 
 impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> Group for SylowDecomp<'a, S, L, C> {
     type Elem = SylowElem<'a, S, L, C>;
-
-    fn one() -> SylowElem<'a, S, L, C> {
-        SylowElem {
-            _group: PhantomData,
-            coords: vec![0; L],
-            _phantom: PhantomData,
-        }
-    }
-
-    fn size() -> u128 {
-        C::size()
-    }
 }
 
 impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> Factored<S, L> for SylowDecomp<'a, S, L, C> {
@@ -101,7 +89,7 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowElem<'a, S, L, 
     pub fn to_product(&self, g: &SylowDecomp<S, L, C>) -> C::Elem {
         (0..g.len())
             .filter(|i| self.coords[*i] > 0)
-            .fold(C::one(), |x, i| {
+            .fold(C::Elem::one(), |x, i| {
                 let y = g.generators[i].pow(self.coords[i]);
                 x.multiply(&y)
             })
@@ -178,6 +166,18 @@ where
             _group: PhantomData,
             _phantom: PhantomData,
         }
+    }
+
+    fn one() -> SylowElem<'a, S, L, C> {
+        SylowElem {
+            _group: PhantomData,
+            coords: vec![0; L],
+            _phantom: PhantomData,
+        }
+    }
+
+    fn size() -> u128 {
+        C::Elem::size()
     }
 }
 
