@@ -7,11 +7,11 @@ use crate::util::*;
 pub struct Coord<const P: u128>(FpNum<P>);
 
 impl<const P: u128> Coord<P> {
-    pub fn to_chi(&self, fp: &QuadField<P>) -> Either<QuadNum<P>, FpNum<P>> {
+    pub fn to_chi(&self) -> Either<QuadNum<P>, FpNum<P>> {
         let v3 = long_multiply(self.0.0, 3, P);
         let disc = intpow(v3, 2, P);
         let disc = (disc + P - 4) % P;
-        let chi = fp.int_sqrt_either(disc).map_either(
+        let chi = QuadNum::int_sqrt_either(disc).map_either(
             |mut x| {
                 x.0 += v3;
                 if x.0 % 2 == 1 {
@@ -85,11 +85,10 @@ impl<const P: u128> Coord<P> {
 
     pub fn get_ord<const L: usize>(
         &self,
-        fp: &QuadField<P>,
         minusonesize: &Factorization<L>,
         plusonesize: &Factorization<L>,
     ) -> Factorization<L> {
-        self.to_chi(fp).as_ref().either(
+        self.to_chi().as_ref().either(
             |l| l.order(plusonesize),
             |r| r.order(minusonesize),
         )

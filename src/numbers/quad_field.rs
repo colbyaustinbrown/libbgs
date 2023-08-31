@@ -5,32 +5,8 @@ use either::*;
 use crate::numbers::*;
 use crate::util::*;
 
-#[derive(PartialEq, Eq, Debug)]
-pub struct QuadField<const P: u128> {}
-
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub struct QuadNum<const P: u128>(pub u128, pub u128);
-
-impl<const P: u128> QuadField<P> {
-    pub fn int_sqrt_either(&self, x: u128) -> Either<QuadNum<P>, FpNum<P>> {
-        let mut x = FpNum::from(x);
-        if let Some(y) = x.int_sqrt() {
-            return Right(y);
-        }
-
-        let r = FpNum::from(Self::R).inverse();
-        x = x.multiply(&r);
-        let a1 = x.int_sqrt().unwrap();
-        Left(QuadNum(0, a1.into()))
-    }
-
-    pub fn int_sqrt(&self, x: u128) -> QuadNum<P> {
-        self.int_sqrt_either(x)
-            .left_or_else(|n| QuadNum::from((n.into(), 0)))
-    }
-
-    pub const R: u128 = FpNum::<P>::find_nonresidue(P);
-}
 
 impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for QuadNum<P> 
 where
@@ -59,6 +35,25 @@ impl<const P: u128> QuadNum<P> {
     pub fn steinitz(&self, i: u128) -> QuadNum<P> {
         QuadNum::from((i % P, i / P))
     }
+
+    pub fn int_sqrt_either(x: u128) -> Either<QuadNum<P>, FpNum<P>> {
+        let mut x = FpNum::from(x);
+        if let Some(y) = x.int_sqrt() {
+            return Right(y);
+        }
+
+        let r = FpNum::from(Self::R).inverse();
+        x = x.multiply(&r);
+        let a1 = x.int_sqrt().unwrap();
+        Left(QuadNum(0, a1.into()))
+    }
+
+    pub fn int_sqrt(x: u128) -> QuadNum<P> {
+        Self::int_sqrt_either(x)
+            .left_or_else(|n| QuadNum::from((n.into(), 0)))
+    }
+
+    pub const R: u128 = FpNum::<P>::find_nonresidue(P);
 }
 
 impl<const P: u128> GroupElem for QuadNum<P> {
@@ -69,7 +64,7 @@ impl<const P: u128> GroupElem for QuadNum<P> {
     fn multiply(&self, other: &QuadNum<P>) -> QuadNum<P> {
         QuadNum(
             (long_multiply(self.0, other.0, P)
-                + long_multiply(self.1, long_multiply(other.1, QuadField::<P>::R, P), P))
+                + long_multiply(self.1, long_multiply(other.1, QuadNum::<P>::R, P), P))
                 % P,
             (long_multiply(self.1, other.0, P) + long_multiply(self.0, other.1, P)) % P,
         )
@@ -78,7 +73,7 @@ impl<const P: u128> GroupElem for QuadNum<P> {
     fn square(&self) -> QuadNum<P> {
         QuadNum(
             (long_multiply(self.0, self.0, P)
-                + long_multiply(self.1, long_multiply(self.1, QuadField::<P>::R, P), P))
+                + long_multiply(self.1, long_multiply(self.1, QuadNum::<P>::R, P), P))
                 % P,
             (long_multiply(self.1, self.0, P) + long_multiply(self.0, self.1, P)) % P,
         )
