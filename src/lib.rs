@@ -9,7 +9,7 @@ mod tests {
 
     #[test]
     fn fact_works() {
-        let fact = Factorization::new(vec![(2, 3)]);
+        let fact = Factorization::new([(2, 3)]);
         assert_eq!(fact.value(), 8);
     }
 }

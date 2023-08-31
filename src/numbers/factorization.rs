@@ -4,22 +4,25 @@ use crate::numbers::FactorStream;
 use crate::util::intpow;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Factorization {
+pub struct Factorization<const L: usize> {
     value: u128,
-    prime_powers: Vec<(u128, u128)>,
+    prime_powers: [(u128, u128); L],
 }
 
-pub trait Factored {
-    fn factors(&self) -> &Factorization;
+pub trait Factored<S, const L: usize> {
+    const FACTORS: Factorization<L>;
 }
 
-impl Factorization {
-    pub fn new(prime_powers: Vec<(u128, u128)>) -> Factorization {
+impl<const L: usize> Factorization<L> {
+    pub const fn new(prime_powers: [(u128, u128); L]) -> Factorization<L> {
+        let mut value = 1;
+        let mut i = 0;
+        while i < L {
+            value *= intpow(prime_powers[i].0, prime_powers[i].1, 0);
+            i += 1;
+        }
         Factorization {
-            value: prime_powers
-                .iter()
-                .map(|(p, r)| intpow(*p, *r, 0))
-                .product(),
+            value,
             prime_powers,
         }
     }
@@ -28,16 +31,16 @@ impl Factorization {
         FactorStream::new(&self.prime_powers, l)
     }
 
-    pub fn len(&self) -> usize {
-        self.prime_powers.len()
-    }
-
     pub fn is_empty(&self) -> bool {
         self.prime_powers.is_empty()
     }
 
     pub fn factor(&self, i: usize) -> u128 {
         intpow(self.prime_powers[i].0, self.prime_powers[i].1, 0)
+    }
+
+    pub fn prime_powers(&self) -> &[(u128, u128); L] {
+        &self.prime_powers
     }
 
     pub fn value(&self) -> u128 {
@@ -49,7 +52,7 @@ impl Factorization {
     }
 }
 
-impl Index<usize> for Factorization {
+impl<const L: usize> Index<usize> for Factorization<L> {
     type Output = (u128, u128);
 
     fn index(&self, index: usize) -> &(u128, u128) {

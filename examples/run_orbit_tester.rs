@@ -3,8 +3,11 @@ use libbgs::numbers::*;
 
 const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
-fn main() {
-    let fp = Factorization::new(vec![
+#[derive(PartialEq, Eq)]
+struct Phantom {}
+
+impl Factored<Phantom, 7> for FpStar<BIG_P>{
+    const FACTORS: Factorization<7> = Factorization::new([
         (2, 1),
         (7, 1),
         (13, 1),
@@ -13,7 +16,35 @@ fn main() {
         (705737, 1),
         (215288719, 1),
     ]);
-    let fp2_fact = Factorization::new(vec![
+}
+
+impl Factored<Phantom, 11> for QuadField<BIG_P> {
+    const FACTORS: Factorization<11> = Factorization::new([
+        (2, 4),
+        (3, 1),
+        (5, 2),
+        (11, 2),
+        (17, 1),
+        (19, 1),
+        (23, 1),
+        (97, 1),
+        (757, 1),
+        (1453, 1),
+        (8689, 1),
+    ]);
+}
+
+fn main() {
+    let fp = Factorization::new([
+        (2, 1),
+        (7, 1),
+        (13, 1),
+        (29, 2),
+        (43, 1),
+        (705737, 1),
+        (215288719, 1),
+    ]);
+    let fp2_fact = Factorization::new([
         (2, 4),
         (3, 1),
         (5, 2),
@@ -27,8 +58,8 @@ fn main() {
         (8689, 1),
     ]);
     let fp2 = QuadField::<BIG_P> {};
-    let fp_decomp = SylowDecomp::new(&FpStar::<BIG_P> {}, fp.clone());
-    let fp2_decomp = SylowDecomp::new(&fp2, fp2_fact.clone());
+    let fp_decomp = SylowDecomp::new(&FpStar::<BIG_P> {});
+    let fp2_decomp = SylowDecomp::new(&fp2);
 
     const LIMIT: u128 = 100;
 

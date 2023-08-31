@@ -36,11 +36,15 @@ impl<const P: u128> Coord<P> {
         chi
     }
 
-    pub fn from_chi_fp<'a, 'b: 'a>(
-        chi: &SylowElem<'a, FpStar<P>>,
-        decomp: &SylowDecomp<'b, FpStar<P>>,
-    ) -> Coord<P> {
-        let chi_inv = chi.inverse(decomp).to_product(decomp);
+    pub fn from_chi_fp<'a, 'b: 'a, S, const L: usize>(
+        chi: &SylowElem<'a, S, L, FpStar<P>>,
+        decomp: &SylowDecomp<'b, S, L, FpStar<P>>,
+    ) -> Coord<P> 
+    where
+        S: Eq,
+        FpStar<P>: Factored<S, L>
+    {
+        let chi_inv = chi.inverse().to_product(decomp);
         let chi = chi.to_product(decomp);
 
         // We use the non-normalized equation:
@@ -48,11 +52,15 @@ impl<const P: u128> Coord<P> {
         Coord(chi + chi_inv)
     }
 
-    pub fn from_chi_quad<'a, 'b: 'a>(
-        chi: &SylowElem<'a, QuadField<P>>,
-        decomp: &SylowDecomp<'b, QuadField<P>>,
-    ) -> Coord<P> {
-        let chi_inv = chi.inverse(decomp).to_product(decomp);
+    pub fn from_chi_quad<'a, 'b: 'a, S, const L: usize>(
+        chi: &SylowElem<'a, S, L, QuadField<P>>,
+        decomp: &SylowDecomp<'b, S, L, QuadField<P>>,
+    ) -> Coord<P> 
+    where
+        S: Eq,
+        QuadField<P>: Factored<S, L>
+    {
+        let chi_inv = chi.inverse().to_product(decomp);
         let chi = chi.to_product(decomp);
 
         // We use the non-normalized equation:
@@ -75,15 +83,15 @@ impl<const P: u128> Coord<P> {
         })
     }
 
-    pub fn get_ord(
+    pub fn get_ord<const L: usize>(
         &self,
         fp: &QuadField<P>,
-        minusonesize: &Factorization,
-        plusonesize: &Factorization,
-    ) -> Factorization {
+        minusonesize: &Factorization<L>,
+        plusonesize: &Factorization<L>,
+    ) -> Factorization<L> {
         self.to_chi(fp).as_ref().either(
-            |l| l.order(fp, plusonesize),
-            |r| r.order(&FpStar::<P> {}, minusonesize),
+            |l| l.order(plusonesize),
+            |r| r.order(minusonesize),
         )
     }
 }
