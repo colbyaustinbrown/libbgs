@@ -37,12 +37,12 @@ impl<const P: u128> Coord<P> {
     }
 
     pub fn from_chi_fp<'a, 'b: 'a, S, const L: usize>(
-        chi: &SylowElem<'a, S, L, FpStar<P>>,
-        decomp: &SylowDecomp<'b, S, L, FpStar<P>>,
+        chi: &SylowElem<'a, S, L, FpNum<P>>,
+        decomp: &SylowDecomp<'b, S, L, FpNum<P>>,
     ) -> Coord<P> 
     where
         S: Eq,
-        FpStar<P>: Factored<S, L>
+        FpNum<P>: Factored<S, L>
     {
         let chi_inv = chi.inverse().to_product(decomp);
         let chi = chi.to_product(decomp);
@@ -53,12 +53,12 @@ impl<const P: u128> Coord<P> {
     }
 
     pub fn from_chi_quad<'a, 'b: 'a, S, const L: usize>(
-        chi: &SylowElem<'a, S, L, QuadField<P>>,
-        decomp: &SylowDecomp<'b, S, L, QuadField<P>>,
+        chi: &SylowElem<'a, S, L, QuadNum<P>>,
+        decomp: &SylowDecomp<'b, S, L, QuadNum<P>>,
     ) -> Coord<P> 
     where
         S: Eq,
-        QuadField<P>: Factored<S, L>
+        QuadNum<P>: Factored<S, L>
     {
         let chi_inv = chi.inverse().to_product(decomp);
         let chi = chi.to_product(decomp);

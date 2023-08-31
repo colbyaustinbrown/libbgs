@@ -77,9 +77,9 @@ impl<const P: u128> FpNum<P> {
     }
 }
 
-impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for FpStar<P> 
+impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for FpNum<P> 
 where
-    FpStar<P>: Factored<S, L>
+    FpNum<P>: Factored<S, L>
 {
     type Elem = FpNum<P>;
     fn find_sylow_generator(&self, i: usize) -> FpNum<P> {

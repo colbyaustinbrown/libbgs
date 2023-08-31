@@ -59,11 +59,11 @@ impl<'a, const L: usize, S: Eq, C: SylowDecomposable<S, L>> SylowDecomp<'a, S, L
     }
 }
 
-impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> Factored<S, L> for SylowDecomp<'a, S, L, C> {
+impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> Factored<S, L> for SylowElem<'a, S, L, C> {
     const FACTORS: Factorization<L> = <C as Factored<S, L>>::FACTORS;
 }
 
-impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowDecomposable<S, L> for SylowDecomp<'a, S, L, C> {
+impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowDecomposable<S, L> for SylowElem<'a, S, L, C> {
     type Elem = SylowElem<'a, S, L, C>;
 
     fn find_sylow_generator(&self, i: usize) -> Self::Elem {

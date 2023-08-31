@@ -29,16 +29,12 @@ impl<const P: u128> QuadField<P> {
             .left_or_else(|n| QuadNum::from((n.into(), 0)))
     }
 
-    pub fn steinitz(&self, i: u128) -> QuadNum<P> {
-        QuadNum::from((i % P, i / P))
-    }
-
     pub const R: u128 = FpStar::<P>::find_nonresidue(P);
 }
 
-impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for QuadField<P> 
+impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for QuadNum<P> 
 where
-    QuadField<P>: Factored<S, L>
+    QuadNum<P>: Factored<S, L>
 {
     type Elem = QuadNum<P>;
     fn find_sylow_generator(&self, i: usize) -> QuadNum<P> {
@@ -58,6 +54,10 @@ where
 impl<const P: u128> QuadNum<P> {
     pub fn is_zero(&self) -> bool {
         self.0 == 0 && self.1 == 0
+    }
+
+    pub fn steinitz(&self, i: u128) -> QuadNum<P> {
+        QuadNum::from((i % P, i / P))
     }
 }
 
