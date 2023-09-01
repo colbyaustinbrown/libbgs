@@ -44,10 +44,6 @@ impl<const L: usize, S: Eq, C: SylowDecomposable<S, L>> SylowDecomp<S, L, C> {
         }
     }
 
-    pub fn len(&self) -> usize {
-        self.generators.len()
-    }
-
     pub fn generators(&self) -> &[C] {
         &self.generators
     }
@@ -79,7 +75,7 @@ impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowElem<S, L, C> {
     }
 
     pub fn to_product(&self, g: &SylowDecomp<S, L, C>) -> C {
-        (0..g.len())
+        (0..L)
             .filter(|i| self.coords[*i] > 0)
             .fold(C::one(), |x, i| {
                 let y = g.generators[i].pow(self.coords[i]);
@@ -87,11 +83,11 @@ impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowElem<S, L, C> {
             })
     }
 
-    pub fn order(&self, g: &SylowDecomp<S, L, C>) -> Factorization<L> {
+    pub fn order(&self) -> Factorization<L> {
         let mut prime_powers = [(0,0); L];
         for i in 0..L {
             let mut x = self.clone();
-            for j in 0..g.len() {
+            for j in 0..L {
                 if j == i {
                     continue;
                 }
