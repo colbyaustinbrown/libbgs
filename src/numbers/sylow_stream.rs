@@ -13,14 +13,14 @@ pub mod flags {
 pub struct SylowStreamBuilder<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> {
     decomp: &'a SylowDecomp<S, L, C>,
     mode: u8,
-    targets: Vec<Vec<u128>>,
+    targets: Vec<[u128; L]>,
     has_trivial: bool
 }
 
 pub struct SylowStream<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> {
     decomp: &'a SylowDecomp<S, L, C>,
     mode: u8,
-    targets: Vec<Vec<u128>>,
+    targets: Vec<[u128; L]>,
     stack: Vec<StackElem<S, L, C>>,
 }
 
@@ -28,7 +28,7 @@ pub struct SylowStream<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + s
 struct Seed<S: Eq, const L: usize, C: SylowDecomposable<S, L>> {
     i: usize,
     step: u128,
-    rs: Vec<u128>,
+    rs: [u128; L],
     coords: SylowElem<S, L, C>,
     block_upper: bool,
     contributed: bool,
@@ -66,7 +66,7 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> Sy
         self
     }
 
-    pub fn add_target(mut self, t: Vec<u128>) -> SylowStreamBuilder<'a, S, L, C> {
+    pub fn add_target(mut self, t: [u128; L]) -> SylowStreamBuilder<'a, S, L, C> {
         if t.iter().all(|x| *x == 0) {
             self.has_trivial = true;
         } else {
@@ -95,7 +95,7 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> Sy
                 }
 
                 let mut coords = SylowElem::one();
-                let mut rs = vec![0; L];
+                let mut rs = [0; L];
                 let mut step = intpow(p, d - 1, 0);
 
                 if self.mode & flags::NO_PARABOLIC != 0 {

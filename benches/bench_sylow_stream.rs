@@ -20,7 +20,7 @@ fn run_stream() {
     let g = SylowDecomp::<Phantom, 4, FpNum<P>>::new();
 
     let stream = SylowStreamBuilder::new(&g)
-        .add_target(vec![0, 3, 2, 1])
+        .add_target([0, 3, 2, 1])
         .build();
 
     let mut count = 0;

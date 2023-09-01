@@ -12,9 +12,8 @@ pub struct SylowDecomp<S, const L: usize, C: SylowDecomposable<S, L>> {
 
 #[derive(Eq, PartialEq)]
 pub struct SylowElem<S: Eq, const L: usize, C: SylowDecomposable<S, L>> {
-    _group: PhantomData<C>,
     pub coords: [u128; L],
-    _phantom: PhantomData<S>,
+    _phantom: PhantomData<(C, S)>,
 }
 
 pub trait SylowDecomposable<S, const L: usize>: Factored<S, L> + GroupElem + Eq {
@@ -58,7 +57,6 @@ impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowDecomposable<S, L> 
         let mut coords = [0; L];
         coords[i] = 1;
         SylowElem {
-            _group: PhantomData,
             coords,
             _phantom: PhantomData,
         }
@@ -68,7 +66,6 @@ impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowDecomposable<S, L> 
 impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowElem<S, L, C> {
     pub fn new(coords: [u128; L]) -> SylowElem<S, L, C> {
         SylowElem {
-            _group: PhantomData,
             coords,
             _phantom: PhantomData,
         }
@@ -121,7 +118,6 @@ where
         }
         SylowElem {
             coords,
-            _group: PhantomData,
             _phantom: PhantomData,
         }
     }
@@ -133,7 +129,6 @@ where
         }
         SylowElem {
             coords,
-            _group: PhantomData,
             _phantom: PhantomData,
         }
     }
@@ -145,14 +140,12 @@ where
         }
         SylowElem {
             coords,
-            _group: PhantomData,
             _phantom: PhantomData,
         }
     }
 
     fn one() -> SylowElem<S, L, C> {
         SylowElem {
-            _group: PhantomData,
             coords: [0; L],
             _phantom: PhantomData,
         }
@@ -166,7 +159,6 @@ where
 impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> Clone for SylowElem<S, L, C> {
     fn clone(&self) -> Self {
         SylowElem {
-            _group: PhantomData,
             coords: self.coords.clone(),
             _phantom: PhantomData,
         }
