@@ -6,7 +6,7 @@ use crate::util::*;
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct SylowDecomp<S, const L: usize, C: SylowDecomposable<S, L>> {
-    generators: [C::Elem; L],
+    generators: [C; L],
     _phantom: PhantomData<S>,
 }
 
@@ -17,13 +17,11 @@ pub struct SylowElem<S: Eq, const L: usize, C: SylowDecomposable<S, L>> {
     _phantom: PhantomData<S>,
 }
 
-pub trait SylowDecomposable<S, const L: usize>: Factored<S, L> + Eq {
-    type Elem: GroupElem;
+pub trait SylowDecomposable<S, const L: usize>: Factored<S, L> + GroupElem + Eq {
+    fn find_sylow_generator(i: usize) -> Self;
 
-    fn find_sylow_generator(i: usize) -> Self::Elem;
-
-    fn is_sylow_generator(candidate: &Self::Elem, d: (u128, u128)) -> Option<Self::Elem> {
-        let pow = Self::Elem::size() / intpow(d.0, d.1, 0);
+    fn is_sylow_generator(candidate: &Self, d: (u128, u128)) -> Option<Self> {
+        let pow = Self::size() / intpow(d.0, d.1, 0);
         let res = candidate.pow(pow);
         if res.pow(intpow(d.0, d.1 - 1, 0)).is_one() {
             None
@@ -37,7 +35,7 @@ impl<const L: usize, S: Eq, C: SylowDecomposable<S, L>> SylowDecomp<S, L, C> {
     pub fn new() -> SylowDecomp<S, L, C> {
         let generators = (0..L)
             .map(|i| C::find_sylow_generator(i))
-            .collect::<Vec<C::Elem>>()
+            .collect::<Vec<C>>()
             .try_into()
             .unwrap();
         SylowDecomp {
@@ -50,7 +48,7 @@ impl<const L: usize, S: Eq, C: SylowDecomposable<S, L>> SylowDecomp<S, L, C> {
         self.generators.len()
     }
 
-    pub fn generators(&self) -> &[C::Elem] {
+    pub fn generators(&self) -> &[C] {
         &self.generators
     }
 }
@@ -60,9 +58,7 @@ impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> Factored<S, L> for Sylow
 }
 
 impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowDecomposable<S, L> for SylowElem<S, L, C> {
-    type Elem = SylowElem<S, L, C>;
-
-    fn find_sylow_generator(i: usize) -> Self::Elem {
+    fn find_sylow_generator(i: usize) -> Self {
         let mut coords = [0; L];
         coords[i] = 1;
         SylowElem {
@@ -82,10 +78,10 @@ impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowElem<S, L, C> {
         }
     }
 
-    pub fn to_product(&self, g: &SylowDecomp<S, L, C>) -> C::Elem {
+    pub fn to_product(&self, g: &SylowDecomp<S, L, C>) -> C {
         (0..g.len())
             .filter(|i| self.coords[*i] > 0)
-            .fold(C::Elem::one(), |x, i| {
+            .fold(C::one(), |x, i| {
                 let y = g.generators[i].pow(self.coords[i]);
                 x.multiply(&y)
             })
@@ -167,7 +163,7 @@ where
     }
 
     fn size() -> u128 {
-        C::Elem::size()
+        C::size()
     }
 }
 
@@ -191,7 +187,7 @@ pub mod tests {
     use super::*;
 
     // utility method for external tests
-    pub fn test_is_generator_small<S, const L: usize, C: SylowDecomposable<S, L>>(x: &C::Elem, d: u128) -> bool {
+    pub fn test_is_generator_small<S, const L: usize, C: SylowDecomposable<S, L>>(x: &C, d: u128) -> bool {
         let mut y = x.clone();
         for _ in 1..d {
             if y.is_one() {
@@ -203,7 +199,7 @@ pub mod tests {
     }
 
     // utility method for external tests
-    pub fn test_is_generator_big<S, const L: usize, C: SylowDecomposable<S, L>>(x: &C::Elem, d: (u128, u128)) {
+    pub fn test_is_generator_big<S, const L: usize, C: SylowDecomposable<S, L>>(x: &C, d: (u128, u128)) {
         let mut y = x.clone();
         for _ in 0..d.1 {
             assert!(!y.is_one());

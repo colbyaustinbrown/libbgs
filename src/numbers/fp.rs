@@ -76,7 +76,6 @@ impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for FpNum<P>
 where
     FpNum<P>: Factored<S, L>
 {
-    type Elem = FpNum<P>;
     fn find_sylow_generator(i: usize) -> FpNum<P> {
         match <Self as Factored<S, L>>::FACTORS[i] {
             (2, 1) => FpNum::from(FpNum::<P>::size()),

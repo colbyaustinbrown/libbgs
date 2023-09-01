@@ -12,7 +12,6 @@ impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for QuadNum<P>
 where
     QuadNum<P>: Factored<S, L>
 {
-    type Elem = QuadNum<P>;
     fn find_sylow_generator(i: usize) -> QuadNum<P> {
         let pow = P - 1;
         // should be self.p * self.p, but maybe this works?
