@@ -38,7 +38,7 @@ impl<const P: u128> Coord<P> {
 
     pub fn from_chi_fp<'a, 'b: 'a, S, const L: usize>(
         chi: &SylowElem<'a, S, L, FpNum<P>>,
-        decomp: &SylowDecomp<'b, S, L, FpNum<P>>,
+        decomp: &SylowDecomp<S, L, FpNum<P>>,
     ) -> Coord<P> 
     where
         S: Eq,
@@ -54,7 +54,7 @@ impl<const P: u128> Coord<P> {
 
     pub fn from_chi_quad<'a, 'b: 'a, S, const L: usize>(
         chi: &SylowElem<'a, S, L, QuadNum<P>>,
-        decomp: &SylowDecomp<'b, S, L, QuadNum<P>>,
+        decomp: &SylowDecomp<S, L, QuadNum<P>>,
     ) -> Coord<P> 
     where
         S: Eq,

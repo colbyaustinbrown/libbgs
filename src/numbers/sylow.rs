@@ -5,8 +5,7 @@ use crate::numbers::*;
 use crate::util::*;
 
 #[derive(PartialEq, Eq, Debug)]
-pub struct SylowDecomp<'a, S, const L: usize, C: SylowDecomposable<S, L>> {
-    parent: &'a C,
+pub struct SylowDecomp<S, const L: usize, C: SylowDecomposable<S, L>> {
     generators: Vec<C::Elem>,
     _phantom: PhantomData<S>,
 }
@@ -21,9 +20,9 @@ pub struct SylowElem<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> {
 pub trait SylowDecomposable<S, const L: usize>: Factored<S, L> + Eq {
     type Elem: GroupElem;
 
-    fn find_sylow_generator(&self, i: usize) -> Self::Elem;
+    fn find_sylow_generator(i: usize) -> Self::Elem;
 
-    fn is_sylow_generator(&self, candidate: &Self::Elem, d: (u128, u128)) -> Option<Self::Elem> {
+    fn is_sylow_generator(candidate: &Self::Elem, d: (u128, u128)) -> Option<Self::Elem> {
         let pow = Self::Elem::size() / intpow(d.0, d.1, 0);
         let res = candidate.pow(pow);
         if res.pow(intpow(d.0, d.1 - 1, 0)).is_one() {
@@ -34,13 +33,12 @@ pub trait SylowDecomposable<S, const L: usize>: Factored<S, L> + Eq {
     }
 }
 
-impl<'a, const L: usize, S: Eq, C: SylowDecomposable<S, L>> SylowDecomp<'a, S, L, C> {
-    pub fn new(parent: &C) -> SylowDecomp<S, L, C> {
+impl<const L: usize, S: Eq, C: SylowDecomposable<S, L>> SylowDecomp<S, L, C> {
+    pub fn new() -> SylowDecomp<S, L, C> {
         let generators = (0..L)
-            .map(|i| parent.find_sylow_generator(i))
+            .map(|i| C::find_sylow_generator(i))
             .collect();
         SylowDecomp {
-            parent,
             generators,
             _phantom: PhantomData,
         }
@@ -48,10 +46,6 @@ impl<'a, const L: usize, S: Eq, C: SylowDecomposable<S, L>> SylowDecomp<'a, S, L
 
     pub fn len(&self) -> usize {
         self.generators.len()
-    }
-
-    pub fn parent(&self) -> &C {
-        self.parent
     }
 
     pub fn generators(&self) -> &[C::Elem] {
@@ -66,7 +60,7 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> Factored<S, L> for S
 impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowDecomposable<S, L> for SylowElem<'a, S, L, C> {
     type Elem = SylowElem<'a, S, L, C>;
 
-    fn find_sylow_generator(&self, i: usize) -> Self::Elem {
+    fn find_sylow_generator(i: usize) -> Self::Elem {
         let mut coords = vec![0; L];
         coords[i] = 1;
         SylowElem {

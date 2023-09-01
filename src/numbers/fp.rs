@@ -77,12 +77,12 @@ where
     FpNum<P>: Factored<S, L>
 {
     type Elem = FpNum<P>;
-    fn find_sylow_generator(&self, i: usize) -> FpNum<P> {
+    fn find_sylow_generator(i: usize) -> FpNum<P> {
         match <Self as Factored<S, L>>::FACTORS[i] {
             (2, 1) => FpNum::from(FpNum::<P>::size()),
             (p, t) => (1..FpNum::<P>::size())
                 .map(|j| FpNum::from(standard_affine_shift(P, j)))
-                .find_map(|c| self.is_sylow_generator(&c, (p, t)))
+                .find_map(|c| FpNum::is_sylow_generator(&c, (p, t)))
                 .unwrap(),
         }
     }

@@ -13,16 +13,16 @@ where
     QuadNum<P>: Factored<S, L>
 {
     type Elem = QuadNum<P>;
-    fn find_sylow_generator(&self, i: usize) -> QuadNum<P> {
+    fn find_sylow_generator(i: usize) -> QuadNum<P> {
         let pow = P - 1;
         // should be self.p * self.p, but maybe this works?
         (1..P * 2)
             .map(|i| {
                 let j = standard_affine_shift(P * 2, i);
-                let p = self.steinitz(j);
+                let p = QuadNum::steinitz(j);
                 p.pow(pow)
             })
-            .find_map(|c| self.is_sylow_generator(&c, <Self as Factored<S, L>>::FACTORS[i]))
+            .find_map(|c| QuadNum::is_sylow_generator(&c, <Self as Factored<S, L>>::FACTORS[i]))
             .unwrap()
     }
 }
@@ -32,7 +32,7 @@ impl<const P: u128> QuadNum<P> {
         self.0 == 0 && self.1 == 0
     }
 
-    pub fn steinitz(&self, i: u128) -> QuadNum<P> {
+    pub fn steinitz(i: u128) -> QuadNum<P> {
         QuadNum::from((i % P, i / P))
     }
 

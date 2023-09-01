@@ -11,14 +11,14 @@ pub mod flags {
 }
 
 pub struct SylowStreamBuilder<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> {
-    decomp: &'a SylowDecomp<'a, S, L, C>,
+    decomp: &'a SylowDecomp<S, L, C>,
     mode: u8,
     targets: Vec<Vec<u128>>,
     has_trivial: bool
 }
 
 pub struct SylowStream<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> {
-    decomp: &'a SylowDecomp<'a, S, L, C>,
+    decomp: &'a SylowDecomp<S, L, C>,
     mode: u8,
     targets: Vec<Vec<u128>>,
     stack: Vec<StackElem<'a, S, L, C>>,
@@ -52,7 +52,7 @@ mod statuses {
 }
 
 impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> SylowStreamBuilder<'a, S, L, C> {
-    pub fn new(decomp: &'a SylowDecomp<'a, S, L, C>) -> SylowStreamBuilder<'a, S, L, C> {
+    pub fn new(decomp: &'a SylowDecomp<S, L, C>) -> SylowStreamBuilder<'a, S, L, C> {
         SylowStreamBuilder {
             decomp,
             mode: flags::NONE,
