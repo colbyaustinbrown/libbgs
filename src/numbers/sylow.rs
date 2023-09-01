@@ -6,14 +6,14 @@ use crate::util::*;
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct SylowDecomp<S, const L: usize, C: SylowDecomposable<S, L>> {
-    generators: Vec<C::Elem>,
+    generators: [C::Elem; L],
     _phantom: PhantomData<S>,
 }
 
 #[derive(Eq, PartialEq)]
 pub struct SylowElem<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> {
     _group: PhantomData<fn(&'a C) -> &'a C>,
-    pub coords: Vec<u128>,
+    pub coords: [u128; L],
     _phantom: PhantomData<S>,
 }
 
@@ -37,7 +37,9 @@ impl<const L: usize, S: Eq, C: SylowDecomposable<S, L>> SylowDecomp<S, L, C> {
     pub fn new() -> SylowDecomp<S, L, C> {
         let generators = (0..L)
             .map(|i| C::find_sylow_generator(i))
-            .collect();
+            .collect::<Vec<C::Elem>>()
+            .try_into()
+            .unwrap();
         SylowDecomp {
             generators,
             _phantom: PhantomData,
@@ -61,7 +63,7 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowDecomposable<S,
     type Elem = SylowElem<'a, S, L, C>;
 
     fn find_sylow_generator(i: usize) -> Self::Elem {
-        let mut coords = vec![0; L];
+        let mut coords = [0; L];
         coords[i] = 1;
         SylowElem {
             _group: PhantomData,
@@ -72,7 +74,7 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowDecomposable<S,
 }
 
 impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowElem<'a, S, L, C> {
-    pub fn new(coords: Vec<u128>) -> SylowElem<'a, S, L, C> {
+    pub fn new(coords: [u128; L]) -> SylowElem<'a, S, L, C> {
         SylowElem {
             _group: PhantomData,
             coords,
@@ -121,40 +123,36 @@ where
     }
 
     fn multiply(&self, other: &SylowElem<S, L, C>) -> SylowElem<'a, S, L, C> {
+        let mut coords = self.coords;
+        for i in 0..L {
+            coords[i] = (coords[i] + other.coords[i]) % <C as Factored<S, L>>::FACTORS.factor(i);
+        }
         SylowElem {
-            coords: self
-                .coords
-                .iter()
-                .zip(&other.coords)
-                .enumerate()
-                .map(|(i, (x, y))| (x + y) % <C as Factored<S, L>>::FACTORS.factor(i))
-                .collect(),
+            coords,
             _group: PhantomData,
             _phantom: PhantomData,
         }
     }
 
     fn square(&self) -> SylowElem<'a, S, L, C> {
+        let mut coords = self.coords;
+        for i in 0..L {
+            coords[i] = (coords[i] * 2) % <C as Factored<S, L>>::FACTORS.factor(i);
+        }
         SylowElem {
-            coords: self
-                .coords
-                .iter()
-                .enumerate()
-                .map(|(i, x)| x * 2 % <C as Factored<S, L>>::FACTORS.factor(i))
-                .collect(),
+            coords,
             _group: PhantomData,
             _phantom: PhantomData,
         }
     }
 
     fn inverse(&self) -> SylowElem<'a, S, L, C> {
+        let mut coords = self.coords;
+        for i in 0..L {
+            coords[i] = <C as Factored<S, L>>::FACTORS.factor(i) - coords[i];
+        }
         SylowElem {
-            coords: self
-                .coords
-                .iter()
-                .enumerate()
-                .map(|(i, x)| <C as Factored<S, L>>::FACTORS.factor(i) - x)
-                .collect(),
+            coords,
             _group: PhantomData,
             _phantom: PhantomData,
         }
@@ -163,7 +161,7 @@ where
     fn one() -> SylowElem<'a, S, L, C> {
         SylowElem {
             _group: PhantomData,
-            coords: vec![0; L],
+            coords: [0; L],
             _phantom: PhantomData,
         }
     }
