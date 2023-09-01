@@ -1,15 +1,15 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
-use libbgs::numbers::factorization::*;
-use libbgs::numbers::quad_field::*;
+use libbgs::numbers::*;
+
+const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
 fn find_sqrt() {
-    let fp = QuadField::<1_000_000_000_000_000_124_399>::make();
     for i in 3..103 {
-        let mut x = fp.int_sqrt(i);
+        let mut x = QuadNum::<BIG_P>::int_sqrt(i);
         let y = x.clone();
         assert_ne!(x, i);
-        x = x.multiply(&y, &fp);
+        x = x.multiply(&y);
         assert_eq!(x, i);
     }
 }
