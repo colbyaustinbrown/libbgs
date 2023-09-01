@@ -36,8 +36,8 @@ impl<const P: u128> Coord<P> {
         chi
     }
 
-    pub fn from_chi_fp<'a, 'b: 'a, S, const L: usize>(
-        chi: &SylowElem<'a, S, L, FpNum<P>>,
+    pub fn from_chi_fp<S, const L: usize>(
+        chi: &SylowElem<S, L, FpNum<P>>,
         decomp: &SylowDecomp<S, L, FpNum<P>>,
     ) -> Coord<P> 
     where
@@ -52,8 +52,8 @@ impl<const P: u128> Coord<P> {
         Coord(chi + chi_inv)
     }
 
-    pub fn from_chi_quad<'a, 'b: 'a, S, const L: usize>(
-        chi: &SylowElem<'a, S, L, QuadNum<P>>,
+    pub fn from_chi_quad<S, const L: usize>(
+        chi: &SylowElem<S, L, QuadNum<P>>,
         decomp: &SylowDecomp<S, L, QuadNum<P>>,
     ) -> Coord<P> 
     where

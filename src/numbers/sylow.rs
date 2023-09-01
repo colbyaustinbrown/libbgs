@@ -11,8 +11,8 @@ pub struct SylowDecomp<S, const L: usize, C: SylowDecomposable<S, L>> {
 }
 
 #[derive(Eq, PartialEq)]
-pub struct SylowElem<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> {
-    _group: PhantomData<fn(&'a C) -> &'a C>,
+pub struct SylowElem<S: Eq, const L: usize, C: SylowDecomposable<S, L>> {
+    _group: PhantomData<C>,
     pub coords: [u128; L],
     _phantom: PhantomData<S>,
 }
@@ -55,12 +55,12 @@ impl<const L: usize, S: Eq, C: SylowDecomposable<S, L>> SylowDecomp<S, L, C> {
     }
 }
 
-impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> Factored<S, L> for SylowElem<'a, S, L, C> {
+impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> Factored<S, L> for SylowElem<S, L, C> {
     const FACTORS: Factorization<L> = <C as Factored<S, L>>::FACTORS;
 }
 
-impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowDecomposable<S, L> for SylowElem<'a, S, L, C> {
-    type Elem = SylowElem<'a, S, L, C>;
+impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowDecomposable<S, L> for SylowElem<S, L, C> {
+    type Elem = SylowElem<S, L, C>;
 
     fn find_sylow_generator(i: usize) -> Self::Elem {
         let mut coords = [0; L];
@@ -73,8 +73,8 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowDecomposable<S,
     }
 }
 
-impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowElem<'a, S, L, C> {
-    pub fn new(coords: [u128; L]) -> SylowElem<'a, S, L, C> {
+impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowElem<S, L, C> {
+    pub fn new(coords: [u128; L]) -> SylowElem<S, L, C> {
         SylowElem {
             _group: PhantomData,
             coords,
@@ -91,7 +91,7 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowElem<'a, S, L, 
             })
     }
 
-    pub fn order(&self, g: &'a SylowDecomp<S, L, C>) -> Factorization<L> {
+    pub fn order(&self, g: &SylowDecomp<S, L, C>) -> Factorization<L> {
         let mut prime_powers = [(0,0); L];
         for i in 0..L {
             let mut x = self.clone();
@@ -113,16 +113,16 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowElem<'a, S, L, 
     }
 }
 
-impl<'a, S, const L: usize, C: Eq> GroupElem for SylowElem<'a, S, L, C>
+impl<S, const L: usize, C: Eq> GroupElem for SylowElem<S, L, C>
 where
     S: Eq,
-    C: SylowDecomposable<S, L> + 'a,
+    C: SylowDecomposable<S, L>,
 {
     fn is_one(&self) -> bool {
         self.coords.iter().all(|x| *x == 0)
     }
 
-    fn multiply(&self, other: &SylowElem<S, L, C>) -> SylowElem<'a, S, L, C> {
+    fn multiply(&self, other: &SylowElem<S, L, C>) -> SylowElem<S, L, C> {
         let mut coords = self.coords;
         for i in 0..L {
             coords[i] = (coords[i] + other.coords[i]) % <C as Factored<S, L>>::FACTORS.factor(i);
@@ -134,7 +134,7 @@ where
         }
     }
 
-    fn square(&self) -> SylowElem<'a, S, L, C> {
+    fn square(&self) -> SylowElem<S, L, C> {
         let mut coords = self.coords;
         for i in 0..L {
             coords[i] = (coords[i] * 2) % <C as Factored<S, L>>::FACTORS.factor(i);
@@ -146,7 +146,7 @@ where
         }
     }
 
-    fn inverse(&self) -> SylowElem<'a, S, L, C> {
+    fn inverse(&self) -> SylowElem<S, L, C> {
         let mut coords = self.coords;
         for i in 0..L {
             coords[i] = <C as Factored<S, L>>::FACTORS.factor(i) - coords[i];
@@ -158,7 +158,7 @@ where
         }
     }
 
-    fn one() -> SylowElem<'a, S, L, C> {
+    fn one() -> SylowElem<S, L, C> {
         SylowElem {
             _group: PhantomData,
             coords: [0; L],
@@ -171,7 +171,7 @@ where
     }
 }
 
-impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> Clone for SylowElem<'a, S, L, C> {
+impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> Clone for SylowElem<S, L, C> {
     fn clone(&self) -> Self {
         SylowElem {
             _group: PhantomData,
@@ -181,7 +181,7 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> Clone for SylowElem<
     }
 }
 
-impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> fmt::Debug for SylowElem<'a, S, L, C> {
+impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> fmt::Debug for SylowElem<S, L, C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.coords.fmt(f)
     }

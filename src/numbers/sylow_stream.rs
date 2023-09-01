@@ -21,25 +21,25 @@ pub struct SylowStream<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + s
     decomp: &'a SylowDecomp<S, L, C>,
     mode: u8,
     targets: Vec<Vec<u128>>,
-    stack: Vec<StackElem<'a, S, L, C>>,
+    stack: Vec<StackElem<S, L, C>>,
 }
 
 #[derive(Debug)]
-struct Seed<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> {
+struct Seed<S: Eq, const L: usize, C: SylowDecomposable<S, L>> {
     i: usize,
     step: u128,
     rs: Vec<u128>,
-    coords: SylowElem<'a, S, L, C>,
+    coords: SylowElem<S, L, C>,
     block_upper: bool,
     contributed: bool,
 }
 
 #[derive(Debug)]
-enum StackElem<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> {
-    Res(SylowElem<'a, S, L, C>),
-    Seed(Seed<'a, S, L, C>),
+enum StackElem<S: Eq, const L: usize, C: SylowDecomposable<S, L>> {
+    Res(SylowElem<S, L, C>),
+    Seed(Seed<S, L, C>),
     Thunk {
-        seed: Seed<'a, S, L, C>,
+        seed: Seed<S, L, C>,
         start: u128,
         stop: u128,
     },
@@ -133,9 +133,9 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> Sy
 }
 
 impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> Iterator for SylowStream<'a, S, L, C> {
-    type Item = SylowElem<'a, S, L, C>;
+    type Item = SylowElem<S, L, C>;
 
-    fn next(&mut self) -> Option<SylowElem<'a, S, L, C>> {
+    fn next(&mut self) -> Option<SylowElem<S, L, C>> {
         let Some(top) = self.stack.pop() else { return None; };
         // println!("top is {:?}", top);
         let (seed, pause) = match top {
@@ -245,7 +245,7 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> Sy
         status
     }
 
-    fn push_next_seeds(&mut self, seed: &Seed<'a, S, L, C>, start: usize) -> bool {
+    fn push_next_seeds(&mut self, seed: &Seed<S, L, C>, start: usize) -> bool {
         let mut pushed_any = false;
         // Note: In Rust, (a..a) is the empty iterator.
         for j in start..L {
@@ -273,8 +273,8 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> Sy
     }
 }
 
-impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> Clone for Seed<'a, S, L, C> {
-    fn clone(&self) -> Seed<'a, S, L, C> {
+impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> Clone for Seed<S, L, C> {
+    fn clone(&self) -> Seed<S, L, C> {
         Seed {
             i: self.i,
             step: self.step,
