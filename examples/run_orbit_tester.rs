@@ -6,7 +6,7 @@ const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 #[derive(PartialEq, Eq)]
 struct Phantom {}
 
-impl Factored<Phantom, 7> for FpStar<BIG_P>{
+impl Factored<Phantom, 7> for FpNum<BIG_P>{
     const FACTORS: Factorization<7> = Factorization::new([
         (2, 1),
         (7, 1),
@@ -18,7 +18,7 @@ impl Factored<Phantom, 7> for FpStar<BIG_P>{
     ]);
 }
 
-impl Factored<Phantom, 11> for QuadField<BIG_P> {
+impl Factored<Phantom, 11> for QuadNum<BIG_P> {
     const FACTORS: Factorization<11> = Factorization::new([
         (2, 4),
         (3, 1),
@@ -57,9 +57,8 @@ fn main() {
         (1453, 1),
         (8689, 1),
     ]);
-    let fp2 = QuadField::<BIG_P> {};
-    let fp_decomp = SylowDecomp::new(&FpStar::<BIG_P> {});
-    let fp2_decomp = SylowDecomp::new(&fp2);
+    let fp_decomp = SylowDecomp::new();
+    let fp2_decomp = SylowDecomp::new();
 
     const LIMIT: u128 = 100;
 
@@ -90,7 +89,7 @@ fn main() {
                 .map(|x| Coord::from_chi_quad(&x, &fp2_decomp)),
         );
 
-    let mut tester = OrbitTester::new(&FpStar::<BIG_P> {});
+    let mut tester = OrbitTester::<BIG_P>::new();
     let mut count = 0;
     println!("Loading coordinates into the Orbit Tester.");
     for x in stream {
