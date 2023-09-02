@@ -119,71 +119,25 @@ mod tests {
     use crate::numbers::sylow::tests::*;
 
     const BIG_P: u128 = 1_000_000_000_000_000_124_399;
+    
+    #[derive(PartialEq, Eq)]
+    struct Phantom {}
 
-    /*
-    #[test]
-    fn one_is_one() {
-        let f49 = QuadField::<7> {};
-        let one = f49.one();
-        assert!(one.is_one(&f49));
+    impl Factored<Phantom, 1> for QuadNum<7> {
+        const FACTORS: Factorization<1> = Factorization::new([
+            (2, 3),
+        ]);
     }
 
-    #[test]
-    fn calculates_r_as_nonresidue() {
-        for i in 2..7 {
-            assert_ne!((i * i) % 7, QuadField::<7>::R);
-        }
+    impl Factored<Phantom, 2> for QuadNum<17> {
+        const FACTORS: Factorization<2> = Factorization::new([
+            (2, 1),
+            (3, 2)
+        ]);
     }
 
-    #[test]
-    fn calculates_r_big() {
-        QuadField::<BIG_P> {};
-    }
-
-    #[test]
-    fn powers_up() {
-        let f49 = QuadField::<7> {};
-        let mut x = QuadNum::from((3, 4));
-        x = x.pow(48, &f49);
-        assert!(x.is_one(&f49));
-    }
-
-    #[test]
-    fn powers_up_big() {
-        let fp2 = QuadField::<BIG_P> {};
-        let mut x = QuadNum(3, 5);
-        x = x.pow(BIG_P - 1, &fp2);
-        x = x.pow(BIG_P + 1, &fp2);
-        println!("{x:?}");
-        assert!(x.is_one(&fp2));
-    }
-
-    #[test]
-    fn finds_sqrt() {
-        let fp2 = QuadField::<BIG_P> {};
-        for i in 3..1003 {
-            let mut x = fp2.int_sqrt(i);
-            assert_ne!(x, i);
-            x = x.multiply(&x, &fp2);
-            assert_eq!(x, i);
-        }
-    }
-
-    #[test]
-    fn sylow_finds_generators() {
-        let pplusone = Factorization::new(vec![(2, 1), (3, 2)]);
-        let f289 = QuadField::<17> {};
-        let g = SylowDecomp::new(&f289, pplusone);
-        for i in 0..g.generators().len() {
-            let gen = &g.generators()[i];
-            let d = g.factors().factor(i);
-            test_is_generator_small(gen, d, &f289);
-        }
-    }
-
-    #[test]
-    fn sylow_finds_generators_big() {
-        let fp2_fact = Factorization::new(vec![
+    impl Factored<Phantom, 11> for QuadNum<BIG_P> {
+        const FACTORS: Factorization<11> = Factorization::new([
             (2, 4),
             (3, 1),
             (5, 2),
@@ -196,13 +150,63 @@ mod tests {
             (1453, 1),
             (8689, 1),
         ]);
-        let fp2 = QuadField::<BIG_P> {};
-        let g = SylowDecomp::new(&fp2, fp2_fact);
-        for i in 0..g.generators().len() {
-            let gen = &g.generators()[i];
-            let d = g.factors()[i];
-            test_is_generator_big(gen, d, &fp2);
+    }
+
+    #[test]
+    fn one_is_one() {
+        let one = QuadNum::<7>::one();
+        assert!(one.is_one());
+    }
+
+    #[test]
+    fn calculates_r_as_nonresidue() {
+        for i in 2..7 {
+            assert_ne!((i * i) % 7, QuadNum::<7>::R);
         }
     }
-    */
+
+    #[test]
+    fn powers_up() {
+        let mut x = QuadNum::<7>::from((3, 4));
+        x = x.pow(48);
+        assert!(x.is_one());
+    }
+
+    #[test]
+    fn powers_up_big() {
+        let mut x = QuadNum::<BIG_P>(3, 5);
+        x = x.pow(BIG_P - 1);
+        x = x.pow(BIG_P + 1);
+        assert!(x.is_one());
+    }
+
+    #[test]
+    fn finds_sqrt() {
+        for i in 3..1003 {
+            let mut x = QuadNum::<BIG_P>::int_sqrt(i);
+            assert_ne!(x, i);
+            x = x.multiply(&x);
+            assert_eq!(x, i);
+        }
+    }
+
+    #[test]
+    fn sylow_finds_generators() {
+        let g = SylowDecomp::<Phantom, 2, QuadNum<17>>::new();
+        for i in 0..g.generators().len() {
+            let gen = &g.generators()[i];
+            let d = SylowElem::<Phantom, 2, QuadNum<17>>::FACTORS.factor(i);
+            test_is_generator_small(gen, d);
+        }
+    }
+
+    #[test]
+    fn sylow_finds_generators_big() {
+        let g = SylowDecomp::<Phantom, 11, QuadNum<BIG_P>>::new();
+        for i in 0..g.generators().len() {
+            let gen = &g.generators()[i];
+            let d = SylowElem::<Phantom, 11, QuadNum<BIG_P>>::FACTORS.prime_powers()[i];
+            test_is_generator_big(gen, d);
+        }
+    }
 }
