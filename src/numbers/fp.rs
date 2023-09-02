@@ -242,21 +242,47 @@ mod tests {
 
     const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
-    /*
+    impl Factored<Phantom, 2> for FpNum<13> {
+        const FACTORS: Factorization<2> = Factorization::new([
+            (2, 2),
+            (3, 1),
+        ]);
+    }
+
+    impl Factored<Phantom, 2> for FpNum<29> {
+        const FACTORS: Factorization<2> = Factorization::new([
+            (2, 2),
+            (7, 1),
+        ]);
+    }
+
+    impl Factored<Phantom, 7> for FpNum<BIG_P> {
+        const FACTORS: Factorization<7> = Factorization::new([
+            (2, 1),
+            (7, 1),
+            (13, 1),
+            (29, 2),
+            (43, 1),
+            (705737, 1),
+            (215288719, 1),
+        ]);
+    }
+
+    #[derive(PartialEq, Eq)]
+    struct Phantom {}
+
     #[test]
     fn one_is_one() {
-        let p = FpStar::<7> {};
-        let one = p.one();
-        assert!(one.is_one(&p));
+        let one = FpNum::<7>::one();
+        assert!(one.is_one());
     }
 
     #[test]
     fn multiplies() {
-        let p = FpStar::<7> {};
-        let mut x = FpNum::from(3);
+        let mut x = FpNum::<7>::from(3);
         assert_eq!(3, x.0);
-        let five = FpNum::from(5);
-        x = x.multiply(&five, &p);
+        let five = FpNum::<7>::from(5);
+        x = x.multiply(&five);
         assert_eq!(1, x.0);
         assert_eq!(5, five.0);
     }
@@ -274,114 +300,88 @@ mod tests {
 
     #[test]
     fn powers_up() {
-        let p = FpStar::<7> {};
-        let mut x = FpNum::from(2);
-        x = x.pow(5, &p);
+        let mut x = FpNum::<7>::from(2);
+        x = x.pow(5);
         assert_eq!(4, x.0);
 
-        let mut x = FpNum::from(3);
-        x = x.pow(3, &p);
+        let mut x = FpNum::<7>::from(3);
+        x = x.pow(3);
         assert_eq!(6, x.0);
 
-        let mut x = FpNum::from(5);
-        x = x.pow(6, &p);
-        assert!(x.is_one(&p));
+        let mut x = FpNum::<7>::from(5);
+        x = x.pow(6);
+        assert!(x.is_one());
     }
 
     #[test]
     fn powers_up_big() {
-        let p = FpStar::<BIG_P> {};
-        let mut x = FpNum::from(3);
-        x = x.pow(BIG_P - 1, &FpStar::<BIG_P> {});
+        let mut x = FpNum::<BIG_P>::from(3);
+        x = x.pow(BIG_P - 1);
         println!("x is {x:?}");
-        assert!(x.is_one(&p));
+        assert!(x.is_one());
     }
 
     #[test]
     fn sylow_one_is_one() {
-        let p = Factorization::new(vec![(2, 2), (3, 1)]);
-        let g = SylowDecomp::new(&FpStar::<13> {}, p.clone());
-        let one = g.one();
-        assert!(one.is_one(&g));
+        let one = SylowElem::<Phantom, 2, FpNum<13>>::one();
+        assert!(one.is_one());
     }
 
     #[test]
     fn sylow_finds_generators() {
-        let p = Factorization::new(vec![(2, 2), (7, 1)]);
-        let g = SylowDecomp::new(&FpStar::<29> {}, p.clone());
+        let g = SylowDecomp::new();
         for i in 0..g.generators().len() {
             let gen = &g.generators()[i];
-            let d = g.factors().factor(i);
-            test_is_generator_small::<FpStar<29>>(gen, d, &FpStar::<29> {});
+            let d = SylowElem::<Phantom, 2, FpNum<29>>::FACTORS.factor(i);
+            test_is_generator_small::<Phantom, 2, FpNum<29>>(gen, d);
         }
     }
 
     #[test]
     fn sylow_finds_generators_big() {
-        let fact = Factorization::new(vec![
-            (2, 1),
-            (7, 1),
-            (13, 1),
-            (29, 2),
-            (43, 1),
-            (705737, 1),
-            (215288719, 1),
-        ]);
-        let g = SylowDecomp::new(&FpStar::<BIG_P> {}, fact.clone());
+        let g = SylowDecomp::new();
         for i in 0..g.generators().len() {
             let gen = &g.generators()[i];
-            let d = fact[i];
-            test_is_generator_big::<FpStar<BIG_P>>(gen, d, &FpStar::<BIG_P> {});
+            let d = SylowElem::<Phantom, 7, FpNum<BIG_P>>::FACTORS.prime_powers()[i];
+            test_is_generator_big::<Phantom, 7, FpNum<BIG_P>>(gen, d);
         }
     }
 
     #[test]
     fn sylow_order() {
-        let fact = Factorization::new(vec![(2, 2), (3, 1)]);
-        let g = SylowDecomp::new(&FpStar::<13> {}, fact.clone());
         for i in 1..13 {
-            let mut x = SylowElem::new(vec![i % 4, i % 3]);
-            x = x.pow(x.order(&g).value(), &g);
-            assert!(x.is_one(&g));
+            let mut x = SylowElem::<Phantom, 2, FpNum<13>>::new([i % 4, i % 3]);
+            x = x.pow(x.order().value());
+            assert!(x.is_one());
         }
     }
 
     #[test]
     fn sylow_order_big() {
-        let fact = Factorization::new(vec![
-            (2, 1),
-            (7, 1),
-            (13, 1),
-            (29, 2),
-            (43, 1),
-            (705737, 1),
-            (215288719, 1),
-        ]);
-        let g = SylowDecomp::new(&FpStar::<BIG_P> {}, fact);
         let n = 123456789;
-        let mut x = SylowElem::new(
-            g.factors()
-                .as_array()
+        let mut x = SylowElem::<Phantom, 7, FpNum<BIG_P>>::new(
+            SylowElem::<Phantom, 7, FpNum<BIG_P>>::FACTORS.prime_powers()
                 .iter()
                 .map(|(p, d)| n % intpow(*p, *d, 0))
-                .collect(),
+                .collect::<Vec<u128>>()
+                .try_into()
+                .unwrap()
         );
-        let or = x.order(&g).value();
-        x = x.pow(or, &g);
-        assert!(x.is_one(&g));
+        let or = x.order().value();
+        x = x.pow(or);
+        assert!(x.is_one());
     }
 
     #[test]
     fn calculates_square_roots() {
-        let p = FpStar::<13> {};
         let mut nonresidues = 0;
-        for x in (1..13).map(|i| FpNum::from(i)) {
+        for x in (1..13).map(|i| FpNum::<13>::from(i)) {
             match x.int_sqrt() {
                 None => {
                     nonresidues += 1;
                 }
                 Some(mut y) => {
-                    y = y.pow(2, &p);
+                    y = y.pow(2);
                     assert_eq!(x, y);
                 }
             }
@@ -391,17 +391,15 @@ mod tests {
 
     #[test]
     fn inverses() {
-        let p = FpStar::<13> {};
         for i in 2..13 {
-            let mut x = FpNum::from(i);
+            let mut x = FpNum::<13>::from(i);
             let y = x.clone();
             println!("{x:?}");
-            x = x.inverse(&p);
+            x = x.inverse();
             println!("{x:?}");
-            assert!(!x.is_one(&p));
-            x = x.multiply(&y, &p);
-            assert!(x.is_one(&p));
+            assert!(!x.is_one());
+            x = x.multiply(&y);
+            assert!(x.is_one());
         }
     }
-    */
 }
