@@ -339,7 +339,7 @@ mod tests {
 
     #[test]
     fn sylow_finds_generators_big() {
-        let g = SylowDecomp::new();
+        let g = SylowDecomp::<Phantom, 7, FpNum<BIG_P>>::new();
         for i in 0..g.generators().len() {
             let gen = &g.generators()[i];
             let d = SylowElem::<Phantom, 7, FpNum<BIG_P>>::FACTORS.prime_powers()[i];
