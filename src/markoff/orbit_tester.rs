@@ -6,11 +6,10 @@ use itertools::*;
 use rayon::prelude::*;
 
 use crate::markoff::Disjoint;
-use crate::numbers::{FpNum, FpStar, GroupElem};
+use crate::numbers::{FpNum, GroupElem};
 
 /// Configures tests to be run on orbits of the Markoff graph modulo `P`.
-pub struct OrbitTester<'a, const P: u128> {
-    f: &'a FpStar<P>,
+pub struct OrbitTester<const P: u128> {
     targets: HashSet<u128>,
 }
 
@@ -22,7 +21,7 @@ pub struct OrbitTesterResults {
 
 type Msg = (u128, u128, u128);
 
-impl<'a, const P: u128> OrbitTester<'a, P> {
+impl<const P: u128> OrbitTester<P> {
     /// Consume and run this `OrbitTester`, blocking until completion, and returning the results.
     /// This method may spawn multiple worker threads, which are guarenteed to be joined before
     /// `run` returns.
@@ -32,8 +31,8 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
             results.insert(*x, Disjoint::new());
         }
 
-        let mut inv2 = FpNum::from(2);
-        inv2 = inv2.inverse(self.f);
+        let mut inv2 = FpNum::<P>::from(2);
+        inv2 = inv2.inverse();
 
         // TOOD: is it a problem that this is a u64 and not a u128?
         let failures = AtomicU64::new(0);
@@ -42,12 +41,12 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
         let handle = thread::spawn(move || {
             for (x, y, z) in rx.iter() {
                 if results.contains_key(&z) {
-                    results.get_mut(&x).map(|disjoint| {
-                        disjoint.associate(y, z);
-                    });
-                    results.get_mut(&y).map(|disjoint| {
+                    if let Some(disjoint) = results.get_mut(&x) {
+                        disjoint.associate(y, y);
+                    }
+                    if let Some(disjoint) = results.get_mut(&y) {
                         disjoint.associate(x, z);
-                    });
+                    }
                 }
             }
 
@@ -94,15 +93,14 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
     }
 
     /// Creates a new `OrbetTester` with default settings and no targets.
-    pub fn new(f: &FpStar<P>) -> OrbitTester<P> {
+    pub fn new() -> OrbitTester<P> {
         OrbitTester {
-            f,
             targets: HashSet::new(),
         }
     }
 
     /// Adds a target order to the list of orders to be tested.
-    pub fn add_target(mut self, t: u128) -> OrbitTester<'a, P> {
+    pub fn add_target(mut self, t: u128) -> OrbitTester<P> {
         self.targets.insert(t);
         self
     }

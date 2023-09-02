@@ -1,6 +1,6 @@
 //! Various number theory utility methods used throughout the libbgs crate.
 
-fn gcd(mut a: u128, mut b: u128) -> u128 {
+const fn gcd(mut a: u128, mut b: u128) -> u128 {
     let mut t;
     while b != 0 {
         t = a % b;
@@ -11,7 +11,7 @@ fn gcd(mut a: u128, mut b: u128) -> u128 {
 }
 
 /// Returns `x` to the power of `n`, modulo `m`.
-pub fn intpow(mut x: u128, mut n: u128, m: u128) -> u128 {
+pub const fn intpow(mut x: u128, mut n: u128, m: u128) -> u128 {
     if n == 0 {
         return 1;
     }
@@ -41,7 +41,7 @@ pub fn intpow(mut x: u128, mut n: u128, m: u128) -> u128 {
 /// Returns a pseudo-random integer modulo `q`, unique for every `i` between `0` and `q`.
 /// This acts suitably well as a random number generator for several modular arithmetic operations,
 /// including randomly searching for quadratic (non) residues.
-pub fn standard_affine_shift(q: u128, i: u128) -> u128 {
+pub const fn standard_affine_shift(q: u128, i: u128) -> u128 {
     let mut m = 4 * q / 5;
     while gcd(m, q) != 1 {
         m -= 1;
@@ -53,7 +53,7 @@ pub fn standard_affine_shift(q: u128, i: u128) -> u128 {
 /// Returns the product of `a` and `b` modulo `m`.
 /// This function will panic if `m >= 2^127`.
 /// Otherwise, it is guarenteed that there will not be integer overflow.
-pub fn long_multiply(mut a: u128, mut b: u128, m: u128) -> u128 {
+pub const fn long_multiply(mut a: u128, mut b: u128, m: u128) -> u128 {
     a %= m;
     b %= m;
 

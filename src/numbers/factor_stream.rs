@@ -1,27 +1,27 @@
 use crate::util::intpow;
 
-pub struct FactorStream<'a> {
+pub struct FactorStream<'a, const L: usize> {
     source: &'a [(u128, u128)],
-    stack: Vec<(usize, Vec<u128>)>,
+    stack: Vec<(usize, [u128; L])>,
     limit: u128,
     maximal_only: bool,
 }
 
-impl<'a> FactorStream<'a> {
-    pub fn new(source: &'a [(u128, u128)], limit: u128) -> FactorStream {
+impl<'a, const L: usize> FactorStream<'a, L> {
+    pub fn new(source: &'a [(u128, u128)], limit: u128) -> FactorStream<L> {
         FactorStream {
             source,
             limit,
-            stack: vec![(0, vec![0; source.len()])],
+            stack: vec![(0, [0; L])],
             maximal_only: true,
         }
     }
 }
 
-impl<'a> Iterator for FactorStream<'a> {
-    type Item = Vec<u128>;
+impl<'a, const L: usize> Iterator for FactorStream<'a, L> {
+    type Item = [u128; L];
 
-    fn next(&mut self) -> Option<Vec<u128>> {
+    fn next(&mut self) -> Option<[u128; L]> {
         let Some((i, state)) = self.stack.pop() else { return None; };
         // println!("{state:?}");
         let prod: u128 = state
@@ -39,7 +39,7 @@ impl<'a> Iterator for FactorStream<'a> {
             if prod * self.source[j].0 > self.limit {
                 break;
             }
-            let mut next = state.clone();
+            let mut next = state;
             next[j] += 1;
             self.stack.push((j, next));
             maximal = false;
@@ -59,8 +59,8 @@ mod tests {
 
     #[test]
     fn test_stream() {
-        let facts = vec![(2, 3), (3, 2), (5, 1)];
-        let stream = FactorStream::new(&facts, 25);
+        let facts = [(2, 3), (3, 2), (5, 1)];
+        let stream = FactorStream::<3>::new(&facts, 25);
         let mut count = 0;
         for x in stream {
             println!("{x:?}");
