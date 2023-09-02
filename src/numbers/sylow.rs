@@ -161,7 +161,7 @@ where
 impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> Clone for SylowElem<S, L, C> {
     fn clone(&self) -> Self {
         SylowElem {
-            coords: self.coords.clone(),
+            coords: self.coords,
             _phantom: PhantomData,
         }
     }

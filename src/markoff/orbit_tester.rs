@@ -36,12 +36,12 @@ impl<const P: u128> OrbitTester<P> {
         let handle = thread::spawn(move || {
             for (x, y, z) in rx.iter() {
                 if results.contains_key(&z) {
-                    results.get_mut(&x).map(|disjoint| {
-                        disjoint.associate(y, z);
-                    });
-                    results.get_mut(&y).map(|disjoint| {
+                    if let Some(disjoint) = results.get_mut(&x) {
+                        disjoint.associate(y, y);
+                    }
+                    if let Some(disjoint) = results.get_mut(&y) {
                         disjoint.associate(x, z);
-                    });
+                    }
                 }
             }
 

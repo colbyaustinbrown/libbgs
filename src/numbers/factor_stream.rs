@@ -39,7 +39,7 @@ impl<'a, const L: usize> Iterator for FactorStream<'a, L> {
             if prod * self.source[j].0 > self.limit {
                 break;
             }
-            let mut next = state.clone();
+            let mut next = state;
             next[j] += 1;
             self.stack.push((j, next));
             maximal = false;

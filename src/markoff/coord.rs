@@ -11,7 +11,7 @@ impl<const P: u128> Coord<P> {
         let v3 = long_multiply(self.0 .0, 3, P);
         let disc = intpow(v3, 2, P);
         let disc = (disc + P - 4) % P;
-        let chi = QuadNum::int_sqrt_either(disc).map_either(
+        QuadNum::int_sqrt_either(disc).map_either(
             |mut x| {
                 x.0 += v3;
                 if x.0 % 2 == 1 {
@@ -32,8 +32,7 @@ impl<const P: u128> Coord<P> {
                 x.0 /= 2;
                 x
             },
-        );
-        chi
+        )
     }
 
     pub fn from_chi_fp<S, const L: usize>(
@@ -68,7 +67,7 @@ impl<const P: u128> Coord<P> {
         Coord(FpNum::from((chi + chi_inv).0))
     }
 
-    pub fn rot<'a>(self, b: Coord<P>, c: Coord<P>) -> impl Iterator<Item = (Coord<P>, Coord<P>)> {
+    pub fn rot(self, b: Coord<P>, c: Coord<P>) -> impl Iterator<Item = (Coord<P>, Coord<P>)> {
         std::iter::successors(Some((b, c)), move |(y, z)| {
             let (b_, c_) = (*z, Coord::from(self.0 * z.0 + P.into() - y.0));
             if b_ == b && c_ == c {

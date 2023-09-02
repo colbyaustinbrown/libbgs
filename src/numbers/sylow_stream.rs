@@ -195,7 +195,7 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> It
                     }
                 }
 
-                let mut rs = seed.rs.clone();
+                let mut rs = seed.rs;
                 rs[seed.i] += 1;
 
                 let push = StackElem::Seed(Seed {
@@ -273,7 +273,7 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug>
                 i: j,
                 coords,
                 step: intpow(p, d - 1, 0),
-                rs: seed.rs.clone(),
+                rs: seed.rs,
                 block_upper: false,
                 contributed: false,
             };
@@ -290,7 +290,7 @@ impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> Clone for Seed<S, L, C> 
         Seed {
             i: self.i,
             step: self.step,
-            rs: self.rs.clone(),
+            rs: self.rs,
             coords: self.coords.clone(),
             block_upper: self.block_upper,
             contributed: self.contributed,
