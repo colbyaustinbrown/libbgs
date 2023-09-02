@@ -30,7 +30,7 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
     }
 
     fn order<const L: usize>(&self, parent_size: &Factorization<L>) -> Factorization<L> {
-        let mut prime_powers = [(0,0); L];
+        let mut prime_powers = [(0, 0); L];
         for i in 0..L {
             let mut x = self.clone();
             for j in 0..L {

@@ -34,14 +34,18 @@ impl<const P: u128> FpNum<P> {
         let mut m = s;
 
         loop {
-            if t == 1 { return Some(r); }
+            if t == 1 {
+                return Some(r);
+            }
             let mut temp = t;
             let mut i = 0;
             while temp != 1 {
                 temp = temp.square();
                 i += 1;
             }
-            if i == m { return None; }
+            if i == m {
+                return None;
+            }
             let b = c.pow(1 << (m - i - 1));
 
             r *= b;
@@ -72,9 +76,9 @@ impl<const P: u128> FpNum<P> {
     }
 }
 
-impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for FpNum<P> 
+impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for FpNum<P>
 where
-    FpNum<P>: Factored<S, L>
+    FpNum<P>: Factored<S, L>,
 {
     fn find_sylow_generator(i: usize) -> FpNum<P> {
         match <Self as Factored<S, L>>::FACTORS[i] {
@@ -243,17 +247,11 @@ mod tests {
     const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
     impl Factored<Phantom, 2> for FpNum<13> {
-        const FACTORS: Factorization<2> = Factorization::new([
-            (2, 2),
-            (3, 1),
-        ]);
+        const FACTORS: Factorization<2> = Factorization::new([(2, 2), (3, 1)]);
     }
 
     impl Factored<Phantom, 2> for FpNum<29> {
-        const FACTORS: Factorization<2> = Factorization::new([
-            (2, 2),
-            (7, 1),
-        ]);
+        const FACTORS: Factorization<2> = Factorization::new([(2, 2), (7, 1)]);
     }
 
     impl Factored<Phantom, 7> for FpNum<BIG_P> {
@@ -360,12 +358,13 @@ mod tests {
     fn sylow_order_big() {
         let n = 123456789;
         let mut x = SylowElem::<Phantom, 7, FpNum<BIG_P>>::new(
-            SylowElem::<Phantom, 7, FpNum<BIG_P>>::FACTORS.prime_powers()
+            SylowElem::<Phantom, 7, FpNum<BIG_P>>::FACTORS
+                .prime_powers()
                 .iter()
                 .map(|(p, d)| n % intpow(*p, *d, 0))
                 .collect::<Vec<u128>>()
                 .try_into()
-                .unwrap()
+                .unwrap(),
         );
         let or = x.order().value();
         x = x.pow(or);

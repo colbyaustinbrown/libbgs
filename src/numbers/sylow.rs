@@ -52,7 +52,9 @@ impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> Factored<S, L> for Sylow
     const FACTORS: Factorization<L> = <C as Factored<S, L>>::FACTORS;
 }
 
-impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowDecomposable<S, L> for SylowElem<S, L, C> {
+impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowDecomposable<S, L>
+    for SylowElem<S, L, C>
+{
     fn find_sylow_generator(i: usize) -> Self {
         let mut coords = [0; L];
         coords[i] = 1;
@@ -81,7 +83,7 @@ impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowElem<S, L, C> {
     }
 
     pub fn order(&self) -> Factorization<L> {
-        let mut prime_powers = [(0,0); L];
+        let mut prime_powers = [(0, 0); L];
         for i in 0..L {
             let mut x = self.clone();
             for j in 0..L {
@@ -175,7 +177,10 @@ pub mod tests {
     use super::*;
 
     // utility method for external tests
-    pub fn test_is_generator_small<S, const L: usize, C: SylowDecomposable<S, L>>(x: &C, d: u128) -> bool {
+    pub fn test_is_generator_small<S, const L: usize, C: SylowDecomposable<S, L>>(
+        x: &C,
+        d: u128,
+    ) -> bool {
         let mut y = x.clone();
         for _ in 1..d {
             if y.is_one() {
@@ -187,7 +192,10 @@ pub mod tests {
     }
 
     // utility method for external tests
-    pub fn test_is_generator_big<S, const L: usize, C: SylowDecomposable<S, L>>(x: &C, d: (u128, u128)) {
+    pub fn test_is_generator_big<S, const L: usize, C: SylowDecomposable<S, L>>(
+        x: &C,
+        d: (u128, u128),
+    ) {
         let mut y = x.clone();
         for _ in 0..d.1 {
             assert!(!y.is_one());

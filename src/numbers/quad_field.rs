@@ -8,9 +8,9 @@ use crate::util::*;
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub struct QuadNum<const P: u128>(pub u128, pub u128);
 
-impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for QuadNum<P> 
+impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for QuadNum<P>
 where
-    QuadNum<P>: Factored<S, L>
+    QuadNum<P>: Factored<S, L>,
 {
     fn find_sylow_generator(i: usize) -> QuadNum<P> {
         let pow = P - 1;
@@ -48,8 +48,7 @@ impl<const P: u128> QuadNum<P> {
     }
 
     pub fn int_sqrt(x: u128) -> QuadNum<P> {
-        Self::int_sqrt_either(x)
-            .left_or_else(|n| QuadNum::from((n.into(), 0)))
+        Self::int_sqrt_either(x).left_or_else(|n| QuadNum::from((n.into(), 0)))
     }
 
     pub const R: u128 = FpNum::<P>::find_nonresidue(P);
@@ -119,21 +118,16 @@ mod tests {
     use crate::numbers::sylow::tests::*;
 
     const BIG_P: u128 = 1_000_000_000_000_000_124_399;
-    
+
     #[derive(PartialEq, Eq)]
     struct Phantom {}
 
     impl Factored<Phantom, 1> for QuadNum<7> {
-        const FACTORS: Factorization<1> = Factorization::new([
-            (2, 3),
-        ]);
+        const FACTORS: Factorization<1> = Factorization::new([(2, 3)]);
     }
 
     impl Factored<Phantom, 2> for QuadNum<17> {
-        const FACTORS: Factorization<2> = Factorization::new([
-            (2, 1),
-            (3, 2)
-        ]);
+        const FACTORS: Factorization<2> = Factorization::new([(2, 1), (3, 2)]);
     }
 
     impl Factored<Phantom, 11> for QuadNum<BIG_P> {

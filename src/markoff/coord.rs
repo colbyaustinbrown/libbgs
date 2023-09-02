@@ -8,7 +8,7 @@ pub struct Coord<const P: u128>(FpNum<P>);
 
 impl<const P: u128> Coord<P> {
     pub fn to_chi(&self) -> Either<QuadNum<P>, FpNum<P>> {
-        let v3 = long_multiply(self.0.0, 3, P);
+        let v3 = long_multiply(self.0 .0, 3, P);
         let disc = intpow(v3, 2, P);
         let disc = (disc + P - 4) % P;
         let chi = QuadNum::int_sqrt_either(disc).map_either(
@@ -39,10 +39,10 @@ impl<const P: u128> Coord<P> {
     pub fn from_chi_fp<S, const L: usize>(
         chi: &SylowElem<S, L, FpNum<P>>,
         decomp: &SylowDecomp<S, L, FpNum<P>>,
-    ) -> Coord<P> 
+    ) -> Coord<P>
     where
         S: Eq,
-        FpNum<P>: Factored<S, L>
+        FpNum<P>: Factored<S, L>,
     {
         let chi_inv = chi.inverse().to_product(decomp);
         let chi = chi.to_product(decomp);
@@ -55,10 +55,10 @@ impl<const P: u128> Coord<P> {
     pub fn from_chi_quad<S, const L: usize>(
         chi: &SylowElem<S, L, QuadNum<P>>,
         decomp: &SylowDecomp<S, L, QuadNum<P>>,
-    ) -> Coord<P> 
+    ) -> Coord<P>
     where
         S: Eq,
-        QuadNum<P>: Factored<S, L>
+        QuadNum<P>: Factored<S, L>,
     {
         let chi_inv = chi.inverse().to_product(decomp);
         let chi = chi.to_product(decomp);
@@ -68,11 +68,7 @@ impl<const P: u128> Coord<P> {
         Coord(FpNum::from((chi + chi_inv).0))
     }
 
-    pub fn rot<'a>(
-        self,
-        b: Coord<P>,
-        c: Coord<P>,
-    ) -> impl Iterator<Item = (Coord<P>, Coord<P>)> {
+    pub fn rot<'a>(self, b: Coord<P>, c: Coord<P>) -> impl Iterator<Item = (Coord<P>, Coord<P>)> {
         std::iter::successors(Some((b, c)), move |(y, z)| {
             let (b_, c_) = (*z, Coord::from(self.0 * z.0 + P.into() - y.0));
             if b_ == b && c_ == c {
@@ -88,10 +84,9 @@ impl<const P: u128> Coord<P> {
         minusonesize: &Factorization<L>,
         plusonesize: &Factorization<L>,
     ) -> Factorization<L> {
-        self.to_chi().as_ref().either(
-            |l| l.order(plusonesize),
-            |r| r.order(minusonesize),
-        )
+        self.to_chi()
+            .as_ref()
+            .either(|l| l.order(plusonesize), |r| r.order(minusonesize))
     }
 }
 
