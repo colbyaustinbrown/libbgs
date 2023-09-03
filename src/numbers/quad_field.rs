@@ -52,6 +52,7 @@ impl<const P: u128> QuadNum<P> {
         self.0 == 0 && self.1 == 0
     }
 
+    /// Returns the Steinitz element of $\mathbb{F}\_{p^2}$ with index `i`.
     pub fn steinitz(i: u128) -> QuadNum<P> {
         QuadNum::from((i % P, i / P))
     }

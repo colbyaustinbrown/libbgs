@@ -12,8 +12,6 @@ use crate::util::*;
 /// and $G$ is a finite cyclic group.
 #[derive(PartialEq, Eq, Debug)]
 pub struct SylowDecomp<S, const L: usize, C: SylowDecomposable<S, L>> {
-    /// Deprecated. Do not access this field directly.
-    #[deprecated]
     generators: [C; L],
     _phantom: PhantomData<S>,
 }
@@ -65,6 +63,11 @@ impl<const L: usize, S: Eq, C: SylowDecomposable<S, L>> SylowDecomp<S, L, C> {
         }
     }
 
+    /// Get the generators for decomposition.
+    /// The index of each generator corresponds to the index of the prime power in the
+    /// factorization. That is, if the prime power at index `i` of the factorization is $$(p, t)$$,
+    /// then the generator at index `i` of the array returned by the `generators` method is a
+    /// generator of the Sylow subgroup of order $$p^t$$.
     pub fn generators(&self) -> &[C] {
         &self.generators
     }

@@ -58,6 +58,7 @@ impl<const P: u128> FpNum<P> {
         }
     }
 
+    /// Returns a quadratic nonresidue modulo `p`.
     pub const fn find_nonresidue(p: u128) -> u128 {
         if p % 4 == 3 {
             p - 1

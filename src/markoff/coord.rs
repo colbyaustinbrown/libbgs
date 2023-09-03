@@ -3,10 +3,17 @@ use either::*;
 use crate::numbers::*;
 use crate::util::*;
 
+/// A coordinate for a Markoff triple.
+/// May represent any of $a$, $b$, or $c$ in a Markoff triple $(a, b, c)$.
+/// This is a single field struct containing only an `FpNum<P>` for prime `P`.
 #[derive(PartialEq, Clone, Copy, Eq, Debug)]
 pub struct Coord<const P: u128>(FpNum<P>);
 
 impl<const P: u128> Coord<P> {
+    /// Returns an element $\chi$ such that, for a coordinate $a$, $a = \chi + \chi^{-1}$.
+    /// If $a$ is a quadratic residue modulo `P`, then $\chi \in \mathbb{F}\_p$, and the result
+    /// will be a `Right<FpNum<P>>`. Otherwise, $\chi \in \mathbb{F}\_{p^2}$, and the result will
+    /// be a `Left<QuadNum<P>>`.
     pub fn to_chi(&self) -> Either<QuadNum<P>, FpNum<P>> {
         let v3 = long_multiply(self.0 .0, 3, P);
         let disc = intpow(v3, 2, P);
@@ -35,6 +42,7 @@ impl<const P: u128> Coord<P> {
         )
     }
 
+    /// Returns the coordinate $a = \chi + \chi^{-1}$, where $\chi \in \mathbb{F}_p$.
     pub fn from_chi_fp<S, const L: usize>(
         chi: &SylowElem<S, L, FpNum<P>>,
         decomp: &SylowDecomp<S, L, FpNum<P>>,
@@ -51,6 +59,7 @@ impl<const P: u128> Coord<P> {
         Coord(chi + chi_inv)
     }
 
+    /// Returns the coordinate $a = \chi + \chi^{-1}$, where $\chi \in \mathbb{F}_{p^2}$.
     pub fn from_chi_quad<S, const L: usize>(
         chi: &SylowElem<S, L, QuadNum<P>>,
         decomp: &SylowDecomp<S, L, QuadNum<P>>,
@@ -67,6 +76,8 @@ impl<const P: u128> Coord<P> {
         Coord(FpNum::from((chi + chi_inv).0))
     }
 
+    /// Returns an iterator yielding the coordinates $(b, c)$ contained in the orbit with fixed coordinate
+    /// $a$ (the coordinate on which `rot` is called), beginning with $(a, b, c)$.
     pub fn rot(self, b: Coord<P>, c: Coord<P>) -> impl Iterator<Item = (Coord<P>, Coord<P>)> {
         std::iter::successors(Some((b, c)), move |(y, z)| {
             let (b_, c_) = (*z, Coord::from(self.0 * z.0 + P.into() - y.0));
@@ -78,6 +89,7 @@ impl<const P: u128> Coord<P> {
         })
     }
 
+    /// Returns the order of the map $\text{rot}\_a$, that is, $\lvert \langle \text{rot}\_a \rangle \rvert$.
     pub fn get_ord<const L: usize>(
         &self,
         minusonesize: &Factorization<L>,
