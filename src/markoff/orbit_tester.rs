@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
 
 use itertools::*;
@@ -15,7 +14,6 @@ pub struct OrbitTester<const P: u128> {
 
 /// The results of a successfully run `OrbitTester`.
 pub struct OrbitTesterResults {
-    failures: u64,
     results: HashMap<u128, Disjoint<u128>>,
 }
 
@@ -34,8 +32,6 @@ impl<const P: u128> OrbitTester<P> {
         let mut inv2 = FpNum::<P>::from(2);
         inv2 = inv2.inverse();
 
-        // TOOD: is it a problem that this is a u64 and not a u128?
-        let failures = AtomicU64::new(0);
         let (tx, rx) = std::sync::mpsc::sync_channel::<Msg>(1024);
 
         let handle = thread::spawn(move || {
@@ -77,9 +73,7 @@ impl<const P: u128> OrbitTester<P> {
                         let z = (neg_b - root_disc) * inv2;
                         _ = tx.send((x.0, y.0, z.0));
                     }
-                    None => {
-                        failures.fetch_add(1, Ordering::Relaxed);
-                    }
+                    None => {}
                 }
             });
         drop(tx);
@@ -87,7 +81,6 @@ impl<const P: u128> OrbitTester<P> {
         let results = handle.join().unwrap();
 
         OrbitTesterResults {
-            failures: failures.into_inner(),
             results,
         }
     }
@@ -112,11 +105,5 @@ impl OrbitTesterResults {
     /// orbits under the fixed first coordinate.
     pub fn results(&self) -> impl Iterator<Item = (&u128, &Disjoint<u128>)> {
         self.results.iter()
-    }
-
-    /// Deprecated.
-    #[deprecated]
-    pub fn failures(&self) -> u64 {
-        self.failures
     }
 }

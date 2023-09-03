@@ -116,5 +116,4 @@ fn main() {
         }
     }
     println!("{repless_count} coordinates had no representative.");
-    println!("There were {} pairs of coordinates which did not form the first two coordinates in the solution of the Markoff equation.", results.failures());
 }
