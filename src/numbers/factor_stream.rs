@@ -8,12 +8,12 @@ pub struct FactorStream<'a, const L: usize> {
 }
 
 impl<'a, const L: usize> FactorStream<'a, L> {
-    pub fn new(source: &'a [(u128, u128)], limit: u128) -> FactorStream<L> {
+    pub fn new(source: &'a [(u128, u128)], limit: u128, maximal_only: bool) -> FactorStream<L> {
         FactorStream {
             source,
             limit,
             stack: vec![(0, [0; L])],
-            maximal_only: true,
+            maximal_only,
         }
     }
 }
@@ -58,15 +58,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_stream() {
+    fn test_stream_max() {
         let facts = [(2, 3), (3, 2), (5, 1)];
-        let stream = FactorStream::<3>::new(&facts, 25);
+        let stream = FactorStream::<3>::new(&facts, 25, true);
         let mut count = 0;
-        for x in stream {
-            println!("{x:?}");
-            // assert!(x < 25);
+        for _ in stream {
             count += 1;
         }
         assert_eq!(count, 4);
+    }
+
+    #[test]
+    fn test_stream_all() {
+        let facts = [(2, 3), (3, 2), (5, 1)];
+        let stream = FactorStream::<3>::new(&facts, 25, false);
+        let mut count = 0;
+        for _ in stream {
+            count += 1;
+        }
+        assert_eq!(count, 14);
     }
 }
