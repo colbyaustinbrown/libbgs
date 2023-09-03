@@ -1,59 +1,74 @@
 use std::fmt;
 
-use crate::numbers::factorization::*;
-
-pub trait Group: Eq {
-    type Elem: GroupElem<Group = Self>;
-
-    fn size(&self) -> u128;
-    fn one(&self) -> Self::Elem;
-}
-
+use crate::numbers::Factorization;
+/// Types that represent the elements of a group.
+/// In order for a type to represent the elements of the group, the type must satisfy these axioms:
+/// * The type has a binary operator (`multiply`).
+/// * The type must have a unique element given by `one()`.
+/// * Event element of the type must have element given by `inverse()`.
 pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
-    type Group: Group<Elem = Self>;
+    /// Gets the size of the group represented by this struct.
+    fn size() -> u128;
+    
+    /// Gets the unique identity element of this group.
+    fn one() -> Self;
 
-    fn is_one(&self, g: &Self::Group) -> bool;
-    fn multiply(&self, other: &Self, g: &Self::Group) -> Self;
-    fn square(&self, g: &Self::Group) -> Self;
+    /// True if this element is the multiplicative identity; false otherwise.
+    fn is_one(&self) -> bool;
 
-    fn pow(&self, mut n: u128, g: &Self::Group) -> Self {
-        let mut y = Self::Group::one(g);
+    /// Returns the product of two elements under the group binary operator.
+    /// If you implement this trait, you must guarantee that the operation is associative; that is,
+    /// `a.multiply(b.multiply(c, &g), &g) == a.multiply(b, &g).multiply(c, &g)`.
+    fn multiply(&self, other: &Self) -> Self;
+
+    /// Returns this element multiplied by itself.
+    /// If you implement this trait, you must guarantee `x.square() == x.multiply(x)` for all `x`.
+    fn square(&self) -> Self;
+
+    /// Raises this element to the power of `n`.
+    /// If you override this trait, you must guarantee that `x.pow(2) == x.square()` for all `x`.
+    fn pow(&self, mut n: u128) -> Self {
+        let mut y = Self::one();
         let mut res = self.clone();
         while n > 1 {
             // println!("{n} {:?} {:?}", &self, y);
             if n % 2 == 1 {
-                y = y.multiply(&res, g);
+                y = y.multiply(&res);
             }
-            res = res.square(g);
+            res = res.square();
             n >>= 1;
         }
-        res.multiply(&y, g)
+        res.multiply(&y)
     }
 
-    fn invert(&self, g: &Self::Group) -> Self {
+    /// Returns the multiplicative inverse of this element.
+    /// If you implement this trait, you must guarantee `x.inverse().multiply(x)` and
+    /// `x.multiply(x.inverse())` both evaluate to the unique identity element.
+    fn inverse(&self) -> Self {
         let res = self.clone();
-        res.pow(g.size() - 1, g)
+        res.pow(Self::size() - 1)
     }
 
-    fn order(&self, parent: &Self::Group, parent_size: &Factorization) -> Factorization {
-        let prime_powers: Vec<(u128, u128)> = (0..parent_size.len())
-            .map(|i| {
-                let mut x = self.clone();
-                for j in 0..parent_size.len() {
-                    if j == i {
-                        continue;
-                    }
-                    x = x.pow(parent_size.factor(j), parent);
+    /// Returns the order of this element, that is, the smallest positive power `p` for which
+    /// `a.pow(p, &g).is_one(&g)` returns True.
+    fn order<const L: usize>(&self, parent_size: &Factorization<L>) -> Factorization<L> {
+        let mut prime_powers = [(0, 0); L];
+        for i in 0..L {
+            let mut x = self.clone();
+            for j in 0..L {
+                if j == i {
+                    continue;
                 }
+                x = x.pow(parent_size.factor(j));
+            }
 
-                let mut r = 0;
-                while !x.is_one(parent) {
-                    x = x.pow(parent_size[i].0, parent);
-                    r += 1;
-                }
-                (parent_size[i].0, r)
-            })
-            .collect();
+            let mut r = 0;
+            while !x.is_one() {
+                x = x.pow(parent_size[i].0);
+                r += 1;
+            }
+            prime_powers[i] = (parent_size[i].0, r)
+        }
         Factorization::new(prime_powers)
     }
 }

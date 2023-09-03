@@ -2,27 +2,16 @@ use criterion::{criterion_group, criterion_main, Criterion};
 
 use std::collections::HashSet;
 
-use libbgs::markoff::coord::Coord;
-use libbgs::markoff::orbit_tester::*;
-use libbgs::numbers::factorization::*;
-use libbgs::numbers::fp::FpStar;
-use libbgs::numbers::quad_field::QuadField;
-use libbgs::numbers::sylow::*;
-use libbgs::numbers::sylow_stream::*;
+use libbgs::markoff::*;
+use libbgs::numbers::*;
 
 const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
-fn run_tester<'a>(stream: impl Iterator<Item = &'a u128>) {
-    let mut tester = OrbitTester::new(&FpStar::<BIG_P> {});
-    for x in stream {
-        tester = tester.add_target(*x);
-    }
+#[derive(PartialEq, Eq)]
+struct Phantom {}
 
-    tester.run();
-}
-
-fn criterion_benchmark(c: &mut Criterion) {
-    let fp = Factorization::new(vec![
+impl Factored<Phantom, 7> for FpNum<BIG_P> {
+    const FACTORS: Factorization<7> = Factorization::new([
         (2, 1),
         (7, 1),
         (13, 1),
@@ -31,7 +20,10 @@ fn criterion_benchmark(c: &mut Criterion) {
         (705737, 1),
         (215288719, 1),
     ]);
-    let fp2_fact = Factorization::new(vec![
+}
+
+impl Factored<Phantom, 11> for QuadNum<BIG_P> {
+    const FACTORS: Factorization<11> = Factorization::new([
         (2, 4),
         (3, 1),
         (5, 2),
@@ -44,11 +36,21 @@ fn criterion_benchmark(c: &mut Criterion) {
         (1453, 1),
         (8689, 1),
     ]);
-    let fp2 = QuadField::<BIG_P>::make();
-    let fp_decomp = SylowDecomp::new(&FpStar::<BIG_P> {}, fp.clone());
-    let fp2_decomp = SylowDecomp::new(&fp2, fp2_fact.clone());
+}
 
+fn run_tester<'a>(stream: impl Iterator<Item = &'a u128>) {
+    let mut tester = OrbitTester::<BIG_P>::new();
+    for x in stream {
+        tester = tester.add_target(*x);
+    }
+
+    tester.run();
+}
+
+fn criterion_benchmark(c: &mut Criterion) {
     const LIMIT: u128 = 50;
+    let fp_decomp = SylowDecomp::new();
+    let fp2_decomp = SylowDecomp::new();
 
     let mut fp_stream_builder = SylowStreamBuilder::new(&fp_decomp)
         .add_flag(flags::NO_UPPER_HALF)
@@ -59,11 +61,11 @@ fn criterion_benchmark(c: &mut Criterion) {
         .add_flag(flags::NO_PARABOLIC)
         .add_flag(flags::LEQ);
 
-    for d in fp.maximal_divisors(LIMIT) {
+    for d in FpNum::FACTORS.maximal_divisors(LIMIT) {
         fp_stream_builder = fp_stream_builder.add_target(d);
     }
 
-    for d in fp2_fact.maximal_divisors(LIMIT) {
+    for d in QuadNum::FACTORS.maximal_divisors(LIMIT) {
         fp2_stream_builder = fp2_stream_builder.add_target(d);
     }
 
@@ -78,7 +80,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let mut targets = HashSet::new();
     for x in stream {
-        targets.insert(x.v());
+        targets.insert(x.into());
     }
 
     let mut group = c.benchmark_group("orbits");

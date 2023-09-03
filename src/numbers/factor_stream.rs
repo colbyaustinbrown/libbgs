@@ -1,27 +1,36 @@
 use crate::util::intpow;
 
-pub struct FactorStream<'a> {
+/// An iterator yielding all of the factors of some number beneath a limit.
+/// The type parameter `L` is the length of the factorization.
+pub struct FactorStream<'a, const L: usize> {
     source: &'a [(u128, u128)],
-    stack: Vec<(usize, Vec<u128>)>,
+    stack: Vec<(usize, [u128; L])>,
     limit: u128,
     maximal_only: bool,
 }
 
-impl<'a> FactorStream<'a> {
-    pub fn new(source: &'a [(u128, u128)], limit: u128) -> FactorStream {
+impl<'a, const L: usize> FactorStream<'a, L> {
+    /// Creates a new `FactorStream`, which will return all of the factors of `source` beneath
+    /// `limit`.
+    /// In particular, it will return all values $d$ satisfying these properties:
+    /// * $d | n$
+    /// * $d < limit$
+    /// * (if and only if `maximal_only` is True) There does not exist a $k$, $d | k | n$, with $k <
+    /// limit$
+    pub fn new(source: &'a [(u128, u128)], limit: u128, maximal_only: bool) -> FactorStream<L> {
         FactorStream {
             source,
             limit,
-            stack: vec![(0, vec![0; source.len()])],
-            maximal_only: true,
+            stack: vec![(0, [0; L])],
+            maximal_only,
         }
     }
 }
 
-impl<'a> Iterator for FactorStream<'a> {
-    type Item = Vec<u128>;
+impl<'a, const L: usize> Iterator for FactorStream<'a, L> {
+    type Item = [u128; L];
 
-    fn next(&mut self) -> Option<Vec<u128>> {
+    fn next(&mut self) -> Option<[u128; L]> {
         let Some((i, state)) = self.stack.pop() else { return None; };
         // println!("{state:?}");
         let prod: u128 = state
@@ -39,7 +48,7 @@ impl<'a> Iterator for FactorStream<'a> {
             if prod * self.source[j].0 > self.limit {
                 break;
             }
-            let mut next = state.clone();
+            let mut next = state;
             next[j] += 1;
             self.stack.push((j, next));
             maximal = false;
@@ -58,15 +67,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_stream() {
-        let facts = vec![(2, 3), (3, 2), (5, 1)];
-        let stream = FactorStream::new(&facts, 25);
+    fn test_stream_max() {
+        let facts = [(2, 3), (3, 2), (5, 1)];
+        let stream = FactorStream::<3>::new(&facts, 25, true);
         let mut count = 0;
-        for x in stream {
-            println!("{x:?}");
-            // assert!(x < 25);
+        for _ in stream {
             count += 1;
         }
         assert_eq!(count, 4);
+    }
+
+    #[test]
+    fn test_stream_all() {
+        let facts = [(2, 3), (3, 2), (5, 1)];
+        let stream = FactorStream::<3>::new(&facts, 25, false);
+        let mut count = 0;
+        for _ in stream {
+            count += 1;
+        }
+        assert_eq!(count, 14);
     }
 }

@@ -1,49 +1,48 @@
 use std::collections::{HashMap, HashSet};
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
 
 use itertools::*;
 use rayon::prelude::*;
 
-use crate::markoff::disjoint::Disjoint;
-use crate::numbers::fp::*;
-use crate::numbers::group::GroupElem;
+use crate::markoff::Disjoint;
+use crate::numbers::{FpNum, GroupElem};
 
-pub struct OrbitTester<'a, const P: u128> {
-    f: &'a FpStar<P>,
+/// Configures tests to be run on orbits of the Markoff graph modulo `P`.
+pub struct OrbitTester<const P: u128> {
     targets: HashSet<u128>,
 }
 
+/// The results of a successfully run `OrbitTester`.
 pub struct OrbitTesterResults {
-    failures: u64,
     results: HashMap<u128, Disjoint<u128>>,
 }
 
 type Msg = (u128, u128, u128);
 
-impl<'a, const P: u128> OrbitTester<'a, P> {
+impl<const P: u128> OrbitTester<P> {
+    /// Consume and run this `OrbitTester`, blocking until completion, and returning the results.
+    /// This method may spawn multiple worker threads, which are guarenteed to be joined before
+    /// `run` returns.
     pub fn run(self) -> OrbitTesterResults {
         let mut results = HashMap::with_capacity(self.targets.len());
         for x in &self.targets {
             results.insert(*x, Disjoint::new());
         }
 
-        let mut inv2 = FpNum::from(2);
-        inv2 = inv2.invert(self.f);
+        let mut inv2 = FpNum::<P>::from(2);
+        inv2 = inv2.inverse();
 
-        // TOOD: is it a problem that this is a u64 and not a u128?
-        let failures = AtomicU64::new(0);
         let (tx, rx) = std::sync::mpsc::sync_channel::<Msg>(1024);
 
         let handle = thread::spawn(move || {
             for (x, y, z) in rx.iter() {
                 if results.contains_key(&z) {
-                    results.get_mut(&x).map(|disjoint| {
-                        disjoint.associate(y, z);
-                    });
-                    results.get_mut(&y).map(|disjoint| {
+                    if let Some(disjoint) = results.get_mut(&x) {
+                        disjoint.associate(y, y);
+                    }
+                    if let Some(disjoint) = results.get_mut(&y) {
                         disjoint.associate(x, z);
-                    });
+                    }
                 }
             }
 
@@ -74,9 +73,7 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
                         let z = (neg_b - root_disc) * inv2;
                         _ = tx.send((x.0, y.0, z.0));
                     }
-                    None => {
-                        failures.fetch_add(1, Ordering::Relaxed);
-                    }
+                    None => {}
                 }
             });
         drop(tx);
@@ -84,30 +81,29 @@ impl<'a, const P: u128> OrbitTester<'a, P> {
         let results = handle.join().unwrap();
 
         OrbitTesterResults {
-            failures: failures.into_inner(),
             results,
         }
     }
 
-    pub fn new(f: &FpStar<P>) -> OrbitTester<P> {
+    /// Creates a new `OrbetTester` with default settings and no targets.
+    pub fn new() -> OrbitTester<P> {
         OrbitTester {
-            f,
             targets: HashSet::new(),
         }
     }
 
-    pub fn add_target(mut self, t: u128) -> OrbitTester<'a, P> {
+    /// Adds a target order to the list of orders to be tested.
+    pub fn add_target(mut self, t: u128) -> OrbitTester<P> {
         self.targets.insert(t);
         self
     }
 }
 
 impl OrbitTesterResults {
+    /// The results of the test, as an iterator yielding each coordinate of a target order, along
+    /// with the partitioning of the target orders into disjoint sets, which are subsets of the
+    /// orbits under the fixed first coordinate.
     pub fn results(&self) -> impl Iterator<Item = (&u128, &Disjoint<u128>)> {
         self.results.iter()
-    }
-
-    pub fn failures(&self) -> u64 {
-        self.failures
     }
 }

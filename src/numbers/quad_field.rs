@@ -2,110 +2,115 @@ use std::ops::*;
 
 use either::*;
 
-use crate::numbers::factorization::*;
-use crate::numbers::fp::*;
-use crate::numbers::sylow::*;
+use crate::numbers::*;
+use crate::util::*;
 
+/// The finite field of size `P^2`. Isomorphic to $\mathbb{Z} / P^2\mathbb{Z}$.
+/// Each `QuadField` has a fixed quadratic nonresidue `r` used as a basis element for the numbers
+/// outside of the prime subfield.
 #[derive(PartialEq, Eq, Debug)]
 pub struct QuadField<const P: u128> {
     r: u128,
 }
 
+/// An integer modulo `P^2`. An element $x$ is represented as $x = a_0 + a_1\sqrt{r}$, where $r$ is
+/// the fixed basis element.
+///
+/// The association between a `QuadNum` instance and a `QuadField` (hence, the fixed basis element
+/// `r`), is implicit.
+/// You must ensure that operations on `QuadNum` instances are associated to the same choice of
+/// `r`.
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
-pub struct QuadNum<const P: u128>(pub u128, pub u128);
+pub struct QuadNum<const P: u128>(
+    /// The value $a_0$, when writing this `QuadNum` as $a_0 + a_1\sqrt{r}$.
+    pub u128, 
+    /// The value $a_1$, when writing this `QuadNum` as $a_0 + a_1\sqrt{r}$.
+    pub u128,
+);
 
-impl<const P: u128> QuadField<P> {
-    pub fn new(r: u128) -> QuadField<P> {
-        QuadField { r }
-    }
-
-    pub fn make() -> QuadField<P> {
-        QuadField::new(find_nonresidue(P))
-    }
-
-    pub fn int_sqrt_either(&self, x: u128) -> Either<QuadNum<P>, FpNum<P>> {
-        let mut x = FpNum::from(x);
-        if let Some(y) = x.int_sqrt() {
-            return Right(y);
-        }
-
-        let fp = FpStar::<P> {};
-        let r = FpNum::from(self.r).invert(&fp);
-        x = x.multiply(&r, &fp);
-        let a1 = x.int_sqrt().unwrap();
-        Left(QuadNum(0, a1.into()))
-    }
-
-    pub fn int_sqrt(&self, x: u128) -> QuadNum<P> {
-        self.int_sqrt_either(x)
-            .left_or_else(|n| QuadNum::from((n.into(), 0)))
-    }
-
-    pub fn steinitz(&self, i: u128) -> QuadNum<P> {
-        QuadNum::from((i % P, i / P))
-    }
-
-    pub fn r(&self) -> u128 {
-        self.r
-    }
-}
-
-impl<const P: u128> Group for QuadField<P> {
-    type Elem = QuadNum<P>;
-
-    fn size(&self) -> u128 {
-        P + 1
-    }
-
-    fn one(&self) -> QuadNum<P> {
-        QuadNum(1, 0)
-    }
-}
-
-impl<const P: u128> SylowDecomposable for QuadField<P> {
-    fn find_sylow_generator(&self, i: usize, fact: &Factorization) -> QuadNum<P> {
+impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for QuadNum<P>
+where
+    QuadNum<P>: Factored<S, L>,
+{
+    fn find_sylow_generator(i: usize) -> QuadNum<P> {
         let pow = P - 1;
         // should be self.p * self.p, but maybe this works?
         (1..P * 2)
             .map(|i| {
                 let j = standard_affine_shift(P * 2, i);
-                let p = self.steinitz(j);
-                p.pow(pow, self)
+                let p = QuadNum::steinitz(j);
+                p.pow(pow)
             })
-            .find_map(|c| self.is_sylow_generator(&c, fact[i]))
+            .find_map(|c| QuadNum::is_sylow_generator(&c, <Self as Factored<S, L>>::FACTORS[i]))
             .unwrap()
     }
 }
 
 impl<const P: u128> QuadNum<P> {
+    /// True if this number is zero; false otherwise.
     pub fn is_zero(&self) -> bool {
         self.0 == 0 && self.1 == 0
     }
+
+    /// Returns the Steinitz element of $\mathbb{F}\_{p^2}$ with index `i`.
+    pub fn steinitz(i: u128) -> QuadNum<P> {
+        QuadNum::from((i % P, i / P))
+    }
+
+    /// Calculates the square root of an integer modulo `P`, casting to an `FpNum<P>` if `x` is a
+    /// quadratic residue.
+    /// Returns a `Left` `QuadNum<P>` if `x` is a quadratic nonresidue, or a `Right` `FpNum<P>` if
+    /// `x` is a quadratic residue (including 0).
+    pub fn int_sqrt_either(x: u128) -> Either<QuadNum<P>, FpNum<P>> {
+        let mut x = FpNum::from(x);
+        if let Some(y) = x.int_sqrt() {
+            return Right(y);
+        }
+
+        let r = FpNum::from(Self::R).inverse();
+        x = x.multiply(&r);
+        let a1 = x.int_sqrt().unwrap();
+        Left(QuadNum(0, a1.into()))
+    }
+
+    /// Calculates the square root af in integer modulo `P`.
+    pub fn int_sqrt(x: u128) -> QuadNum<P> {
+        Self::int_sqrt_either(x).left_or_else(|n| QuadNum::from((n.into(), 0)))
+    }
+
+    /// The basis element for the numbers outside of the prime subfield.
+    pub const R: u128 = FpNum::<P>::find_nonresidue(P);
 }
 
 impl<const P: u128> GroupElem for QuadNum<P> {
-    type Group = QuadField<P>;
-
-    fn is_one(&self, _f: &QuadField<P>) -> bool {
+    fn is_one(&self) -> bool {
         self.0 == 1 && self.1 == 0
     }
 
-    fn multiply(&self, other: &QuadNum<P>, f: &QuadField<P>) -> QuadNum<P> {
+    fn multiply(&self, other: &QuadNum<P>) -> QuadNum<P> {
         QuadNum(
             (long_multiply(self.0, other.0, P)
-                + long_multiply(self.1, long_multiply(other.1, f.r(), P), P))
+                + long_multiply(self.1, long_multiply(other.1, QuadNum::<P>::R, P), P))
                 % P,
             (long_multiply(self.1, other.0, P) + long_multiply(self.0, other.1, P)) % P,
         )
     }
 
-    fn square(&self, f: &QuadField<P>) -> QuadNum<P> {
+    fn square(&self) -> QuadNum<P> {
         QuadNum(
             (long_multiply(self.0, self.0, P)
-                + long_multiply(self.1, long_multiply(self.1, f.r(), P), P))
+                + long_multiply(self.1, long_multiply(self.1, QuadNum::<P>::R, P), P))
                 % P,
             (long_multiply(self.1, self.0, P) + long_multiply(self.0, self.1, P)) % P,
         )
+    }
+
+    fn size() -> u128 {
+        P + 1
+    }
+
+    fn one() -> QuadNum<P> {
+        QuadNum(1, 0)
     }
 }
 
@@ -142,70 +147,19 @@ mod tests {
 
     const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
-    #[test]
-    fn one_is_one() {
-        let f49 = QuadField::<7>::make();
-        let one = f49.one();
-        assert!(one.is_one(&f49));
+    #[derive(PartialEq, Eq)]
+    struct Phantom {}
+
+    impl Factored<Phantom, 1> for QuadNum<7> {
+        const FACTORS: Factorization<1> = Factorization::new([(2, 3)]);
     }
 
-    #[test]
-    fn calculates_r_as_nonresidue() {
-        let f49 = QuadField::<7>::make();
-        for i in 2..7 {
-            assert_ne!((i * i) % 7, f49.r());
-        }
+    impl Factored<Phantom, 2> for QuadNum<17> {
+        const FACTORS: Factorization<2> = Factorization::new([(2, 1), (3, 2)]);
     }
 
-    #[test]
-    fn calculates_r_big() {
-        QuadField::<BIG_P>::make();
-    }
-
-    #[test]
-    fn powers_up() {
-        let f49 = QuadField::<7>::make();
-        let mut x = QuadNum::from((3, 4));
-        x = x.pow(48, &f49);
-        assert!(x.is_one(&f49));
-    }
-
-    #[test]
-    fn powers_up_big() {
-        let fp2 = QuadField::<BIG_P>::make();
-        let mut x = QuadNum(3, 5);
-        x = x.pow(BIG_P - 1, &fp2);
-        x = x.pow(BIG_P + 1, &fp2);
-        println!("{x:?}");
-        assert!(x.is_one(&fp2));
-    }
-
-    #[test]
-    fn finds_sqrt() {
-        let fp2 = QuadField::<BIG_P>::make();
-        for i in 3..1003 {
-            let mut x = fp2.int_sqrt(i);
-            assert_ne!(x, i);
-            x = x.multiply(&x, &fp2);
-            assert_eq!(x, i);
-        }
-    }
-
-    #[test]
-    fn sylow_finds_generators() {
-        let pplusone = Factorization::new(vec![(2, 1), (3, 2)]);
-        let f289 = QuadField::<17>::make();
-        let g = SylowDecomp::new(&f289, pplusone);
-        for i in 0..g.generators.len() {
-            let gen = &g.generators[i];
-            let d = g.factors().factor(i);
-            test_is_generator_small(gen, d, &f289);
-        }
-    }
-
-    #[test]
-    fn sylow_finds_generators_big() {
-        let fp2_fact = Factorization::new(vec![
+    impl Factored<Phantom, 11> for QuadNum<BIG_P> {
+        const FACTORS: Factorization<11> = Factorization::new([
             (2, 4),
             (3, 1),
             (5, 2),
@@ -218,12 +172,63 @@ mod tests {
             (1453, 1),
             (8689, 1),
         ]);
-        let fp2 = QuadField::<BIG_P>::make();
-        let g = SylowDecomp::new(&fp2, fp2_fact);
-        for i in 0..g.generators.len() {
-            let gen = &g.generators[i];
-            let d = g.factors()[i];
-            test_is_generator_big(gen, d, &fp2);
+    }
+
+    #[test]
+    fn one_is_one() {
+        let one = QuadNum::<7>::one();
+        assert!(one.is_one());
+    }
+
+    #[test]
+    fn calculates_r_as_nonresidue() {
+        for i in 2..7 {
+            assert_ne!((i * i) % 7, QuadNum::<7>::R);
+        }
+    }
+
+    #[test]
+    fn powers_up() {
+        let mut x = QuadNum::<7>::from((3, 4));
+        x = x.pow(48);
+        assert!(x.is_one());
+    }
+
+    #[test]
+    fn powers_up_big() {
+        let mut x = QuadNum::<BIG_P>(3, 5);
+        x = x.pow(BIG_P - 1);
+        x = x.pow(BIG_P + 1);
+        assert!(x.is_one());
+    }
+
+    #[test]
+    fn finds_sqrt() {
+        for i in 3..1003 {
+            let mut x = QuadNum::<BIG_P>::int_sqrt(i);
+            assert_ne!(x, i);
+            x = x.multiply(&x);
+            assert_eq!(x, i);
+        }
+    }
+
+    #[test]
+    fn sylow_finds_generators() {
+        let g = SylowDecomp::<Phantom, 2, QuadNum<17>>::new();
+        for i in 0..g.generators().len() {
+            let gen = &g.generators()[i];
+            let d = SylowElem::<Phantom, 2, QuadNum<17>>::FACTORS.factor(i);
+            test_is_generator_small(gen, d);
+        }
+    }
+
+    #[test]
+    fn sylow_finds_generators_big() {
+        let g = SylowDecomp::<Phantom, 11, QuadNum<BIG_P>>::new();
+        for i in 0..g.generators().len() {
+            let gen = &g.generators()[i];
+            let d = SylowElem::<Phantom, 11, QuadNum<BIG_P>>::FACTORS.prime_powers()[i];
+            test_is_generator_big(gen, d);
         }
     }
 }

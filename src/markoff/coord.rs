@@ -1,23 +1,24 @@
 use either::*;
-use std::rc::Rc;
 
-use crate::numbers::factorization::*;
-use crate::numbers::fp::*;
-use crate::numbers::quad_field::*;
-use crate::numbers::sylow::*;
+use crate::numbers::*;
+use crate::util::*;
 
-#[derive(Debug)]
-pub struct Coord<const P: u128> {
-    v: u128,
-    chi: Either<QuadNum<P>, FpNum<P>>,
-}
+/// A coordinate for a Markoff triple.
+/// May represent any of $a$, $b$, or $c$ in a Markoff triple $(a, b, c)$.
+/// This is a single field struct containing only an `FpNum<P>` for prime `P`.
+#[derive(PartialEq, Clone, Copy, Eq, Debug)]
+pub struct Coord<const P: u128>(FpNum<P>);
 
 impl<const P: u128> Coord<P> {
-    pub fn new(v: u128, fp: &QuadField<P>) -> Coord<P> {
-        let v3 = long_multiply(v, 3, P);
+    /// Returns an element $\chi$ such that, for a coordinate $a$, $a = \chi + \chi^{-1}$.
+    /// If $a$ is a quadratic residue modulo `P`, then $\chi \in \mathbb{F}\_p$, and the result
+    /// will be a `Right<FpNum<P>>`. Otherwise, $\chi \in \mathbb{F}\_{p^2}$, and the result will
+    /// be a `Left<QuadNum<P>>`.
+    pub fn to_chi(&self) -> Either<QuadNum<P>, FpNum<P>> {
+        let v3 = long_multiply(self.0 .0, 3, P);
         let disc = intpow(v3, 2, P);
         let disc = (disc + P - 4) % P;
-        let chi = fp.int_sqrt_either(disc).map_either(
+        QuadNum::int_sqrt_either(disc).map_either(
             |mut x| {
                 x.0 += v3;
                 if x.0 % 2 == 1 {
@@ -38,58 +39,49 @@ impl<const P: u128> Coord<P> {
                 x.0 /= 2;
                 x
             },
-        );
-        Coord { v: v % P, chi }
+        )
     }
 
-    pub fn from_chi_fp<'a, 'b: 'a>(
-        chi: &SylowElem<'a, FpStar<P>>,
-        decomp: &SylowDecomp<'b, FpStar<P>>,
-    ) -> Coord<P> {
-        let chi_inv = chi.invert(decomp).to_product(decomp);
+    /// Returns the coordinate $a = \chi + \chi^{-1}$, where $\chi \in \mathbb{F}_p$.
+    pub fn from_chi_fp<S, const L: usize>(
+        chi: &SylowElem<S, L, FpNum<P>>,
+        decomp: &SylowDecomp<S, L, FpNum<P>>,
+    ) -> Coord<P>
+    where
+        S: Eq,
+        FpNum<P>: Factored<S, L>,
+    {
+        let chi_inv = chi.inverse().to_product(decomp);
         let chi = chi.to_product(decomp);
 
         // We use the non-normalized equation:
         // x^2 + y^2 + z^2 - xyz = 0
-        let v = chi + chi_inv;
-        Coord {
-            v: v.into(),
-            chi: Right(chi),
-        }
+        Coord(chi + chi_inv)
     }
 
-    pub fn from_chi_quad<'a, 'b: 'a>(
-        chi: &SylowElem<'a, QuadField<P>>,
-        decomp: &SylowDecomp<'b, QuadField<P>>,
-    ) -> Coord<P> {
-        let chi_inv = chi.invert(decomp).to_product(decomp);
+    /// Returns the coordinate $a = \chi + \chi^{-1}$, where $\chi \in \mathbb{F}_{p^2}$.
+    pub fn from_chi_quad<S, const L: usize>(
+        chi: &SylowElem<S, L, QuadNum<P>>,
+        decomp: &SylowDecomp<S, L, QuadNum<P>>,
+    ) -> Coord<P>
+    where
+        S: Eq,
+        QuadNum<P>: Factored<S, L>,
+    {
+        let chi_inv = chi.inverse().to_product(decomp);
         let chi = chi.to_product(decomp);
 
         // We use the non-normalized equation:
         // x^2 + y^2 + z^2 - xyz = 0
-        Coord {
-            v: (chi + chi_inv).0,
-            chi: Left(chi),
-        }
+        Coord(FpNum::from((chi + chi_inv).0))
     }
 
-    pub fn v(&self) -> u128 {
-        self.v
-    }
-
-    pub fn chi(&self) -> &Either<QuadNum<P>, FpNum<P>> {
-        &self.chi
-    }
-
-    pub fn rot<'a>(
-        self: &'a Rc<Self>,
-        b: &'a Rc<Coord<P>>,
-        c: &'a Rc<Coord<P>>,
-        fp: &'a QuadField<P>,
-    ) -> impl Iterator<Item = (Rc<Coord<P>>, Rc<Coord<P>>)> + 'a {
-        std::iter::successors(Some((Rc::clone(b), Rc::clone(c))), move |(y, z)| {
-            let (b_, c_) = (Rc::clone(z), Rc::new(Coord::new(self.v() * z.v() + P - y.v(), fp)));
-            if &b_ == b && &c_ == c {
+    /// Returns an iterator yielding the coordinates $(b, c)$ contained in the orbit with fixed coordinate
+    /// $a$ (the coordinate on which `rot` is called), beginning with $(a, b, c)$.
+    pub fn rot(self, b: Coord<P>, c: Coord<P>) -> impl Iterator<Item = (Coord<P>, Coord<P>)> {
+        std::iter::successors(Some((b, c)), move |(y, z)| {
+            let (b_, c_) = (*z, Coord::from(self.0 * z.0 + P.into() - y.0));
+            if b_ == b && c_ == c {
                 None
             } else {
                 Some((b_, c_))
@@ -97,22 +89,38 @@ impl<const P: u128> Coord<P> {
         })
     }
 
-    pub fn get_ord(
+    /// Returns the order of the map $\text{rot}\_a$, that is, $\lvert \langle \text{rot}\_a \rangle \rvert$.
+    pub fn get_ord<const L: usize>(
         &self,
-        fp: &QuadField<P>,
-        minusonesize: &Factorization,
-        plusonesize: &Factorization,
-    ) -> Factorization {
-        self.chi().as_ref().either(
-            |l| l.order(fp, plusonesize),
-            |r| r.order(&FpStar::<P> {}, minusonesize),
-        )
+        minusonesize: &Factorization<L>,
+        plusonesize: &Factorization<L>,
+    ) -> Factorization<L> {
+        self.to_chi()
+            .as_ref()
+            .either(|l| l.order(plusonesize), |r| r.order(minusonesize))
     }
 }
 
-impl<const P: u128> PartialEq for Coord<P> {
-    fn eq(&self, other: &Self) -> bool {
-        self.v == other.v
+impl<const P: u128> From<u128> for Coord<P> {
+    fn from(value: u128) -> Coord<P> {
+        Coord(FpNum::from(value))
     }
 }
-impl<const P: u128> Eq for Coord<P> {}
+
+impl<const P: u128> From<FpNum<P>> for Coord<P> {
+    fn from(value: FpNum<P>) -> Coord<P> {
+        Coord(value)
+    }
+}
+
+impl<const P: u128> From<Coord<P>> for u128 {
+    fn from(value: Coord<P>) -> u128 {
+        u128::from(value.0)
+    }
+}
+
+impl<const P: u128> std::fmt::Display for Coord<P> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        self.0.fmt(f)
+    }
+}

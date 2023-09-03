@@ -1,0 +1,5 @@
+[alias]
+gen-docs = "doc --no-deps"
+
+[build]
+rustdocflags = [ "--html-in-header", "./src/docs-header.html" ]
