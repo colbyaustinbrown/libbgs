@@ -81,11 +81,11 @@ fn main() {
         fp2_stream_builder = fp2_stream_builder.add_target(d);
     }
     let stream = fp_stream_builder
-        .build()
+        .into_iter()
         .map(|x| Coord::from_chi_fp(&x, &fp_decomp))
         .chain(
             fp2_stream_builder
-                .build()
+                .into_iter()
                 .map(|x| Coord::from_chi_quad(&x, &fp2_decomp)),
         );
 

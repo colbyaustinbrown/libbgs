@@ -70,11 +70,11 @@ fn criterion_benchmark(c: &mut Criterion) {
     }
 
     let stream = fp_stream_builder
-        .build()
+        .into_iter()
         .map(|x| Coord::from_chi_fp(&x, &fp_decomp))
         .chain(
             fp2_stream_builder
-                .build()
+                .into_iter()
                 .map(|x| Coord::from_chi_quad(&x, &fp2_decomp)),
         );
 
