@@ -1,3 +1,10 @@
+use crossbeam::deque::{Worker, Injector, Stealer};
+use crossbeam::queue::SegQueue;
+use rayon::iter::{ParallelIterator, IntoParallelIterator};
+use rayon::iter::plumbing::*;
+
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use crate::numbers::*;
 use crate::util::*;
 
@@ -43,7 +50,18 @@ pub struct SylowStream<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + s
     decomp: &'a SylowDecomp<S, L, C>,
     mode: u8,
     targets: Vec<[u128; L]>,
-    stack: Vec<StackElem<S, L, C>>,
+    global_stack: Injector<StackElem<S, L, C>>,
+}
+
+struct SylowStreamWorker<'a, S, const L: usize, C> 
+where
+    S: Eq,
+    C: SylowDecomposable<S, L>,
+{
+    stream: &'a SylowStream<'a, S, L, C>,
+    local_stack: Worker<StackElem<S, L, C>>,
+    stealers: &'a [Stealer<StackElem<S, L, C>>],
+    productivity: AtomicUsize,
 }
 
 #[derive(Debug)]
@@ -106,20 +124,23 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug>
 
 }
 
-impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug>
-    IntoIterator for SylowStreamBuilder<'a, S, L, C> {
+impl<'a, S, const L: usize, C> IntoParallelIterator for SylowStreamBuilder<'a, S, L, C>
+where
+    S: Eq + Send + Sync,
+    C: SylowDecomposable<S, L> + Send + Sync
+{
 
     type Item = SylowElem<S, L, C>; 
-    type IntoIter = SylowStream<'a, S, L, C>;
+    type Iter = SylowStream<'a, S, L, C>;
 
     /// Returns a SylowStream yielding the elements requested via the constructor, `add_flag`, and
     /// `flag_target` invocations.
-    fn into_iter(self) -> SylowStream<'a, S, L, C> {
-        let mut stack = Vec::new();
+    fn into_par_iter(self) -> SylowStream<'a, S, L, C> {
+        let global_stack = Injector::new();
 
         if self.has_trivial || (self.mode & flags::LEQ != 0 && self.mode & flags::NO_PARABOLIC == 0)
         {
-            stack.push(StackElem::Res(SylowElem::one()));
+            global_stack.push(StackElem::Res(SylowElem::one()));
         }
 
         for i in 0..L {
@@ -152,7 +173,7 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug>
                     }
                 }
 
-                stack.push(StackElem::Seed(Seed {
+                global_stack.push(StackElem::Seed(Seed {
                     i,
                     coords,
                     step,
@@ -167,22 +188,100 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug>
             decomp: self.decomp,
             mode: self.mode,
             targets: self.targets.clone(),
-            stack,
+            global_stack,
         }
     }
 }
 
-impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> Iterator
-    for SylowStream<'a, S, L, C>
+impl<'a, S, const L: usize, C> ParallelIterator for SylowStream<'a, S, L, C>
+where
+    S: Eq + Send + Sync,
+    C: SylowDecomposable<S, L> + Send + Sync,
 {
     type Item = SylowElem<S, L, C>;
 
-    fn next(&mut self) -> Option<SylowElem<S, L, C>> {
-        let Some(top) = self.stack.pop() else { return None; };
-        // println!("top is {:?}", top);
-        let (seed, pause) = match top {
+    fn drive_unindexed<Con>(self, consumer: Con) -> Con::Result 
+    where
+        Con: UnindexedConsumer<Self::Item>,
+    {
+        let consumer_spawner = consumer.split_off_left();
+
+        let num_threads = std::thread::available_parallelism().unwrap().into();
+        // println!("about to use {num_threads} threads");
+        let mut consumers = Vec::new();
+        let mut workers: Vec<Worker<StackElem<S, L, C>>> = Vec::new();
+        let mut stealers = Vec::new();
+
+        for _ in 0..num_threads {
+            let con = consumer_spawner.split_off_left();
+            let wrk = Worker::new_fifo();
+            let stl = wrk.stealer();
+
+            consumers.push(con);
+            workers.push(wrk);
+            stealers.push(stl);
+        }
+
+        let results = SegQueue::new();
+        rayon::scope(|s| {
+            workers.into_iter()
+                .map(|wrk| {
+                    SylowStreamWorker {
+                        stream: &self,
+                        local_stack: wrk,
+                        stealers: &stealers, 
+                        productivity: AtomicUsize::new(0),
+                    }
+                })
+                .zip(consumers.into_iter())
+                .for_each(|(worker, consumer)| {
+                    s.spawn(|_| {
+                        results.push(worker.work(consumer));
+                        // println!("thread {} is ending", rayon::current_thread_index().unwrap());
+                    });
+                });
+        });
+
+        let mut res = results.pop().unwrap();
+        for r in results {
+            res = consumer.to_reducer().reduce(res, r);
+        }
+        res
+    }
+}
+
+impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L>> SylowStreamWorker<'a, S, L, C> {
+    fn work<Con: UnindexedConsumer<SylowElem<S, L, C>>>(self, consumer: Con) -> Con::Result {
+        let mut folder = consumer.into_folder();
+        let mut retry = 0;
+        loop {
+            while let Some(task) = self.local_stack.pop().or_else(|| {
+                std::iter::repeat_with(|| {
+                    self.stream.global_stack.steal_batch_and_pop(&self.local_stack)
+                        .or_else(|| self.stealers.iter().map(|s| s.steal()).collect())
+                })
+                .find(|s| !s.is_retry())
+                .and_then(|s| s.success())
+            }) {
+                folder = self.go::<Con>(task, folder);
+                retry = 0;
+            }
+            if retry < 3 {
+                std::thread::sleep(std::time::Duration::from_millis(5));
+                retry += 1;
+                continue;
+            }
+            break;
+        }
+        // println!("Thread {} is done, did {} tasks", rayon::current_thread_index().unwrap(), self.productivity.into_inner());
+        folder.complete()
+    }
+
+    fn go<Con: UnindexedConsumer<SylowElem<S, L, C>>>(&self, task: StackElem<S, L, C>, folder: Con::Folder) -> Con::Folder {
+        self.productivity.fetch_add(1, Ordering::Relaxed);
+        let (seed, pause) = match task {
             StackElem::Res(coords) => {
-                return Some(coords);
+                return folder.consume(coords);
             }
             StackElem::Seed(s) => (s, None),
             StackElem::Thunk { seed, start, stop } => (seed, Some((start, stop))),
@@ -190,7 +289,7 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> It
 
         let (p, _) = <C as Factored<S, L>>::FACTORS[seed.i];
 
-        let status = self.get_status(&seed.rs, seed.i);
+        let status = self.stream.get_status(&seed.rs, seed.i);
         //println!("status: {status}");
 
         // First, create new seeds by incrementing
@@ -198,7 +297,7 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> It
         if status & statuses::KEEP_GOING != 0 {
             let (mut start, stop) = match pause {
                 None => {
-                    if status & statuses::ONE_AWAY != 0 && !self.has_flag(flags::LEQ) {
+                    if status & statuses::ONE_AWAY != 0 && !self.stream.has_flag(flags::LEQ) {
                         (1, p)
                     } else {
                         (0, p)
@@ -208,7 +307,7 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> It
             };
 
             if stop - start > STACK_ADDITION_LIMIT as u128 {
-                self.stack.push(StackElem::Thunk {
+                self.local_stack.push(StackElem::Thunk {
                     seed: seed.clone(),
                     start,
                     stop: stop - STACK_ADDITION_LIMIT as u128,
@@ -239,20 +338,41 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> It
                     contributed: j != 0,
                 });
                 // println!("pushing {:?}", push);
-                self.stack.push(push);
+                self.local_stack.push(push);
             }
         }
 
         // Next, create new seeds by moving to the next prime power,
         // but only if we are *done* with this prime power.
         if pause.is_none() && status & statuses::EQ != 0 && seed.contributed {
-            let pushed = self.push_next_seeds(&seed, seed.i + 1);
-            if self.has_flag(flags::LEQ) || !pushed {
+            let mut pushed_any = false;
+            for j in (seed.i + 1)..L {
+                if !self.stream.has_flag(flags::LEQ) {
+                    let status = self.stream.get_status(&seed.rs, j);
+                    if status & statuses::KEEP_GOING == 0 {
+                        continue;
+                    }
+                }
+                let (p, d) = <C as Factored<S, L>>::FACTORS[j];
+                let coords = seed.coords.clone();
+                let s = Seed {
+                    i: j,
+                    coords,
+                    step: intpow(p, d - 1, 0),
+                    rs: seed.rs,
+                    block_upper: false,
+                    contributed: false,
+                };
+                // println!("pushing {:?}", s);
+                self.local_stack.push(StackElem::Seed(s));
+                pushed_any = true;
+            }
+            if self.stream.has_flag(flags::LEQ) || !pushed_any {
                 // println!("returning {:?}", seed.coords);
-                return Some(seed.coords);
+                return folder.consume(seed.coords);
             }
         }
-        self.next()
+        folder
     }
 }
 
@@ -288,33 +408,6 @@ impl<'a, S: Eq, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug>
         }
         status
     }
-
-    fn push_next_seeds(&mut self, seed: &Seed<S, L, C>, start: usize) -> bool {
-        let mut pushed_any = false;
-        // Note: In Rust, (a..a) is the empty iterator.
-        for j in start..L {
-            if !self.has_flag(flags::LEQ) {
-                let status = self.get_status(&seed.rs, j);
-                if status & statuses::KEEP_GOING == 0 {
-                    continue;
-                }
-            }
-            let (p, d) = <C as Factored<S, L>>::FACTORS[j];
-            let coords = seed.coords.clone();
-            let s = Seed {
-                i: j,
-                coords,
-                step: intpow(p, d - 1, 0),
-                rs: seed.rs,
-                block_upper: false,
-                contributed: false,
-            };
-            // println!("pushing {:?}", s);
-            self.stack.push(StackElem::Seed(s));
-            pushed_any = true;
-        }
-        pushed_any
-    }
 }
 
 impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> Clone for Seed<S, L, C> {
@@ -334,6 +427,7 @@ impl<S: Eq, const L: usize, C: SylowDecomposable<S, L>> Clone for Seed<S, L, C> 
 mod tests {
     use super::*;
     use crate::numbers::fp::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
     const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
@@ -371,15 +465,18 @@ mod tests {
     #[test]
     pub fn test_make_stream() {
         let g = SylowDecomp::<Phantom, 2, FpNum<7>>::new();
-        let mut stream = SylowStreamBuilder::new(&g).add_target([1, 0]).into_iter();
-        assert_eq!(stream.next().map(|s| { s.to_product(&g).into() }), Some(6));
-        assert_eq!(stream.next(), None);
+        let res: Vec<FpNum<7>> = SylowStreamBuilder::new(&g)
+            .add_target([1, 0])
+            .into_par_iter()
+            .filter_map(|s| s.to_product(&g).into())
+            .collect();
+        assert_eq!(res, vec![6]);
     }
 
     #[test]
     pub fn test_generates_small() {
         let g = SylowDecomp::new();
-        let stream = SylowStreamBuilder::new(&g).add_target([1, 0, 0]).into_iter();
+        let stream = SylowStreamBuilder::new(&g).add_target([1, 0, 0]).into_par_iter();
         let coords: Vec<SylowElem<Phantom, 3, FpNum<61>>> = stream.collect();
         assert_eq!(coords.len(), 1);
         let mut x = coords[0].clone();
@@ -387,23 +484,23 @@ mod tests {
         x = x.pow(2);
         assert!(x.is_one());
 
-        let stream = SylowStreamBuilder::new(&g).add_target([2, 0, 0]).into_iter();
-        let mut count = 0;
-        for mut x in stream {
-            //println!("streamed {:?}", x);
-            count += 1;
-            for _ in 1..3 {
-                let y = x.clone();
-                assert!(!x.is_one());
-                x = x.multiply(&y);
-            }
-            assert!(x.is_one());
-        }
-        assert_eq!(count, 2);
+        let count = AtomicUsize::new(0);
+        SylowStreamBuilder::new(&g)
+            .add_target([2, 0, 0])
+            .into_par_iter()
+            .for_each(|mut x| {
+                count.fetch_add(1, Ordering::Relaxed);
+                for _ in 1..3 {
+                    let y = x.clone();
+                    assert!(!x.is_one());
+                    x = x.multiply(&y);
+                }
+                assert!(x.is_one());
+            });
+        assert_eq!(count.into_inner(), 2);
 
-        let stream = SylowStreamBuilder::new(&g).add_target([0, 1, 0]).into_iter();
-        let coords: Vec<SylowElem<Phantom, 3, FpNum<61>>> = stream.collect();
-        assert_eq!(coords.len(), 2);
+        let stream = SylowStreamBuilder::new(&g).add_target([0, 1, 0]).into_par_iter();
+        assert_eq!(stream.count(), 2);
     }
 
     #[test]
@@ -412,40 +509,38 @@ mod tests {
 
         let stream = SylowStreamBuilder::new(&g)
             .add_target([0, 0, 0, 2, 0, 0, 0])
-            .into_iter();
+            .into_par_iter();
         let coords: Vec<SylowElem<Phantom, 7, FpNum<BIG_P>>> = stream.collect();
         assert_eq!(coords.len(), 29 * 29 - 29);
 
-        let mut stream = SylowStreamBuilder::new(&g)
+        SylowStreamBuilder::new(&g)
             .add_target([0, 0, 0, 0, 0, 1, 0])
-            .into_iter();
-        let mut x = stream.next();
-        assert_eq!(x.as_ref().map(|a| a.is_one()), Some(false));
-        x = x.as_mut().map(|a| a.pow(705737));
-        assert_eq!(x.map(|a| a.is_one()), Some(true));
+            .into_par_iter()
+            .take_any(2)
+            .for_each(|mut x| {
+                assert!(!x.is_one());
+                x = x.pow(705737);
+                assert!(x.is_one());
+            });
     }
 
     #[test]
     pub fn test_generates_medium() {
-        let g = SylowDecomp::new();
+        let g: SylowDecomp<Phantom, 3, FpNum<271>> = SylowDecomp::new();
         let builder = SylowStreamBuilder::new(&g).add_target([0, 2, 1]);
-        let stream_all = builder.into_iter();
-        let coords: Vec<SylowElem<Phantom, 3, FpNum<271>>> = stream_all.collect();
-        //println!("{coords:?}");
-        assert_eq!(coords.len(), 24);
+        let stream_all = builder.into_par_iter();
+        assert_eq!(stream_all.count(), 24);
     }
 
     #[test]
     pub fn test_skips_upper_half() {
         let g = SylowDecomp::new();
 
-        let stream = SylowStreamBuilder::new(&g)
+        let stream: SylowStream<Phantom, 3, FpNum<271>> = SylowStreamBuilder::new(&g)
             .add_target([0, 2, 1])
             .add_flag(flags::NO_UPPER_HALF)
-            .into_iter();
-        let coords: Vec<SylowElem<Phantom, 3, FpNum<271>>> = stream.collect();
-        //println!("{coords:?}");
-        assert_eq!(coords.len(), 12);
+            .into_par_iter();
+        assert_eq!(stream.count(), 12);
     }
 
     #[test]
@@ -455,7 +550,7 @@ mod tests {
         let stream = SylowStreamBuilder::new(&g)
             .add_target([1, 0, 0])
             .add_target([0, 1, 0])
-            .into_iter();
+            .into_par_iter();
         let coords: Vec<SylowElem<Phantom, 3, FpNum<271>>> = stream.collect();
         assert_eq!(coords.len(), 3);
 
@@ -464,7 +559,7 @@ mod tests {
             .add_target([0, 2, 0])
             .add_target([0, 0, 1])
             .add_flag(flags::LEQ)
-            .into_iter();
+            .into_par_iter();
         /*
         for x in stream {
             println!("{x:?}");
@@ -482,7 +577,7 @@ mod tests {
         let coords: Vec<SylowElem<Phantom, 4, FpNum<13928643>>> = SylowStreamBuilder::new(&g)
             .add_target([0, 1, 1, 0])
             .add_flag(flags::LEQ)
-            .into_iter()
+            .into_par_iter()
             .collect();
 
         assert_eq!(coords.len(), 91);
@@ -492,15 +587,15 @@ mod tests {
     pub fn test_no_parabolic() {
         let g = SylowDecomp::<Phantom, 3, FpNum<61>>::new();
 
-        let stream = SylowStreamBuilder::new(&g)
+        SylowStreamBuilder::new(&g)
             .add_target([2, 1, 0])
             .add_flag(flags::LEQ)
             .add_flag(flags::NO_PARABOLIC)
-            .into_iter();
-        for mut x in stream {
-            assert!(!x.is_one());
-            x = x.square();
-            assert!(!x.is_one());
-        }
+            .into_par_iter()
+            .for_each(|mut x| {
+                assert!(!x.is_one());
+                x = x.square();
+                assert!(!x.is_one());
+            });
     }
 }

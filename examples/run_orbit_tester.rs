@@ -1,3 +1,7 @@
+use rayon::iter::*;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Mutex;
+
 use libbgs::markoff::*;
 use libbgs::numbers::*;
 
@@ -60,7 +64,7 @@ fn main() {
     let fp_decomp = SylowDecomp::new();
     let fp2_decomp = SylowDecomp::new();
 
-    const LIMIT: u128 = 100;
+    const LIMIT: u128 = 10_000;
 
     let mut fp_stream_builder = SylowStreamBuilder::new(&fp_decomp)
         .add_flag(flags::NO_UPPER_HALF)
@@ -80,26 +84,27 @@ fn main() {
         println!("\t{d:?}");
         fp2_stream_builder = fp2_stream_builder.add_target(d);
     }
-    let stream = fp_stream_builder
-        .into_iter()
+
+    let tester = Mutex::new(OrbitTester::<BIG_P>::new());
+    let count = AtomicUsize::new(0);
+    println!("Loading coordinates into the Orbit Tester.");
+    fp_stream_builder
+        .into_par_iter()
         .map(|x| Coord::from_chi_fp(&x, &fp_decomp))
         .chain(
             fp2_stream_builder
-                .into_iter()
+                .into_par_iter()
                 .map(|x| Coord::from_chi_quad(&x, &fp2_decomp)),
-        );
+        )
+        .for_each(|x| {
+            count.fetch_add(1, Ordering::Relaxed);
+            tester.lock().unwrap().add_target(u128::from(x));
+        });
 
-    let mut tester = OrbitTester::<BIG_P>::new();
-    let mut count = 0;
-    println!("Loading coordinates into the Orbit Tester.");
-    for x in stream {
-        count += 1;
-        tester = tester.add_target(u128::from(x));
-    }
-    println!("Loaded {count} coordinates into the Orbit Tester.");
+    println!("Loaded {} coordinates into the Orbit Tester.", count.into_inner());
 
     println!("Running the Orbit Tester.");
-    let results = tester.run();
+    let results = tester.into_inner().unwrap().run();
     println!("Testing complete.");
 
     let mut repless_count = 0;

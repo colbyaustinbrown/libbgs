@@ -2,6 +2,8 @@ use criterion::{criterion_group, criterion_main, Criterion};
 
 use libbgs::numbers::*;
 
+use rayon::iter::*;
+
 const P: u128 = 5109751;
 
 #[derive(PartialEq, Eq)]
@@ -21,13 +23,9 @@ fn run_stream() {
 
     let stream = SylowStreamBuilder::new(&g)
         .add_target([0, 3, 2, 1])
-        .into_iter();
+        .into_par_iter();
 
-    let mut count = 0;
-    for _ in stream {
-        count += 1;
-    }
-    assert_eq!(count, 272160);
+    assert_eq!(stream.count(), 272160);
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
