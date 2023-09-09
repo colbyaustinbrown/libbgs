@@ -2,6 +2,8 @@ use criterion::{criterion_group, criterion_main, Criterion};
 
 use std::collections::HashSet;
 
+use rayon::iter::*;
+
 use libbgs::markoff::*;
 use libbgs::numbers::*;
 
@@ -41,7 +43,7 @@ impl Factored<Phantom, 11> for QuadNum<BIG_P> {
 fn run_tester<'a>(stream: impl Iterator<Item = &'a u128>) {
     let mut tester = OrbitTester::<BIG_P>::new();
     for x in stream {
-        tester = tester.add_target(*x);
+        tester.add_target(*x);
     }
 
     tester.run();
@@ -69,19 +71,16 @@ fn criterion_benchmark(c: &mut Criterion) {
         fp2_stream_builder = fp2_stream_builder.add_target(d);
     }
 
-    let stream = fp_stream_builder
-        .build()
+    let targets: HashSet<_> = fp_stream_builder
+        .into_par_iter()
         .map(|x| Coord::from_chi_fp(&x, &fp_decomp))
         .chain(
             fp2_stream_builder
-                .build()
+                .into_par_iter()
                 .map(|x| Coord::from_chi_quad(&x, &fp2_decomp)),
-        );
-
-    let mut targets = HashSet::new();
-    for x in stream {
-        targets.insert(x.into());
-    }
+        )
+        .map(|x| x.into())
+        .collect();
 
     let mut group = c.benchmark_group("orbits");
     group.sample_size(20);

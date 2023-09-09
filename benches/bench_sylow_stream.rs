@@ -21,13 +21,9 @@ fn run_stream() {
 
     let stream = SylowStreamBuilder::new(&g)
         .add_target([0, 3, 2, 1])
-        .build();
+        .into_iter();
 
-    let mut count = 0;
-    for _ in stream {
-        count += 1;
-    }
-    assert_eq!(count, 272160);
+    assert_eq!(stream.count(), 272160);
 }
 
 fn criterion_benchmark(c: &mut Criterion) {

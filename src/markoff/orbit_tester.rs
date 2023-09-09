@@ -93,9 +93,8 @@ impl<const P: u128> OrbitTester<P> {
     }
 
     /// Adds a target order to the list of orders to be tested.
-    pub fn add_target(mut self, t: u128) -> OrbitTester<P> {
+    pub fn add_target(&mut self, t: u128) {
         self.targets.insert(t);
-        self
     }
 }
 
