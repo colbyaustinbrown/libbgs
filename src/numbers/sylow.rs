@@ -109,7 +109,7 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> SylowElem<S, L, C> {
     pub fn order(&self) -> Factorization<L> {
         let mut prime_powers = [(0, 0); L];
         for i in 0..L {
-            let mut x = self.clone();
+            let mut x = *self;
             for j in 0..L {
                 if j == i {
                     continue;
@@ -196,6 +196,7 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for SylowElem<S, L, C>
         }
     }
 }
+impl<S, const L: usize, C: SylowDecomposable<S, L>> Copy for SylowElem<S, L, C> {}
 
 impl<S, const L: usize, C: SylowDecomposable<S, L>> fmt::Debug for SylowElem<S, L, C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

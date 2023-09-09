@@ -84,11 +84,12 @@ struct Seed<S, const L: usize, C: SylowDecomposable<S, L>> {
     i: usize,
     step: u128,
     rs: [u128; L],
-    coords: SylowElem<S, L, C>,
+    part: SylowElem<S, L, C>,
     block_upper: bool,
-    contributed: bool,
     start: u128,
 }
+
+struct Status(u8);
 
 mod statuses {
     pub const EQ: u8 = 0x01;
@@ -110,6 +111,14 @@ where
         self.mode() & flag != 0
     }
 
+    fn get_start(&self, status: &Status) -> u128 {
+        if status.0 & statuses::ONE_AWAY != 0 && !self.has_flag(flags::LEQ) {
+            1
+        } else {
+            0
+        }
+    }
+
     fn propogate(&mut self, seed: Seed<S, L, C>) {
         let (p, _) = <C as Factored<S, L>>::FACTORS[seed.i];
 
@@ -118,86 +127,74 @@ where
 
         // First, create new seeds by incrementing
         // the current power.
-        if status & statuses::KEEP_GOING != 0 {
+        if status.has(statuses::KEEP_GOING) {
             let mut stop = p;
 
             if stop - seed.start > STACK_ADDITION_LIMIT as u128 {
                 self.push(Seed {
                     start: seed.start + STACK_ADDITION_LIMIT as u128,
-                    .. seed.clone()
+                    ..seed
                 });
                 stop = seed.start + STACK_ADDITION_LIMIT as u128;
             }
+            let lim = <C as Factored<S, L>>::FACTORS.factor(seed.i) / 2;
             for j in seed.start..stop {
-                let mut coords = seed.coords.clone();
-                coords.coords[seed.i] += j * seed.step;
+                let tmp = seed.part.coords[seed.i] + j * seed.step;
 
-                if seed.block_upper {
-                    let fact = <C as Factored<S, L>>::FACTORS.factor(seed.i);
-                    if coords.coords[seed.i] > fact / 2 {
-                        break;
-                    }
+                if seed.block_upper && tmp > lim {
+                    break;
                 }
+
+                let mut part = seed.part;
+                part.coords[seed.i] = tmp;
 
                 let mut rs = seed.rs;
                 rs[seed.i] += 1;
 
-                let start = if self.get_status(&rs, seed.i) & statuses::ONE_AWAY != 0 && !self.has_flag(flags::LEQ) {
-                    1
-                } else {
-                    0
-                };
-                let push = Seed {
+                let status = self.get_status(&rs, seed.i);
+                let next = Seed {
                     i: seed.i,
                     step: seed.step / p,
-                    coords,
+                    part,
                     rs,
                     block_upper: seed.block_upper,
-                    contributed: j != 0,
-                    start,
+                    start: self.get_start(&status),
                 };
-                self.push(push);
-            }
-        }
 
-        // Next, create new seeds by moving to the next prime power,
-        // but only if we are *done* with this prime power.
-        if status & statuses::EQ != 0 && seed.contributed {
-            let mut pushed_any = false;
-            // Note: In Rust, (a..a) is the empty iterator.
-            for j in (seed.i + 1)..L {
-                let status = self.get_status(&seed.rs, j);
-                if !self.has_flag(flags::LEQ) {
-                    if status & statuses::KEEP_GOING == 0 {
-                        continue;
+                // Next, create new seeds by moving to the next prime power,
+                // but only if we are *done* with this prime power.
+                if status.has(statuses::EQ) && j != 0 {
+                    let mut pushed_any = false;
+                    // Note: In Rust, (a..a) is the empty iterator.
+                    for k in (next.i + 1)..L {
+                        let status = self.get_status(&next.rs, k);
+                        if !(self.has_flag(flags::LEQ) || status.has(statuses::KEEP_GOING)) {
+                            continue;
+                        }
+                        let (p, d) = <C as Factored<S, L>>::FACTORS[k];
+                        let s = Seed {
+                            i: k,
+                            part: next.part,
+                            step: intpow(p, d - 1, 0),
+                            rs: next.rs,
+                            block_upper: false,
+                            start: self.get_start(&status),
+                        };
+                        self.push(s);
+                        pushed_any = true;
+                    }
+                    if self.has_flag(flags::LEQ) || !pushed_any {
+                        self.consume(next.part);
                     }
                 }
-                let start = if status & statuses::ONE_AWAY != 0 && !self.has_flag(flags::LEQ) {
-                    1
-                } else {
-                    0
-                };
-                let (p, d) = <C as Factored<S, L>>::FACTORS[j];
-                let coords = seed.coords.clone();
-                let s = Seed {
-                    i: j,
-                    coords,
-                    step: intpow(p, d - 1, 0),
-                    rs: seed.rs,
-                    block_upper: false,
-                    contributed: false,
-                    start,
-                };
-                self.push(s);
-                pushed_any = true;
-            }
-            if self.has_flag(flags::LEQ) || !pushed_any {
-                self.consume(seed.coords);
+                if status.has(statuses::KEEP_GOING) {
+                    self.push(next);
+                }
             }
         }
     }
 
-    fn get_status(&self, rs: &[u128], i: usize) -> u8 {
+    fn get_status(&self, rs: &[u128], i: usize) -> Status {
         let mut status = 0;
         for t in self.targets() {
             let skip = rs.iter().zip(t).take(i).any(|(r, t)| {
@@ -220,7 +217,7 @@ where
                 (_, true) => {}
             }
         }
-        status
+        Status(status)
     }
 }
 
@@ -242,7 +239,7 @@ impl<'a, S, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug>
                     }
                 }
 
-                let mut coords = SylowElem::one();
+                let mut part = SylowElem::one();
                 let mut rs = [0; L];
                 let mut step = intpow(p, d - 1, 0);
 
@@ -254,24 +251,24 @@ impl<'a, S, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug>
                         continue;
                     }
                     if p == 2 && t[i] > 1 {
-                        coords.coords[i] += step;
+                        part.coords[i] += step;
                         rs[i] += 1;
                         step >>= 1;
                     }
                 }
 
-                let start = if t[i].overflowing_sub(rs[i]) == (1, false) && self.mode & flags::LEQ == 0 {
-                    1
-                } else {
-                    0
-                };
+                let start =
+                    if t[i].overflowing_sub(rs[i]) == (1, false) && self.mode & flags::LEQ == 0 {
+                        1
+                    } else {
+                        0
+                    };
                 res.push(Seed {
                     i,
-                    coords,
+                    part,
                     step,
                     rs,
                     block_upper: self.mode & flags::NO_UPPER_HALF != 0,
-                    contributed: false,
                     start,
                 });
                 break;
@@ -306,7 +303,6 @@ impl<'a, S, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug>
         }
         self
     }
-
 }
 
 impl<'a, S, const L: usize, C> ParallelIterator for SylowParStream<'a, S, L, C>
@@ -339,7 +335,8 @@ where
 
         let results = SegQueue::new();
         let mut folder = consumer.into_folder();
-        if self.has_flag(flags::INCLUDE_ONE) || (self.has_flag(flags::LEQ) && !self.has_flag(flags::NO_PARABOLIC))
+        if self.has_flag(flags::INCLUDE_ONE)
+            || (self.has_flag(flags::LEQ) && !self.has_flag(flags::NO_PARABOLIC))
         {
             folder = folder.consume(SylowElem::one());
             results.push(folder.complete());
@@ -370,8 +367,13 @@ where
     }
 }
 
-impl<'a, S: Send + Sync, const L: usize, C: SylowDecomposable<S, L>, Con: Consumer<SylowElem<S, L, C>>>
-    SylowStreamWorker<'a, S, L, C, Con>
+impl<
+        'a,
+        S: Send + Sync,
+        const L: usize,
+        C: SylowDecomposable<S, L>,
+        Con: Consumer<SylowElem<S, L, C>>,
+    > SylowStreamWorker<'a, S, L, C, Con>
 {
     fn work(mut self) -> Con::Result {
         let mut retry = 0;
@@ -404,12 +406,12 @@ impl<'a, S, const L: usize, C: SylowDecomposable<S, L>> Iterator for SylowSeqStr
 
     fn next(&mut self) -> Option<SylowElem<S, L, C>> {
         if let Some(res) = self.buffer.pop() {
-            return Some(res); 
+            Some(res)
         } else if let Some(top) = self.stack.pop() {
             self.propogate(top);
-            return self.next()
+            self.next()
         } else {
-            return None;
+            None
         }
     }
 }
@@ -430,7 +432,7 @@ where
         self.get_starting_stack()
             .into_iter()
             .for_each(|x| global_stack.push(x));
-          
+
         SylowParStream {
             decomp: self.decomp,
             mode: self.mode,
@@ -455,11 +457,18 @@ where
             stack: self.get_starting_stack(),
             buffer: Vec::new(),
         };
-        if (stream.mode & flags::INCLUDE_ONE != 0) || (self.mode & flags::LEQ != 0 && self.mode & flags::NO_PARABOLIC == 0)
+        if (stream.mode & flags::INCLUDE_ONE != 0)
+            || (self.mode & flags::LEQ != 0 && self.mode & flags::NO_PARABOLIC == 0)
         {
             stream.buffer.push(SylowElem::one());
         }
         stream
+    }
+}
+
+impl Status {
+    fn has(&self, flag: u8) -> bool {
+        self.0 & flag != 0
     }
 }
 
@@ -549,13 +558,13 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for Seed<S, L, C> {
             i: self.i,
             step: self.step,
             rs: self.rs,
-            coords: self.coords.clone(),
+            part: self.part,
             block_upper: self.block_upper,
-            contributed: self.contributed,
             start: self.start,
         }
     }
 }
+impl<S, const L: usize, C: SylowDecomposable<S, L>> Copy for Seed<S, L, C> {}
 
 #[cfg(test)]
 mod tests {
