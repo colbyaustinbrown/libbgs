@@ -2,8 +2,6 @@ use criterion::{criterion_group, criterion_main, Criterion};
 
 use libbgs::numbers::*;
 
-use rayon::iter::*;
-
 const P: u128 = 5109751;
 
 #[derive(PartialEq, Eq)]
@@ -23,7 +21,7 @@ fn run_stream() {
 
     let stream = SylowStreamBuilder::new(&g)
         .add_target([0, 3, 2, 1])
-        .into_par_iter();
+        .into_iter();
 
     assert_eq!(stream.count(), 272160);
 }
