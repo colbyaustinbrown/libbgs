@@ -54,7 +54,7 @@ pub struct SylowParStream<
     decomp: &'a SylowDecomp<S, L, C>,
     mode: u8,
     targets: Vec<[u128; L]>,
-    global_stack: Injector<StackElem<S, L, C>>,
+    global_stack: Injector<Seed<S, L, C>>,
 }
 
 /// A stream yielding elements of particular orders, as their Sylow decompositions.
@@ -63,7 +63,7 @@ pub struct SylowSeqStream<'a, S, const L: usize, C: SylowDecomposable<S, L>> {
     decomp: &'a SylowDecomp<S, L, C>,
     mode: u8,
     targets: Vec<[u128; L]>,
-    stack: Vec<StackElem<S, L, C>>,
+    stack: Vec<Seed<S, L, C>>,
     buffer: Vec<SylowElem<S, L, C>>,
 }
 
@@ -74,8 +74,8 @@ where
     Con: Consumer<SylowElem<S, L, C>>,
 {
     stream: &'a SylowParStream<'a, S, L, C>,
-    local_stack: Worker<StackElem<S, L, C>>,
-    stealers: &'a [Stealer<StackElem<S, L, C>>],
+    local_stack: Worker<Seed<S, L, C>>,
+    stealers: &'a [Stealer<Seed<S, L, C>>],
     folder: RefCell<Option<Con::Folder>>,
 }
 
@@ -87,16 +87,7 @@ struct Seed<S, const L: usize, C: SylowDecomposable<S, L>> {
     coords: SylowElem<S, L, C>,
     block_upper: bool,
     contributed: bool,
-}
-
-#[derive(Debug)]
-enum StackElem<S, const L: usize, C: SylowDecomposable<S, L>> {
-    Seed(Seed<S, L, C>),
-    Thunk {
-        seed: Seed<S, L, C>,
-        start: u128,
-        stop: u128,
-    },
+    start: u128,
 }
 
 mod statuses {
@@ -112,19 +103,14 @@ where
     fn decomp(&self) -> &'a SylowDecomp<S, L, C>;
     fn mode(&self) -> u8;
     fn targets(&self) -> &[[u128; L]];
-    fn push(&mut self, e: StackElem<S, L, C>);
+    fn push(&mut self, e: Seed<S, L, C>);
     fn consume(&mut self, e: SylowElem<S, L, C>);
 
     fn has_flag(&self, flag: u8) -> bool {
         self.mode() & flag != 0
     }
 
-    fn propogate(&mut self, top: StackElem<S, L, C>) {
-        let (seed, pause) = match top {
-            StackElem::Seed(s) => (s, None),
-            StackElem::Thunk { seed, start, stop } => (seed, Some((start, stop))),
-        };
-
+    fn propogate(&mut self, seed: Seed<S, L, C>) {
         let (p, _) = <C as Factored<S, L>>::FACTORS[seed.i];
 
         let status = self.get_status(&seed.rs, seed.i);
@@ -133,24 +119,16 @@ where
         // First, create new seeds by incrementing
         // the current power.
         if status & statuses::KEEP_GOING != 0 {
-            let (mut start, stop) = pause.unwrap_or(
-                if status & statuses::ONE_AWAY != 0 && !self.has_flag(flags::LEQ) {
-                    (1, p)
-                } else {
-                    (0, p)
-                }
-            );
+            let mut stop = p;
 
-            if stop - start > STACK_ADDITION_LIMIT as u128 {
-                self.push(StackElem::Thunk {
-                    seed: seed.clone(),
-                    start,
-                    stop: stop - STACK_ADDITION_LIMIT as u128,
+            if stop - seed.start > STACK_ADDITION_LIMIT as u128 {
+                self.push(Seed {
+                    start: seed.start + STACK_ADDITION_LIMIT as u128,
+                    .. seed.clone()
                 });
-                start = stop - STACK_ADDITION_LIMIT as u128;
+                stop = seed.start + STACK_ADDITION_LIMIT as u128;
             }
-            //println!("start: {start}");
-            for j in start..stop {
+            for j in seed.start..stop {
                 let mut coords = seed.coords.clone();
                 coords.coords[seed.i] += j * seed.step;
 
@@ -164,31 +142,41 @@ where
                 let mut rs = seed.rs;
                 rs[seed.i] += 1;
 
-                let push = StackElem::Seed(Seed {
+                let start = if self.get_status(&rs, seed.i) & statuses::ONE_AWAY != 0 && !self.has_flag(flags::LEQ) {
+                    1
+                } else {
+                    0
+                };
+                let push = Seed {
                     i: seed.i,
                     step: seed.step / p,
                     coords,
                     rs,
                     block_upper: seed.block_upper,
                     contributed: j != 0,
-                });
-                // println!("pushing {:?}", push);
+                    start,
+                };
                 self.push(push);
             }
         }
 
         // Next, create new seeds by moving to the next prime power,
         // but only if we are *done* with this prime power.
-        if pause.is_none() && status & statuses::EQ != 0 && seed.contributed {
+        if status & statuses::EQ != 0 && seed.contributed {
             let mut pushed_any = false;
             // Note: In Rust, (a..a) is the empty iterator.
             for j in (seed.i + 1)..L {
+                let status = self.get_status(&seed.rs, j);
                 if !self.has_flag(flags::LEQ) {
-                    let status = self.get_status(&seed.rs, j);
                     if status & statuses::KEEP_GOING == 0 {
                         continue;
                     }
                 }
+                let start = if status & statuses::ONE_AWAY != 0 && !self.has_flag(flags::LEQ) {
+                    1
+                } else {
+                    0
+                };
                 let (p, d) = <C as Factored<S, L>>::FACTORS[j];
                 let coords = seed.coords.clone();
                 let s = Seed {
@@ -198,13 +186,12 @@ where
                     rs: seed.rs,
                     block_upper: false,
                     contributed: false,
+                    start,
                 };
-                // println!("pushing {:?}", s);
-                self.push(StackElem::Seed(s));
+                self.push(s);
                 pushed_any = true;
             }
             if self.has_flag(flags::LEQ) || !pushed_any {
-                // println!("returning {:?}", seed.coords);
                 self.consume(seed.coords);
             }
         }
@@ -240,7 +227,7 @@ where
 impl<'a, S, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug>
     SylowStreamBuilder<'a, S, L, C>
 {
-    fn get_starting_stack(&self) -> Vec<StackElem<S, L, C>> {
+    fn get_starting_stack(&self) -> Vec<Seed<S, L, C>> {
         let mut res = Vec::new();
 
         for i in 0..L {
@@ -273,14 +260,20 @@ impl<'a, S, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug>
                     }
                 }
 
-                res.push(StackElem::Seed(Seed {
+                let start = if t[i].overflowing_sub(rs[i]) == (1, false) && self.mode & flags::LEQ == 0 {
+                    1
+                } else {
+                    0
+                };
+                res.push(Seed {
                     i,
                     coords,
                     step,
                     rs,
                     block_upper: self.mode & flags::NO_UPPER_HALF != 0,
                     contributed: false,
-                }));
+                    start,
+                });
                 break;
             }
         }
@@ -331,7 +324,7 @@ where
 
         let num_threads = std::thread::available_parallelism().unwrap().into();
         let mut consumers = Vec::new();
-        let mut workers: Vec<Worker<StackElem<S, L, C>>> = Vec::new();
+        let mut workers: Vec<Worker<Seed<S, L, C>>> = Vec::new();
         let mut stealers = Vec::new();
 
         for _ in 0..num_threads {
@@ -475,7 +468,7 @@ where
     S: Send + Sync,
     C: SylowDecomposable<S, L>,
 {
-    fn push(&mut self, e: StackElem<S, L, C>) {
+    fn push(&mut self, e: Seed<S, L, C>) {
         self.global_stack.push(e);
     }
 
@@ -502,7 +495,7 @@ where
     C: SylowDecomposable<S, L>,
     Con: Consumer<SylowElem<S, L, C>>,
 {
-    fn push(&mut self, e: StackElem<S, L, C>) {
+    fn push(&mut self, e: Seed<S, L, C>) {
         self.local_stack.push(e);
     }
 
@@ -529,7 +522,7 @@ impl<'a, S, const L: usize, C> SylowStream<'a, S, L, C> for SylowSeqStream<'a, S
 where
     C: SylowDecomposable<S, L>,
 {
-    fn push(&mut self, e: StackElem<S, L, C>) {
+    fn push(&mut self, e: Seed<S, L, C>) {
         self.stack.push(e);
     }
 
@@ -559,6 +552,7 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for Seed<S, L, C> {
             coords: self.coords.clone(),
             block_upper: self.block_upper,
             contributed: self.contributed,
+            start: self.start,
         }
     }
 }
