@@ -7,6 +7,8 @@ use libbgs::numbers::*;
 
 const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
+const SETTINGS: u8 = flags::NO_UPPER_HALF | flags::LEQ | flags::NO_PARABOLIC;
+
 #[derive(PartialEq, Eq)]
 struct Phantom {}
 
@@ -66,14 +68,8 @@ fn main() {
 
     const LIMIT: u128 = 10_000;
 
-    let mut fp_stream_builder = SylowStreamBuilder::new(&fp_decomp)
-        .add_flag(flags::NO_UPPER_HALF)
-        .add_flag(flags::NO_PARABOLIC)
-        .add_flag(flags::LEQ);
-    let mut fp2_stream_builder = SylowStreamBuilder::new(&fp2_decomp)
-        .add_flag(flags::NO_UPPER_HALF)
-        .add_flag(flags::NO_PARABOLIC)
-        .add_flag(flags::LEQ);
+    let mut fp_stream_builder = SylowStreamBuilder::<Phantom, 7, SETTINGS, FpNum<BIG_P>>::new(&fp_decomp);
+    let mut fp2_stream_builder = SylowStreamBuilder::<Phantom, 11, SETTINGS, QuadNum<BIG_P>>::new(&fp2_decomp);
     println!("Adding these targets from F_p: ");
     for d in fp.maximal_divisors(LIMIT) {
         println!("\t{d:?}");
