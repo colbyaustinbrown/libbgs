@@ -117,6 +117,12 @@ impl<const P: u128> From<Coord<P>> for u128 {
     }
 }
 
+impl<const P: u128> From<Coord<P>> for FpNum<P> {
+    fn from(value: Coord<P>) -> FpNum<P> {
+        value.0
+    }
+}
+
 impl<const P: u128> std::fmt::Display for Coord<P> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         self.0.fmt(f)
