@@ -48,7 +48,6 @@ impl<const P: u128> Coord<P> {
         decomp: &SylowDecomp<S, L, FpNum<P>>,
     ) -> Coord<P>
     where
-        S: Eq,
         FpNum<P>: Factored<S, L>,
     {
         let chi_inv = chi.inverse().to_product(decomp);
@@ -65,7 +64,6 @@ impl<const P: u128> Coord<P> {
         decomp: &SylowDecomp<S, L, QuadNum<P>>,
     ) -> Coord<P>
     where
-        S: Eq,
         QuadNum<P>: Factored<S, L>,
     {
         let chi_inv = chi.inverse().to_product(decomp);
