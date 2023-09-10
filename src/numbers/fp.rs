@@ -133,6 +133,13 @@ impl<const P: u128> From<&FpNum<P>> for u128 {
     }
 }
 
+impl<const P: u128> Neg for FpNum<P> {
+    type Output = FpNum<P>;
+    fn neg(self) -> FpNum<P> {
+        FpNum(P - self.0)
+    }
+}
+
 impl<const P: u128> Add<Self> for FpNum<P> {
     type Output = FpNum<P>;
     fn add(self, other: Self) -> FpNum<P> {

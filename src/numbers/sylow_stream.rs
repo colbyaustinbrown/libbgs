@@ -122,74 +122,69 @@ where
     fn propogate(&mut self, seed: Seed<S, L, C>) {
         let (p, _) = <C as Factored<S, L>>::FACTORS[seed.i];
 
-        let status = self.get_status(&seed.rs, seed.i);
-        //println!("status: {status}");
-
         // First, create new seeds by incrementing
         // the current power.
-        if status.has(statuses::KEEP_GOING) {
-            let mut stop = p;
+        let mut stop = p;
 
-            if stop - seed.start > STACK_ADDITION_LIMIT as u128 {
-                self.push(Seed {
-                    start: seed.start + STACK_ADDITION_LIMIT as u128,
-                    ..seed
-                });
-                stop = seed.start + STACK_ADDITION_LIMIT as u128;
+        if stop - seed.start > STACK_ADDITION_LIMIT as u128 {
+            self.push(Seed {
+                start: seed.start + STACK_ADDITION_LIMIT as u128,
+                ..seed
+            });
+            stop = seed.start + STACK_ADDITION_LIMIT as u128;
+        }
+        let lim = <C as Factored<S, L>>::FACTORS.factor(seed.i) / 2;
+        for j in seed.start..stop {
+            let tmp = seed.part.coords[seed.i] + j * seed.step;
+
+            if seed.block_upper && tmp > lim {
+                break;
             }
-            let lim = <C as Factored<S, L>>::FACTORS.factor(seed.i) / 2;
-            for j in seed.start..stop {
-                let tmp = seed.part.coords[seed.i] + j * seed.step;
 
-                if seed.block_upper && tmp > lim {
-                    break;
+            let mut part = seed.part;
+            part.coords[seed.i] = tmp;
+
+            let mut rs = seed.rs;
+            rs[seed.i] += 1;
+
+            let status = self.get_status(&rs, seed.i);
+            let next = Seed {
+                i: seed.i,
+                step: seed.step / p,
+                part,
+                rs,
+                block_upper: seed.block_upper,
+                start: self.get_start(&status),
+            };
+            if status.has(statuses::KEEP_GOING) {
+                self.push(next);
+            }
+
+            // Next, create new seeds by moving to the next prime power,
+            // but only if we are *done* with this prime power.
+            if !status.has(statuses::EQ) || j == 0 { continue; }
+
+            let mut pushed_any = false;
+            // Note: In Rust, (a..a) is the empty iterator.
+            for k in (next.i + 1)..L {
+                let status = self.get_status(&next.rs, k);
+                if !(self.has_flag(flags::LEQ) || status.has(statuses::KEEP_GOING)) {
+                    continue;
                 }
-
-                let mut part = seed.part;
-                part.coords[seed.i] = tmp;
-
-                let mut rs = seed.rs;
-                rs[seed.i] += 1;
-
-                let status = self.get_status(&rs, seed.i);
-                let next = Seed {
-                    i: seed.i,
-                    step: seed.step / p,
-                    part,
-                    rs,
-                    block_upper: seed.block_upper,
+                let (p, d) = <C as Factored<S, L>>::FACTORS[k];
+                let s = Seed {
+                    i: k,
+                    part: next.part,
+                    step: intpow(p, d - 1, 0),
+                    rs: next.rs,
+                    block_upper: false,
                     start: self.get_start(&status),
                 };
-
-                // Next, create new seeds by moving to the next prime power,
-                // but only if we are *done* with this prime power.
-                if status.has(statuses::EQ) && j != 0 {
-                    let mut pushed_any = false;
-                    // Note: In Rust, (a..a) is the empty iterator.
-                    for k in (next.i + 1)..L {
-                        let status = self.get_status(&next.rs, k);
-                        if !(self.has_flag(flags::LEQ) || status.has(statuses::KEEP_GOING)) {
-                            continue;
-                        }
-                        let (p, d) = <C as Factored<S, L>>::FACTORS[k];
-                        let s = Seed {
-                            i: k,
-                            part: next.part,
-                            step: intpow(p, d - 1, 0),
-                            rs: next.rs,
-                            block_upper: false,
-                            start: self.get_start(&status),
-                        };
-                        self.push(s);
-                        pushed_any = true;
-                    }
-                    if self.has_flag(flags::LEQ) || !pushed_any {
-                        self.consume(next.part);
-                    }
-                }
-                if status.has(statuses::KEEP_GOING) {
-                    self.push(next);
-                }
+                self.push(s);
+                pushed_any = true;
+            }
+            if self.has_flag(flags::LEQ) || !pushed_any {
+                self.consume(next.part);
             }
         }
     }
