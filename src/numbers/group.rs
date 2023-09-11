@@ -1,6 +1,9 @@
 use std::fmt;
 
 use crate::numbers::Factorization;
+use crate::numbers::SylowDecomposable;
+use crate::util::*;
+
 /// Types that represent the elements of a group.
 /// In order for a type to represent the elements of the group, the type must satisfy these axioms:
 /// * The type has a binary operator (`multiply`).
@@ -70,5 +73,24 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
             prime_powers[i] = (parent_size[i].0, r)
         }
         Factorization::new(prime_powers)
+    }
+
+    /// Returns the number of elements of a particular order.
+    /// The argument is the powers of the prime factors of the group's order.
+    fn count_elements_of_order<S, const L: usize>(ds: &[u128; L]) -> u128
+    where
+        // note: we only use the Factor trait here, but we require SylowDecomposable because this
+        // count is only valid for finite cyclic groups.
+        Self: SylowDecomposable<S, L>
+    {
+        let mut total = 1;
+        for (d, (p, t)) in ds.iter().zip(Self::FACTORS.prime_powers()) {
+            if *d > *t {
+                return 0;
+            } else if *d > 0 { 
+                total *= intpow(*p, *d, 0) - intpow(*p, *d - 1, 0)
+            }
+        }
+        total
     }
 }

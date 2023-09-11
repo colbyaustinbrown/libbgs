@@ -72,6 +72,19 @@ impl<const L: usize> Factorization<L> {
     pub fn value(&self) -> u128 {
         self.value
     }
+
+    /// Converts an array of powers on the prime factors into an integer.
+    pub fn from_powers(&self, ds: &[u128; L]) -> u128 {
+        let mut total = 1;
+        for (d, (p, t)) in ds.iter().zip(self.prime_powers) {
+            if *d > t {
+                return 0;
+            } else {
+                total *= intpow(p, *d, 0);
+            }
+        }
+        total
+    }
 }
 
 impl<const L: usize> Index<usize> for Factorization<L> {
