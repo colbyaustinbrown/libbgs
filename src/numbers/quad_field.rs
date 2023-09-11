@@ -30,7 +30,7 @@ pub struct QuadNum<const P: u128>(
 
 impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for QuadNum<P>
 where
-    QuadNum<P>: Factored<S, L>,
+    QuadNum<P>: Factor<S, L>,
 {
     fn find_sylow_generator(i: usize) -> QuadNum<P> {
         let pow = P - 1;
@@ -41,7 +41,7 @@ where
                 let p = QuadNum::steinitz(j);
                 p.pow(pow)
             })
-            .find_map(|c| QuadNum::is_sylow_generator(&c, <Self as Factored<S, L>>::FACTORS[i]))
+            .find_map(|c| QuadNum::is_sylow_generator(&c, <Self as Factor<S, L>>::FACTORS[i]))
             .unwrap()
     }
 }
@@ -150,15 +150,15 @@ mod tests {
     #[derive(PartialEq, Eq)]
     struct Phantom {}
 
-    impl Factored<Phantom, 1> for QuadNum<7> {
+    impl Factor<Phantom, 1> for QuadNum<7> {
         const FACTORS: Factorization<1> = Factorization::new([(2, 3)]);
     }
 
-    impl Factored<Phantom, 2> for QuadNum<17> {
+    impl Factor<Phantom, 2> for QuadNum<17> {
         const FACTORS: Factorization<2> = Factorization::new([(2, 1), (3, 2)]);
     }
 
-    impl Factored<Phantom, 11> for QuadNum<BIG_P> {
+    impl Factor<Phantom, 11> for QuadNum<BIG_P> {
         const FACTORS: Factorization<11> = Factorization::new([
             (2, 4),
             (3, 1),

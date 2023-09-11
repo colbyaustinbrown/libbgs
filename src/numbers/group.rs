@@ -7,7 +7,7 @@ use crate::numbers::Factorization;
 /// * The type must have a unique element given by `one()`.
 /// * Event element of the type must have element given by `inverse()`.
 pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
-    /// Gets the size of the group represented by this struct.
+    /// Gets the size of the group this element belongs to.
     fn size() -> u128;
     
     /// Gets the unique identity element of this group.

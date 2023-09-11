@@ -16,9 +16,9 @@ pub struct Factorization<const L: usize> {
 /// factorizations for `FpNum<P>`, `QuadNum<P>`, etc. for arbitrary `P`.
 /// The type `S` must come from the crate implementing the factorization to satisfy Rust's
 /// coherence and orphan rules, but does not affect the memory layout of any instance of an object
-/// implementing `Factored`.
+/// implementing `Factor`.
 /// See the Rust documentation on [coherence and the orphan rule](https://doc.rust-lang.org/reference/items/implementations.html#trait-implementation-coherence).
-pub trait Factored<S, const L: usize> {
+pub trait Factor<S, const L: usize> {
     /// The prime factorization of this object.
     const FACTORS: Factorization<L>;
 }
