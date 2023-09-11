@@ -82,10 +82,10 @@ impl<const P: u128> FpNum<P> {
 
 impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for FpNum<P>
 where
-    FpNum<P>: Factored<S, L>,
+    FpNum<P>: Factor<S, L>,
 {
     fn find_sylow_generator(i: usize) -> FpNum<P> {
-        match <Self as Factored<S, L>>::FACTORS[i] {
+        match <Self as Factor<S, L>>::FACTORS[i] {
             (2, 1) => FpNum::from(FpNum::<P>::size()),
             (p, t) => (1..FpNum::<P>::size())
                 .map(|j| FpNum::from(standard_affine_shift(P, j)))
@@ -257,15 +257,15 @@ mod tests {
 
     const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
-    impl Factored<Phantom, 2> for FpNum<13> {
+    impl Factor<Phantom, 2> for FpNum<13> {
         const FACTORS: Factorization<2> = Factorization::new([(2, 2), (3, 1)]);
     }
 
-    impl Factored<Phantom, 2> for FpNum<29> {
+    impl Factor<Phantom, 2> for FpNum<29> {
         const FACTORS: Factorization<2> = Factorization::new([(2, 2), (7, 1)]);
     }
 
-    impl Factored<Phantom, 7> for FpNum<BIG_P> {
+    impl Factor<Phantom, 7> for FpNum<BIG_P> {
         const FACTORS: Factorization<7> = Factorization::new([
             (2, 1),
             (7, 1),

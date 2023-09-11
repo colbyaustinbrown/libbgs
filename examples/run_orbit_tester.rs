@@ -10,7 +10,7 @@ const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 #[derive(PartialEq, Eq)]
 struct Phantom {}
 
-impl Factored<Phantom, 7> for FpNum<BIG_P>{
+impl Factor<Phantom, 7> for FpNum<BIG_P>{
     const FACTORS: Factorization<7> = Factorization::new([
         (2, 1),
         (7, 1),
@@ -22,7 +22,7 @@ impl Factored<Phantom, 7> for FpNum<BIG_P>{
     ]);
 }
 
-impl Factored<Phantom, 11> for QuadNum<BIG_P> {
+impl Factor<Phantom, 11> for QuadNum<BIG_P> {
     const FACTORS: Factorization<11> = Factorization::new([
         (2, 4),
         (3, 1),
@@ -66,11 +66,11 @@ fn main() {
 
     const LIMIT: u128 = 10_000;
 
-    let mut fp_stream_builder = SylowStreamBuilder::new(&fp_decomp)
+    let mut fp_stream_builder = SylowStreamBuilder::new()
         .add_flag(flags::NO_UPPER_HALF)
         .add_flag(flags::NO_PARABOLIC)
         .add_flag(flags::LEQ);
-    let mut fp2_stream_builder = SylowStreamBuilder::new(&fp2_decomp)
+    let mut fp2_stream_builder = SylowStreamBuilder::new()
         .add_flag(flags::NO_UPPER_HALF)
         .add_flag(flags::NO_PARABOLIC)
         .add_flag(flags::LEQ);
