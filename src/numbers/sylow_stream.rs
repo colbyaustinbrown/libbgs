@@ -110,6 +110,9 @@ where
     {
         let (p, _) = <C as Factor<S, L>>::FACTORS[seed.i];
 
+        let status = self.get_status(&seed.rs, seed.i);
+        if !status.has(statuses::KEEP_GOING) { return; }
+
         // First, create new seeds by incrementing
         // the current power.
         let mut stop = p;
