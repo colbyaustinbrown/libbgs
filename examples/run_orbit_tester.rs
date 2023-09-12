@@ -1,4 +1,3 @@
-use rayon::iter::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 
@@ -89,11 +88,11 @@ fn main() {
     let count = AtomicUsize::new(0);
     println!("Loading coordinates into the Orbit Tester.");
     fp_stream_builder
-        .into_par_iter()
+        .into_iter()
         .map(|x| Coord::from_chi_fp(&x, &fp_decomp))
         .chain(
             fp2_stream_builder
-                .into_par_iter()
+                .into_iter()
                 .map(|x| Coord::from_chi_quad(&x, &fp2_decomp)),
         )
         .for_each(|x| {
