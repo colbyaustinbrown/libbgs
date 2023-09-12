@@ -7,7 +7,7 @@ const P: u128 = 5109751;
 #[derive(PartialEq, Eq)]
 struct Phantom {}
 
-impl Factored<Phantom, 4> for FpNum<P> {
+impl Factor<Phantom, 4> for FpNum<P> {
     const FACTORS: Factorization<4> = Factorization::new([
         (2, 1),
         (3, 3),
@@ -17,9 +17,7 @@ impl Factored<Phantom, 4> for FpNum<P> {
 }
 
 fn run_stream() {
-    let g = SylowDecomp::<Phantom, 4, FpNum<P>>::new();
-
-    let stream = SylowStreamBuilder::new(&g)
+    let stream = SylowStreamBuilder::<Phantom, 4, FpNum<P>>::new()
         .add_target([0, 3, 2, 1])
         .into_iter();
 
