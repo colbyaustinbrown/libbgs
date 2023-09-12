@@ -72,11 +72,11 @@ fn criterion_benchmark(c: &mut Criterion) {
     }
 
     let targets: HashSet<_> = fp_stream_builder
-        .into_par_iter()
+        .into_iter()
         .map(|x| Coord::from_chi_fp(&x, &fp_decomp))
         .chain(
             fp2_stream_builder
-                .into_par_iter()
+                .into_iter()
                 .map(|x| Coord::from_chi_quad(&x, &fp2_decomp)),
         )
         .map(|x| x.into())
