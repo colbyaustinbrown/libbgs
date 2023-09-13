@@ -43,7 +43,7 @@ impl<const P: u128> FpNum<P> {
             let mut temp = t;
             let mut i = 0;
             while temp != 1 {
-                temp = temp.square();
+                temp *= temp;
                 i += 1;
             }
             if i == m {
@@ -52,8 +52,8 @@ impl<const P: u128> FpNum<P> {
             let b = c.pow(1 << (m - i - 1));
 
             r *= b;
-            t *= b.square();
-            c = b.square();
+            c = b * b;
+            t *= c;
             m = i;
         }
     }
@@ -102,10 +102,6 @@ impl<const P: u128> GroupElem for FpNum<P> {
 
     fn multiply(&self, other: &FpNum<P>) -> FpNum<P> {
         *self * *other
-    }
-
-    fn square(&self) -> FpNum<P> {
-        *self * *self
     }
 
     fn size() -> u128 {

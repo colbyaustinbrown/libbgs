@@ -99,18 +99,6 @@ impl<const P: u128> GroupElem for QuadNum<P> {
         QuadNum(a0, a1)
     }
 
-    fn square(&self) -> QuadNum<P> {
-        let mut a0 = long_multiply(self.0, self.0, P) + long_multiply(self.1 ,long_multiply(self.1, QuadNum::<P>::R, P), P);
-        let mut a1 = long_multiply(self.1, self.0, P) + long_multiply(self.0, self.1, P);
-        if a0 >= P {
-            a0 -= P;
-        }
-        if a1 >= P {
-            a1 -= P;
-        }
-        QuadNum(a0, a1)
-    }
-
     fn size() -> u128 {
         P + 1
     }

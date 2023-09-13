@@ -24,10 +24,6 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
     /// `a.multiply(b.multiply(c, &g), &g) == a.multiply(b, &g).multiply(c, &g)`.
     fn multiply(&self, other: &Self) -> Self;
 
-    /// Returns this element multiplied by itself.
-    /// If you implement this trait, you must guarantee `x.square() == x.multiply(x)` for all `x`.
-    fn square(&self) -> Self;
-
     /// Raises this element to the power of `n`.
     /// If you override this trait, you must guarantee that `x.pow(2) == x.square()` for all `x`.
     fn pow(&self, mut n: u128) -> Self {

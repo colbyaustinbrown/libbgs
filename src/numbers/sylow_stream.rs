@@ -643,7 +643,7 @@ mod tests {
             .into_iter()
             .for_each(|mut x| {
                 assert!(!x.is_one());
-                x = x.square();
+                x = x.multiply(&x);
                 assert!(!x.is_one());
             });
     }
@@ -766,7 +766,7 @@ mod tests {
             .into_par_iter()
             .for_each(|mut x| {
                 assert!(!x.is_one());
-                x = x.square();
+                x = x.multiply(&x);
                 assert!(!x.is_one());
             });
     }
