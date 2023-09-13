@@ -37,7 +37,7 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
             if n & 1 == 1 {
                 y = y.multiply(&res);
             }
-            res = res.square();
+            res = res.multiply(&res);
             n >>= 1;
         }
         res.multiply(&y)
