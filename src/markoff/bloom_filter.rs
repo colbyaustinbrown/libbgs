@@ -1,9 +1,15 @@
+/// A Bloom Filter, a probabilistic set.
+/// Elements may be added to the filter, and then the filter may be tested for membership, with
+/// false positives. The false positivity rate is determined by the size of the Bloom filter and
+/// the number of hashes.
 pub struct BloomFilter<T> {
     masks: Vec<bool>,
     hashes: Vec<Box<dyn Fn(&T) -> usize>>,
 }
 
 impl<T> BloomFilter<T> {
+    /// Create a new Bloom filter, with the given size in bits and the given list of hashes to be
+    /// applied to all members on addition and query.
     pub fn new(bits: usize, hashes: Vec<Box<dyn Fn(&T) -> usize>>) -> BloomFilter<T> {
         BloomFilter {
             masks: vec![false; bits],
@@ -11,6 +17,7 @@ impl<T> BloomFilter<T> {
         }
     }
 
+    /// Add `elem` to the Bloom filter.
     pub fn add(&mut self, elem: &T) {
         self.hashes.iter()
             .for_each(|hash| {
@@ -18,6 +25,9 @@ impl<T> BloomFilter<T> {
             });
     }
 
+    /// True if `elem` is in the set.
+    /// If `elem` is not in the set, this method returns False; i.e., this method return false
+    /// positives, but not false negatives.
     pub fn is_member_prob(&self, elem: &T) -> bool {
         self.hashes.iter()
             .all(|hash| {
@@ -25,6 +35,8 @@ impl<T> BloomFilter<T> {
             })
     }
 
+    /// True if `elem` is in the set, lazily confirming the result with the `confirm` closure to
+    /// guard against false positives.
     pub fn is_member<F>(&self, elem: &T, confirm: F) -> bool 
     where
         F: Fn(&T) -> bool,
@@ -36,6 +48,7 @@ impl<T> BloomFilter<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::*;
 
     #[test]
     fn test_bloom_filter() {
