@@ -48,8 +48,7 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
     /// If you implement this trait, you must guarantee `x.inverse().multiply(x)` and
     /// `x.multiply(x.inverse())` both evaluate to the unique identity element.
     fn inverse(&self) -> Self {
-        let res = self.clone();
-        res.pow(Self::size() - 1)
+        self.pow(Self::size() - 1)
     }
 
     /// Returns the order of this element, that is, the smallest positive power `p` for which
