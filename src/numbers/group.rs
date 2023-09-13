@@ -34,8 +34,7 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
         let mut y = Self::one();
         let mut res = self.clone();
         while n > 1 {
-            // println!("{n} {:?} {:?}", &self, y);
-            if n % 2 == 1 {
+            if n & 1 == 1 {
                 y = y.multiply(&res);
             }
             res = res.square();
