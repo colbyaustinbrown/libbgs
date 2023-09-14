@@ -4,13 +4,14 @@
 /// the number of hashes.
 pub struct BloomFilter<T> {
     masks: Vec<u8>,
-    hashes: Vec<Box<dyn Fn(&T) -> usize>>,
+    hashes: Vec<Box<dyn Fn(&T) -> usize + Send + Sync>>,
 }
 
 impl<T> BloomFilter<T> {
     /// Create a new Bloom filter, with the given size in bits and the given list of hashes to be
     /// applied to all members on addition and query.
-    pub fn new(bits: usize, hashes: Vec<Box<dyn Fn(&T) -> usize>>) -> BloomFilter<T> {
+    pub fn new(bits: usize, hashes: Vec<Box<dyn Fn(&T) -> usize + Send + Sync>>) -> BloomFilter<T> 
+    {
         BloomFilter {
             masks: vec![0; bits >> 3],
             hashes,
@@ -54,7 +55,7 @@ mod tests {
 
     #[test]
     fn test_bloom_filter() {
-        let mut hashes = Vec::<Box<dyn Fn(&u128) -> usize>>::new();
+        let mut hashes = Vec::<Box<dyn Fn(&u128) -> usize + Send + Sync>>::new();
         hashes.push(Box::new(|x| (x % 10_000) as usize));
         hashes.push(Box::new(|x| ((x >> 32) % 10_000) as usize));
         let mut filter = BloomFilter::<u128>::new(10_000, hashes);
