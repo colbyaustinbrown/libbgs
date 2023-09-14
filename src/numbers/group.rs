@@ -24,21 +24,16 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
     /// `a.multiply(b.multiply(c, &g), &g) == a.multiply(b, &g).multiply(c, &g)`.
     fn multiply(&self, other: &Self) -> Self;
 
-    /// Returns this element multiplied by itself.
-    /// If you implement this trait, you must guarantee `x.square() == x.multiply(x)` for all `x`.
-    fn square(&self) -> Self;
-
     /// Raises this element to the power of `n`.
     /// If you override this trait, you must guarantee that `x.pow(2) == x.square()` for all `x`.
     fn pow(&self, mut n: u128) -> Self {
         let mut y = Self::one();
         let mut res = self.clone();
         while n > 1 {
-            // println!("{n} {:?} {:?}", &self, y);
-            if n % 2 == 1 {
+            if n & 1 == 1 {
                 y = y.multiply(&res);
             }
-            res = res.square();
+            res = res.multiply(&res);
             n >>= 1;
         }
         res.multiply(&y)
@@ -48,8 +43,7 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
     /// If you implement this trait, you must guarantee `x.inverse().multiply(x)` and
     /// `x.multiply(x.inverse())` both evaluate to the unique identity element.
     fn inverse(&self) -> Self {
-        let res = self.clone();
-        res.pow(Self::size() - 1)
+        self.pow(Self::size() - 1)
     }
 
     /// Returns the order of this element, that is, the smallest positive power `p` for which

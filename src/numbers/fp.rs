@@ -43,7 +43,7 @@ impl<const P: u128> FpNum<P> {
             let mut temp = t;
             let mut i = 0;
             while temp != 1 {
-                temp = temp.square();
+                temp *= temp;
                 i += 1;
             }
             if i == m {
@@ -52,8 +52,8 @@ impl<const P: u128> FpNum<P> {
             let b = c.pow(1 << (m - i - 1));
 
             r *= b;
-            t *= b.square();
-            c = b.square();
+            c = b * b;
+            t *= c;
             m = i;
         }
     }
@@ -104,10 +104,6 @@ impl<const P: u128> GroupElem for FpNum<P> {
         *self * *other
     }
 
-    fn square(&self) -> FpNum<P> {
-        *self * *self
-    }
-
     fn size() -> u128 {
         P - 1
     }
@@ -143,28 +139,38 @@ impl<const P: u128> Neg for FpNum<P> {
 impl<const P: u128> Add<Self> for FpNum<P> {
     type Output = FpNum<P>;
     fn add(self, other: Self) -> FpNum<P> {
-        FpNum((self.0 + other.0) % P)
+        let mut x = self.0 + other.0;
+        if x >= P {
+            x -= P;
+        }
+        FpNum(x)
     }
 }
 
 impl<const P: u128> AddAssign<Self> for FpNum<P> {
     fn add_assign(&mut self, other: Self) {
         self.0 += other.0;
-        self.0 %= P;
+        if self.0 >= P {
+            self.0 -= P;
+        }
     }
 }
 
 impl<const P: u128> AddAssign<&Self> for FpNum<P> {
     fn add_assign(&mut self, other: &Self) {
         self.0 += other.0;
-        self.0 %= P;
+        if self.0 >= P {
+            self.0 -= P;
+        }
     }
 }
 
 impl<const P: u128> AddAssign<u128> for FpNum<P> {
     fn add_assign(&mut self, other: u128) {
         self.0 += other;
-        self.0 %= P;
+        if self.0 >= P {
+            self.0 -= P;
+        }
     }
 }
 
@@ -172,7 +178,7 @@ impl<const P: u128> Sub<Self> for FpNum<P> {
     type Output = FpNum<P>;
     fn sub(self, other: Self) -> FpNum<P> {
         let mut value = self.0;
-        while value < other.0 {
+        if value < other.0 {
             value += P;
         }
         value -= other.0;
@@ -182,7 +188,7 @@ impl<const P: u128> Sub<Self> for FpNum<P> {
 
 impl<const P: u128> SubAssign<&Self> for FpNum<P> {
     fn sub_assign(&mut self, other: &Self) {
-        while self.0 < other.0 {
+        if self.0 < other.0 {
             self.0 += P;
         }
         self.0 -= other.0;
@@ -197,7 +203,7 @@ impl<const P: u128> SubAssign<Self> for FpNum<P> {
 
 impl<const P: u128> SubAssign<u128> for FpNum<P> {
     fn sub_assign(&mut self, other: u128) {
-        while self.0 < other {
+        if self.0 < other {
             self.0 += P;
         }
         self.0 -= other;

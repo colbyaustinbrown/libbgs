@@ -88,21 +88,15 @@ impl<const P: u128> GroupElem for QuadNum<P> {
     }
 
     fn multiply(&self, other: &QuadNum<P>) -> QuadNum<P> {
-        QuadNum(
-            (long_multiply(self.0, other.0, P)
-                + long_multiply(self.1, long_multiply(other.1, QuadNum::<P>::R, P), P))
-                % P,
-            (long_multiply(self.1, other.0, P) + long_multiply(self.0, other.1, P)) % P,
-        )
-    }
-
-    fn square(&self) -> QuadNum<P> {
-        QuadNum(
-            (long_multiply(self.0, self.0, P)
-                + long_multiply(self.1, long_multiply(self.1, QuadNum::<P>::R, P), P))
-                % P,
-            (long_multiply(self.1, self.0, P) + long_multiply(self.0, self.1, P)) % P,
-        )
+        let mut a0 = long_multiply(self.0, other.0, P) + long_multiply(self.1, long_multiply(other.1, QuadNum::<P>::R, P), P);
+        let mut a1 = long_multiply(self.1, other.0, P) + long_multiply(self.0, other.1, P);
+        if a0 >= P {
+            a0 -= P;
+        }
+        if a1 >= P {
+            a1 -= P;
+        }
+        QuadNum(a0, a1)
     }
 
     fn size() -> u128 {
@@ -129,14 +123,28 @@ impl<const P: u128> From<(u128, u128)> for QuadNum<P> {
 impl<const P: u128> Add<Self> for QuadNum<P> {
     type Output = QuadNum<P>;
     fn add(self, other: Self) -> QuadNum<P> {
-        QuadNum((self.0 + other.0) % P, (self.1 + other.1) % P)
+        let mut a0 = self.0 + other.0;
+        let mut a1 = self.1 + other.1;
+        if a0 >= P {
+            a0 -= P;
+        }
+        if a1 >= P {
+            a1 -= P;
+        }
+        QuadNum(a0, a1)
     }
 }
 
 impl<const P: u128> AddAssign<Self> for QuadNum<P> {
     fn add_assign(&mut self, other: Self) {
-        self.0 = (self.0 + other.0) % P;
-        self.1 = (self.1 + other.1) % P;
+        self.0 = self.0 + other.0;
+        self.1 = self.1 + other.1;
+        if self.0 >= P {
+            self.0 -= P;
+        }
+        if self.1 >= P {
+            self.1 -= P;
+        }
     }
 }
 

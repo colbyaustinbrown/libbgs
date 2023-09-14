@@ -1,11 +1,9 @@
-use crossbeam::deque::{Injector, Stealer, Worker};
-use crossbeam::queue::SegQueue;
-use rayon::iter::plumbing;
 use rayon::iter::plumbing::*;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-use std::cell::RefCell;
 use std::marker::PhantomData;
+use std::sync::Arc;
+use std::cell::RefCell;
 
 use crate::numbers::*;
 use crate::util::*;
@@ -52,8 +50,10 @@ pub struct SylowParStream<
     C: SylowDecomposable<S, L> + std::fmt::Debug,
 > {
     mode: u8,
-    targets: Vec<[u128; L]>,
-    global_stack: Injector<Seed<S, L, C>>,
+    targets: Arc<Vec<[u128; L]>>,
+    stack: Vec<Seed<S, L, C>>,
+    splits: usize,
+    emit_one: bool,
 }
 
 /// A stream yielding elements of particular orders, as their Sylow decompositions.
@@ -63,18 +63,6 @@ pub struct SylowSeqStream<S, const L: usize, C: SylowDecomposable<S, L>> {
     targets: Vec<[u128; L]>,
     stack: Vec<Seed<S, L, C>>,
     buffer: Vec<SylowElem<S, L, C>>,
-}
-
-struct SylowStreamWorker<'a, S, const L: usize, C, Con>
-where
-    S: Send + Sync,
-    C: SylowDecomposable<S, L>,
-    Con: Consumer<SylowElem<S, L, C>>,
-{
-    stream: &'a SylowParStream<S, L, C>,
-    local_stack: Worker<Seed<S, L, C>>,
-    stealers: &'a [Stealer<Seed<S, L, C>>],
-    folder: RefCell<Option<Con::Folder>>,
 }
 
 #[derive(Debug)]
@@ -102,7 +90,6 @@ where
     fn mode(&self) -> u8;
     fn targets(&self) -> &[[u128; L]];
     fn push(&mut self, e: Seed<S, L, C>);
-    fn consume(&mut self, e: SylowElem<S, L, C>);
 
     fn has_flag(&self, flag: u8) -> bool {
         self.mode() & flag != 0
@@ -116,8 +103,15 @@ where
         }
     }
 
-    fn propogate(&mut self, seed: Seed<S, L, C>) {
+    fn propogate<F>(&mut self, seed: Seed<S, L, C>, mut consume: F) 
+    where
+        Self: Sized,
+        F: FnMut(&mut Self, SylowElem<S, L, C>),
+    {
         let (p, _) = <C as Factor<S, L>>::FACTORS[seed.i];
+
+        let status = self.get_status(&seed.rs, seed.i);
+        if !status.has(statuses::KEEP_GOING) { return; }
 
         // First, create new seeds by incrementing
         // the current power.
@@ -181,7 +175,7 @@ where
                 pushed_any = true;
             }
             if self.has_flag(flags::LEQ) || !pushed_any {
-                self.consume(next.part);
+                consume(self, next.part);
             }
         }
     }
@@ -297,102 +291,6 @@ impl<S, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug>
     }
 }
 
-impl<'a, S, const L: usize, C> ParallelIterator for SylowParStream<S, L, C>
-where
-    S: Send + Sync,
-    C: SylowDecomposable<S, L> + Send + Sync,
-{
-    type Item = SylowElem<S, L, C>;
-
-    fn drive_unindexed<Con>(self, consumer: Con) -> Con::Result
-    where
-        Con: plumbing::UnindexedConsumer<Self::Item>,
-    {
-        let consumer_spawner = consumer.split_off_left();
-
-        let num_threads = std::thread::available_parallelism().unwrap().into();
-        let mut consumers = Vec::new();
-        let mut workers: Vec<Worker<Seed<S, L, C>>> = Vec::new();
-        let mut stealers = Vec::new();
-
-        for _ in 0..num_threads {
-            let con = consumer_spawner.split_off_left();
-            let wrk = Worker::new_fifo();
-            let stl = wrk.stealer();
-
-            consumers.push(con);
-            workers.push(wrk);
-            stealers.push(stl);
-        }
-
-        let results = SegQueue::new();
-        let mut folder = consumer.into_folder();
-        if self.has_flag(flags::INCLUDE_ONE)
-            || (self.has_flag(flags::LEQ) && !self.has_flag(flags::NO_PARABOLIC))
-        {
-            folder = folder.consume(SylowElem::one());
-            results.push(folder.complete());
-        }
-        rayon::scope(|s| {
-            workers
-                .into_iter()
-                .zip(consumers.into_iter())
-                .for_each(|(wrk, consumer)| {
-                    s.spawn(|_| {
-                        let folder = consumer.into_folder();
-                        let worker: SylowStreamWorker<S, L, C, Con> = SylowStreamWorker {
-                            stream: &self,
-                            local_stack: wrk,
-                            stealers: &stealers,
-                            folder: RefCell::new(Some(folder)),
-                        };
-                        results.push(worker.work());
-                    });
-                });
-        });
-
-        let mut res = results.pop().unwrap();
-        for r in results {
-            res = consumer_spawner.to_reducer().reduce(res, r);
-        }
-        res
-    }
-}
-
-impl<
-        'a,
-        S: Send + Sync,
-        const L: usize,
-        C: SylowDecomposable<S, L>,
-        Con: Consumer<SylowElem<S, L, C>>,
-    > SylowStreamWorker<'a, S, L, C, Con>
-{
-    fn work(mut self) -> Con::Result {
-        let mut retry = 0;
-        loop {
-            while let Some(task) = self.local_stack.pop().or_else(|| {
-                std::iter::repeat_with(|| {
-                    self.stream
-                        .global_stack
-                        .steal_batch_and_pop(&self.local_stack)
-                        .or_else(|| self.stealers.iter().map(|s| s.steal()).collect())
-                })
-                .find(|s| !s.is_retry())
-                .and_then(|s| s.success())
-            }) {
-                self.propogate(task);
-            }
-            if retry < 3 {
-                std::thread::sleep(std::time::Duration::from_millis(5));
-                retry += 1;
-                continue;
-            }
-            break;
-        }
-        self.folder.into_inner().unwrap().complete()
-    }
-}
-
 impl<S, const L: usize, C: SylowDecomposable<S, L>> Iterator for SylowSeqStream<S, L, C> {
     type Item = SylowElem<S, L, C>;
 
@@ -400,7 +298,7 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> Iterator for SylowSeqStream<
         if let Some(res) = self.buffer.pop() {
             Some(res)
         } else if let Some(top) = self.stack.pop() {
-            self.propogate(top);
+            self.propogate(top, |slf, e| slf.buffer.push(e));
             self.next()
         } else {
             None
@@ -408,28 +306,84 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> Iterator for SylowSeqStream<
     }
 }
 
-impl<S, const L: usize, C> IntoParallelIterator for SylowStreamBuilder<S, L, C>
+impl<S, const L: usize, C: SylowDecomposable<S, L>> SylowParStream<S, L, C> 
 where
     S: Send + Sync,
-    C: SylowDecomposable<S, L> + Send + Sync,
+{
+    fn maybe_split(&mut self, stolen: bool) -> Option<Self> {
+        if stolen {
+            self.splits = rayon::current_num_threads();
+        }
+
+        if self.splits == 0 {
+            return None;
+        }
+
+        let len = self.stack.len();
+        if len <= 1 {
+            return None;
+        }
+        let stack = self.stack.split_off(len / 2);
+        self.splits /= 2;
+        Some(SylowParStream {
+            mode: self.mode,
+            targets: Arc::clone(&self.targets),
+            stack,
+            splits: self.splits,
+            emit_one: false,
+        }) 
+    }
+
+    fn work<Con>(&mut self, stolen: bool, consumer: Con) -> Con::Result
+    where
+        C: Send,
+        Con: UnindexedConsumer<SylowElem<S, L, C>>,
+    {
+        let mut folder = consumer.split_off_left().into_folder();
+        if self.emit_one {
+            folder = folder.consume(SylowElem::one());
+            self.emit_one = false;
+        }
+        let folder = RefCell::new(Some(folder));
+        
+        loop {
+            if let Some(mut split) = self.maybe_split(stolen) {
+                let (r1, r2) = (consumer.to_reducer(), consumer.to_reducer());
+                let left_consumer = consumer.split_off_left();
+
+                let (left, right) = rayon::join_context(
+                    |ctx| self.work(ctx.migrated(), left_consumer),
+                    |ctx| split.work(ctx.migrated(), consumer),
+                );
+                return r1.reduce(folder.into_inner().unwrap().complete(), r2.reduce(left, right));
+            }
+
+            if let Some(top) = self.stack.pop() {
+                self.propogate(top, |_, e| {
+                    let mut f = folder.take().unwrap();
+                    f = f.consume(e);
+                    folder.replace(Some(f));
+                });
+            } else {
+                break;
+            }
+        }
+        folder.into_inner().unwrap().complete()
+    }
+}
+
+impl<S, const L: usize, C> ParallelIterator for SylowParStream<S, L, C>
+where
+    S: Send + Sync,
+    C: SylowDecomposable<S, L> + Send,
 {
     type Item = SylowElem<S, L, C>;
-    type Iter = SylowParStream<S, L, C>;
 
-    /// Returns a SylowStream yielding the elements requested via the constructor, `add_flag`, and
-    /// `flag_target` invocations.
-    fn into_par_iter(self) -> SylowParStream<S, L, C> {
-        let global_stack = Injector::new();
-
-        self.get_starting_stack()
-            .into_iter()
-            .for_each(|x| global_stack.push(x));
-
-        SylowParStream {
-            mode: self.mode,
-            targets: self.targets.clone(),
-            global_stack,
-        }
+    fn drive_unindexed<Con>(mut self, consumer: Con) -> Con::Result
+    where
+        Con: UnindexedConsumer<Self::Item>
+    {
+        self.work(false, consumer)
     }
 }
 
@@ -456,56 +410,29 @@ where
     }
 }
 
+impl<S, const L: usize, C> IntoParallelIterator for SylowStreamBuilder<S, L, C>
+where
+    S: Send + Sync,
+    C: SylowDecomposable<S, L> + Send + Sync,
+{
+    type Item = SylowElem<S, L, C>;
+    type Iter = SylowParStream<S, L, C>;
+
+    fn into_par_iter(self) -> Self::Iter {
+        SylowParStream {
+            mode: self.mode,
+            splits: rayon::current_num_threads(),
+            stack: self.get_starting_stack(),
+            targets: Arc::new(self.targets),
+            emit_one: self.mode & flags::INCLUDE_ONE != 0
+                || (self.mode & flags::LEQ != 0 && self.mode & flags::NO_PARABOLIC == 0),
+        }
+    }
+}
+
 impl Status {
     fn has(&self, flag: u8) -> bool {
         self.0 & flag != 0
-    }
-}
-
-impl<'a, S, const L: usize, C> SylowStream<'a, S, L, C> for SylowParStream<S, L, C>
-where
-    S: Send + Sync,
-    C: SylowDecomposable<S, L>,
-{
-    fn push(&mut self, e: Seed<S, L, C>) {
-        self.global_stack.push(e);
-    }
-
-    fn consume(&mut self, _: SylowElem<S, L, C>) {
-        unimplemented!();
-    }
-
-    fn mode(&self) -> u8 {
-        self.mode
-    }
-
-    fn targets(&self) -> &[[u128; L]] {
-        &self.targets
-    }
-}
-
-impl<'a, S, const L: usize, C, Con> SylowStream<'a, S, L, C> for SylowStreamWorker<'a, S, L, C, Con>
-where
-    S: Send + Sync,
-    C: SylowDecomposable<S, L>,
-    Con: Consumer<SylowElem<S, L, C>>,
-{
-    fn push(&mut self, e: Seed<S, L, C>) {
-        self.local_stack.push(e);
-    }
-
-    fn consume(&mut self, e: SylowElem<S, L, C>) {
-        let mut f = self.folder.take().unwrap();
-        f = f.consume(e);
-        self.folder.replace(Some(f));
-    }
-
-    fn mode(&self) -> u8 {
-        self.stream.mode
-    }
-
-    fn targets(&self) -> &[[u128; L]] {
-        &self.stream.targets
     }
 }
 
@@ -517,8 +444,22 @@ where
         self.stack.push(e);
     }
 
-    fn consume(&mut self, e: SylowElem<S, L, C>) {
-        self.buffer.push(e);
+    fn mode(&self) -> u8 {
+        self.mode
+    }
+
+    fn targets(&self) -> &[[u128; L]] {
+        &self.targets
+    }
+}
+
+impl<'a, S, const L: usize, C> SylowStream<'a, S, L, C> for SylowParStream<S, L, C>
+where
+    S: Send + Sync,
+    C: SylowDecomposable<S, L>,
+{
+    fn push(&mut self, e: Seed<S, L, C>) {
+        self.stack.push(e);
     }
 
     fn mode(&self) -> u8 {
@@ -598,7 +539,7 @@ mod tests {
     pub fn test_generates_small_seq() {
         let stream = SylowStreamBuilder::new()
             .add_target([1, 0, 0])
-            .into_par_iter();
+            .into_iter();
         let coords: Vec<SylowElem<Phantom, 3, FpNum<61>>> = stream.collect();
         assert_eq!(coords.len(), 1);
         let mut x = coords[0].clone();
@@ -668,7 +609,7 @@ mod tests {
         let stream = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
             .add_target([1, 0, 0])
             .add_target([0, 1, 0])
-            .into_par_iter();
+            .into_iter();
         let coords: Vec<SylowElem<Phantom, 3, FpNum<271>>> = stream.collect();
         assert_eq!(coords.len(), 3);
 
@@ -702,10 +643,11 @@ mod tests {
             .into_iter()
             .for_each(|mut x| {
                 assert!(!x.is_one());
-                x = x.square();
+                x = x.multiply(&x);
                 assert!(!x.is_one());
             });
     }
+
     #[test]
     pub fn test_make_stream_par() {
         let g = SylowDecomp::<Phantom, 2, FpNum<7>>::new();
@@ -824,7 +766,7 @@ mod tests {
             .into_par_iter()
             .for_each(|mut x| {
                 assert!(!x.is_one());
-                x = x.square();
+                x = x.multiply(&x);
                 assert!(!x.is_one());
             });
     }

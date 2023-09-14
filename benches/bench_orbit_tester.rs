@@ -12,7 +12,7 @@ const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 #[derive(PartialEq, Eq)]
 struct Phantom {}
 
-impl Factored<Phantom, 7> for FpNum<BIG_P> {
+impl Factor<Phantom, 7> for FpNum<BIG_P> {
     const FACTORS: Factorization<7> = Factorization::new([
         (2, 1),
         (7, 1),
@@ -24,7 +24,7 @@ impl Factored<Phantom, 7> for FpNum<BIG_P> {
     ]);
 }
 
-impl Factored<Phantom, 11> for QuadNum<BIG_P> {
+impl Factor<Phantom, 11> for QuadNum<BIG_P> {
     const FACTORS: Factorization<11> = Factorization::new([
         (2, 4),
         (3, 1),
@@ -54,11 +54,11 @@ fn criterion_benchmark(c: &mut Criterion) {
     let fp_decomp = SylowDecomp::new();
     let fp2_decomp = SylowDecomp::new();
 
-    let mut fp_stream_builder = SylowStreamBuilder::new(&fp_decomp)
+    let mut fp_stream_builder = SylowStreamBuilder::new()
         .add_flag(flags::NO_UPPER_HALF)
         .add_flag(flags::NO_PARABOLIC)
         .add_flag(flags::LEQ);
-    let mut fp2_stream_builder = SylowStreamBuilder::new(&fp2_decomp)
+    let mut fp2_stream_builder = SylowStreamBuilder::new()
         .add_flag(flags::NO_UPPER_HALF)
         .add_flag(flags::NO_PARABOLIC)
         .add_flag(flags::LEQ);
@@ -72,11 +72,11 @@ fn criterion_benchmark(c: &mut Criterion) {
     }
 
     let targets: HashSet<_> = fp_stream_builder
-        .into_par_iter()
+        .into_iter()
         .map(|x| Coord::from_chi_fp(&x, &fp_decomp))
         .chain(
             fp2_stream_builder
-                .into_par_iter()
+                .into_iter()
                 .map(|x| Coord::from_chi_quad(&x, &fp2_decomp)),
         )
         .map(|x| x.into())

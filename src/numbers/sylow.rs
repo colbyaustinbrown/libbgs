@@ -147,17 +147,6 @@ where
         }
     }
 
-    fn square(&self) -> SylowElem<S, L, C> {
-        let mut coords = self.coords;
-        for i in 0..L {
-            coords[i] = (coords[i] * 2) % <C as Factor<S, L>>::FACTORS.factor(i);
-        }
-        SylowElem {
-            coords,
-            _phantom: PhantomData,
-        }
-    }
-
     fn inverse(&self) -> SylowElem<S, L, C> {
         let mut coords = self.coords;
         for i in 0..L {
