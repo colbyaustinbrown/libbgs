@@ -3,7 +3,7 @@
 /// false positives. The false positivity rate is determined by the size of the Bloom filter and
 /// the number of hashes.
 pub struct BloomFilter<T> {
-    masks: Vec<bool>,
+    masks: Vec<u8>,
     hashes: Vec<Box<dyn Fn(&T) -> usize>>,
 }
 
@@ -12,7 +12,7 @@ impl<T> BloomFilter<T> {
     /// applied to all members on addition and query.
     pub fn new(bits: usize, hashes: Vec<Box<dyn Fn(&T) -> usize>>) -> BloomFilter<T> {
         BloomFilter {
-            masks: vec![false; bits],
+            masks: vec![0; bits >> 3],
             hashes,
         }
     }
@@ -21,7 +21,8 @@ impl<T> BloomFilter<T> {
     pub fn add(&mut self, elem: &T) {
         self.hashes.iter()
             .for_each(|hash| {
-                self.masks[hash(elem)] = true;
+                let h = hash(elem);
+                self.masks[h >> 3] |= 1 << (h & 0b111);
             });
     }
 
@@ -31,7 +32,8 @@ impl<T> BloomFilter<T> {
     pub fn is_member_prob(&self, elem: &T) -> bool {
         self.hashes.iter()
             .all(|hash| {
-                self.masks[hash(elem)]
+                let h = hash(elem);
+                self.masks[h >> 3] & (1 << (h & 0b111)) != 0
             })
     }
 
