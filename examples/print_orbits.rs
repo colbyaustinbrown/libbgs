@@ -7,8 +7,6 @@ const P: u128 = 13;
 struct Phantom {}
 
 fn main() {
-    let fp_facts = Factorization::new([(2, 2), (3, 1)]);
-    let fp2_facts = Factorization::new([(2, 1), (7, 1)]);
     for a in 0..P {
         for b in 0..P {
             for c in 0..P {
@@ -20,7 +18,7 @@ fn main() {
                         "{a} {} {} ({})",
                         y,
                         z,
-                        z.get_ord(&fp_facts, &fp2_facts).value()
+                        z.get_ord()
                     );
                 }
                 println!();

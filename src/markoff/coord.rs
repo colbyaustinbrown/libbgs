@@ -88,14 +88,19 @@ impl<const P: u128> Coord<P> {
     }
 
     /// Returns the order of the map $\text{rot}\_a$, that is, $\lvert \langle \text{rot}\_a \rangle \rvert$.
-    pub fn get_ord<const L: usize>(
-        &self,
-        minusonesize: &Factorization<L>,
-        plusonesize: &Factorization<L>,
-    ) -> Factorization<L> {
+    pub fn get_ord<
+        S1, 
+        S2, 
+        const L1: usize, 
+        const L2: usize
+    >(&self) -> u128
+    where
+        FpNum<P>: Factor<S1, L1>,
+        QuadNum<P>: Factor<S2, L2>,
+    {
         self.to_chi()
             .as_ref()
-            .either(|l| l.order(plusonesize), |r| r.order(minusonesize))
+            .either(|l| l.order().value(), |r| r.order().value())
     }
 }
 
