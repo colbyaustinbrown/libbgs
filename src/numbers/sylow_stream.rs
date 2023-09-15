@@ -495,6 +495,32 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for SylowStreamBuilder
     }
 }
 
+impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for SylowSeqStream<S, L, C> {
+    fn clone(&self) -> SylowSeqStream<S, L, C> {
+        SylowSeqStream {
+            mode: self.mode,
+            targets: self.targets.clone(),
+            stack: self.stack.clone(),
+            buffer: self.buffer.clone(),
+        }
+    }
+}
+
+impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for SylowParStream<S, L, C> 
+where
+    S: Send + Sync,
+{
+    fn clone(&self) -> SylowParStream<S, L, C> {
+        SylowParStream {
+            mode: self.mode,
+            targets: Arc::clone(&self.targets),
+            stack: self.stack.clone(),
+            splits: self.splits,
+            emit_one: self.emit_one,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
