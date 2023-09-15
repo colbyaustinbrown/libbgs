@@ -485,6 +485,16 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for Seed<S, L, C> {
 }
 impl<S, const L: usize, C: SylowDecomposable<S, L>> Copy for Seed<S, L, C> {}
 
+impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for SylowStreamBuilder<S, L, C> {
+    fn clone(&self) -> Self {
+        SylowStreamBuilder {
+            mode: self.mode,
+            targets: self.targets.clone(),
+            _phantom: PhantomData
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
