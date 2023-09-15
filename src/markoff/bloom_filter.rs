@@ -1,20 +1,28 @@
+use std::marker::PhantomData;
+
 /// A Bloom Filter, a probabilistic set.
 /// Elements may be added to the filter, and then the filter may be tested for membership, with
 /// false positives. The false positivity rate is determined by the size of the Bloom filter and
 /// the number of hashes.
-pub struct BloomFilter<T> {
+#[derive(Clone)]
+pub struct BloomFilter<T, F> {
     masks: Vec<u8>,
-    hashes: Vec<Box<dyn Fn(&T) -> usize + Send + Sync>>,
+    hashes: Vec<F>,
+    _phantom: PhantomData<T>,
 }
 
-impl<T> BloomFilter<T> {
+impl<T, F> BloomFilter<T, F> 
+where
+    F: Fn(&T) -> usize + Send + Sync,
+{
     /// Create a new Bloom filter, with the given size in bits and the given list of hashes to be
     /// applied to all members on addition and query.
-    pub fn new(bits: usize, hashes: Vec<Box<dyn Fn(&T) -> usize + Send + Sync>>) -> BloomFilter<T> 
+    pub fn new(bits: usize, hashes: Vec<F>) -> BloomFilter<T, F> 
     {
         BloomFilter {
             masks: vec![0; bits >> 3],
             hashes,
+            _phantom: PhantomData,
         }
     }
 
@@ -40,9 +48,9 @@ impl<T> BloomFilter<T> {
 
     /// True if `elem` is in the set, lazily confirming the result with the `confirm` closure to
     /// guard against false positives.
-    pub fn is_member<F>(&self, elem: &T, confirm: F) -> bool 
+    pub fn is_member<G>(&self, elem: &T, confirm: G) -> bool 
     where
-        F: Fn(&T) -> bool,
+        G: Fn(&T) -> bool,
     {
         self.is_member_prob(elem) && confirm(elem)
     }
@@ -68,7 +76,7 @@ mod tests {
         let mut hashes = Vec::<Box<dyn Fn(&u128) -> usize + Send + Sync>>::new();
         hashes.push(Box::new(|x| (x % 10_000) as usize));
         hashes.push(Box::new(|x| ((x >> 32) % 10_000) as usize));
-        let mut filter = BloomFilter::<u128>::new(10_000, hashes);
+        let mut filter = BloomFilter::<u128, _>::new(10_000, hashes);
         for i in 100_000..101_000 {
             filter.add(& intpow(i * 1000 + i * 10 + i, 2, 0));
         }
