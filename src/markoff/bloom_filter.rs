@@ -46,6 +46,16 @@ impl<T> BloomFilter<T> {
     {
         self.is_member_prob(elem) && confirm(elem)
     }
+
+    /// Modifies `self` to include elements from `other`.
+    /// The false positivity rate of the resultant bloom filter will be greater than or equal to
+    /// the maximum of the false positivity rates of the two operands.
+    pub fn union(&mut self, other: &Self) {
+        let l = usize::max(self.masks.len(), other.masks.len());
+        for i in 0..l {
+            self.masks[i] |= other.masks[i];
+        }
+    }
 }
 
 #[cfg(test)]
