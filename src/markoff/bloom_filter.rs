@@ -1,13 +1,13 @@
 use std::marker::PhantomData;
+use std::sync::Arc;
 
 /// A Bloom Filter, a probabilistic set.
 /// Elements may be added to the filter, and then the filter may be tested for membership, with
 /// false positives. The false positivity rate is determined by the size of the Bloom filter and
 /// the number of hashes.
-#[derive(Clone)]
 pub struct BloomFilter<T, F> {
     masks: Vec<u8>,
-    hashes: Vec<F>,
+    hashes: Arc<Vec<F>>,
     _phantom: PhantomData<T>,
 }
 
@@ -21,7 +21,7 @@ where
     {
         BloomFilter {
             masks: vec![0; bits >> 3],
-            hashes,
+            hashes: Arc::new(hashes),
             _phantom: PhantomData,
         }
     }
@@ -62,6 +62,16 @@ where
         let l = usize::max(self.masks.len(), other.masks.len());
         for i in 0..l {
             self.masks[i] |= other.masks[i];
+        }
+    }
+}
+
+impl<T, F> Clone for BloomFilter<T, F> {
+    fn clone(&self) -> BloomFilter<T, F> {
+        BloomFilter {
+            masks: self.masks.clone(),
+            hashes: Arc::clone(&self.hashes),
+            _phantom: PhantomData,
         }
     }
 }
