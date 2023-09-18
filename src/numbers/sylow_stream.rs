@@ -70,7 +70,7 @@ struct Seed<S, const L: usize, C: SylowDecomposable<S, L>> {
     step: u128,
     rs: [u128; L],
     part: SylowElem<S, L, C>,
-    block_upper: u8,
+    block_upper: bool,
     start: u128,
 }
 
@@ -96,10 +96,6 @@ where
         self.builder().mode & flag != 0
     }
 
-    fn get_start(&self, status: &Status) -> u128 {
-            0
-    }
-
     fn init_stack(&mut self) {
         let mut parabolic_seed = None;
 
@@ -107,13 +103,13 @@ where
         for i in 0..L {
             let (p, d) = <C as Factor<S, L>>::FACTORS[i];
 
-            let Some(t) = self.builder().targets
+            if !self.has_flag(flags::LEQ) 
+                && self.builder().targets
                 .iter()
-                .find(|t| {
-                    (self.has_flag(flags::LEQ) || t[0..i].iter().all(|t| *t == 0))
-                        && t[i] != 0
-                })
-            else { continue; };
+                .all(|t| {
+                    t[i] == 0 || t[0..i].iter().any(|t| *t != 0)
+                }) 
+            { continue; };
 
             if self.has_flag(flags::NO_PARABOLIC) && p == 2 {
                 parabolic_seed = Some(count);
@@ -125,14 +121,7 @@ where
                 part: SylowElem::one(),
                 step: intpow(p, d - 1, 0),
                 rs: [0; L],
-                block_upper: 
-                    if !self.has_flag(flags::NO_UPPER_HALF) {
-                        0
-                    } else if p == 2 {
-                        2
-                    } else {
-                        1
-                    },
+                block_upper: self.has_flag(flags::NO_UPPER_HALF),
                 start: 0,
             });
         }
@@ -168,7 +157,7 @@ where
         for j in seed.start..stop {
             let tmp = seed.part.coords[seed.i] + j * seed.step;
 
-            if seed.block_upper > 0 && tmp > lim {
+            if seed.block_upper && tmp > lim {
                 break;
             }
 
@@ -185,7 +174,7 @@ where
                 part,
                 rs,
                 block_upper: seed.block_upper,
-                start: self.get_start(&status),
+                start: 0,
             };
             if status.has(statuses::KEEP_GOING) {
                 self.push(next);
@@ -205,14 +194,16 @@ where
                 if !(self.has_flag(flags::LEQ) || status.has(statuses::KEEP_GOING)) {
                     continue;
                 }
-                let (p, d) = <C as Factor<S, L>>::FACTORS[k];
+                let (p_next, d_next) = <C as Factor<S, L>>::FACTORS[k];
                 let s = Seed {
                     i: k,
                     part: next.part,
-                    step: intpow(p, d - 1, 0),
+                    step: intpow(p_next, d_next - 1, 0),
                     rs: next.rs,
-                    block_upper: seed.block_upper.saturating_sub(1),
-                    start: self.get_start(&status),
+                    block_upper: seed.block_upper 
+                        && p == 2 
+                        && rs[seed.i] == 1,
+                    start: 0,
                 };
                 self.push(s);
                 pushed_any = true;
@@ -808,5 +799,29 @@ mod tests {
                 count.fetch_add(1, Ordering::Relaxed);
             });
         assert_eq!(count.into_inner(), 18);
+    }
+
+    #[test]
+    pub fn test_no_parabolic_no_upper_half_seq() {
+        let count = SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
+            .add_target([2, 0, 1])
+            .add_flag(flags::LEQ)
+            .add_flag(flags::NO_PARABOLIC)
+            .add_flag(flags::NO_UPPER_HALF)
+            .into_iter()
+            .count();
+        assert_eq!(count, 9);
+    }
+
+    #[test]
+    pub fn test_no_parabolic_no_upper_half_par() {
+        let count = SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
+            .add_target([2, 0, 1])
+            .add_flag(flags::LEQ)
+            .add_flag(flags::NO_PARABOLIC)
+            .add_flag(flags::NO_UPPER_HALF)
+            .into_par_iter()
+            .count();
+        assert_eq!(count, 9);
     }
 }
