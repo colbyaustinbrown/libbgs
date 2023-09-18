@@ -70,7 +70,7 @@ struct Seed<S, const L: usize, C: SylowDecomposable<S, L>> {
     step: u128,
     rs: [u128; L],
     part: SylowElem<S, L, C>,
-    block_upper: bool,
+    block_upper: u8,
     start: u128,
 }
 
@@ -129,7 +129,14 @@ where
                 part: SylowElem::one(),
                 step: intpow(p, d - 1, 0),
                 rs: [0; L],
-                block_upper: self.has_flag(flags::NO_UPPER_HALF),
+                block_upper: 
+                    if !self.has_flag(flags::NO_UPPER_HALF) {
+                        0
+                    } else if p == 2 {
+                        2
+                    } else {
+                        1
+                    },
                 start: if t[i] == 1 && !self.has_flag(flags::LEQ)
                     { 1 } else { 0 },
             });
@@ -166,7 +173,7 @@ where
         for j in seed.start..stop {
             let tmp = seed.part.coords[seed.i] + j * seed.step;
 
-            if seed.block_upper && tmp > lim {
+            if seed.block_upper > 0 && tmp > lim {
                 break;
             }
 
@@ -212,7 +219,7 @@ where
                     part: next.part,
                     step: intpow(p, d - 1, 0),
                     rs: next.rs,
-                    block_upper: false,
+                    block_upper: seed.block_upper.saturating_sub(1),
                     start: self.get_start(&status),
                 };
                 self.push(s);
