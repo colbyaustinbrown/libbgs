@@ -97,11 +97,7 @@ where
     }
 
     fn get_start(&self, status: &Status) -> u128 {
-        if status.0 & statuses::ONE_AWAY != 0 && !self.has_flag(flags::LEQ) {
-            1
-        } else {
             0
-        }
     }
 
     fn init_stack(&mut self) {
@@ -137,8 +133,7 @@ where
                     } else {
                         1
                     },
-                start: if t[i] == 1 && !self.has_flag(flags::LEQ)
-                    { 1 } else { 0 },
+                start: 0,
             });
         }
 
@@ -199,10 +194,7 @@ where
             // Next, create new seeds by moving to the next prime power,
             // but only if we are *done* with this prime power.
             if j == 0 { continue; }
-            if !(status.has(statuses::EQ) || self.has_flag(flags::LEQ)) { 
-                if self.has_flag(flags::LEQ) {
-                    consume(self, next.part);
-                }
+            if !status.has(statuses::EQ) && !self.has_flag(flags::LEQ) { 
                 continue; 
             }
 
