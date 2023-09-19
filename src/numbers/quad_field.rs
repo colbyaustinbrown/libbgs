@@ -79,7 +79,7 @@ impl<const P: u128> QuadNum<P> {
     }
 
     /// The basis element for the numbers outside of the prime subfield.
-    pub const R: u128 = FpNum::<P>::find_nonresidue(P);
+    pub const R: u128 = FpNum::<P>::find_nonresidue();
 }
 
 impl<const P: u128> GroupElem for QuadNum<P> {
@@ -88,8 +88,8 @@ impl<const P: u128> GroupElem for QuadNum<P> {
     }
 
     fn multiply(&self, other: &QuadNum<P>) -> QuadNum<P> {
-        let mut a0 = long_multiply(self.0, other.0, P) + long_multiply(self.1, long_multiply(other.1, QuadNum::<P>::R, P), P);
-        let mut a1 = long_multiply(self.1, other.0, P) + long_multiply(self.0, other.1, P);
+        let mut a0 = long_multiply::<P>(self.0, other.0) + long_multiply::<P>(self.1, long_multiply::<P>(other.1, QuadNum::<P>::R));
+        let mut a1 = long_multiply::<P>(self.1, other.0) + long_multiply::<P>(self.0, other.1);
         if a0 >= P {
             a0 -= P;
         }
