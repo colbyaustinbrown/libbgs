@@ -1,7 +1,7 @@
 use std::ops::Index;
 
 use crate::numbers::FactorStream;
-use crate::util::intpow;
+use crate::util::{intpow, intpow_const};
 
 /// A prime power decomposition of a positive integer.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -29,7 +29,7 @@ impl<const L: usize> Factorization<L> {
         let mut value = 1;
         let mut i = 0;
         while i < L {
-            value *= intpow::<0>(prime_powers[i].0, prime_powers[i].1);
+            value *= intpow_const::<0>(prime_powers[i].0, prime_powers[i].1);
             i += 1;
         }
         Factorization {

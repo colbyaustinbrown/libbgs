@@ -38,6 +38,7 @@ impl<const P: u128> FpNum<P> {
 
         loop {
             if t == 1 {
+                r.0 %= P;
                 return Some(r);
             }
             let mut temp = t;
@@ -69,7 +70,7 @@ impl<const P: u128> FpNum<P> {
             let mut i = 0;
             while i < P {
                 let a = standard_affine_shift(P, i);
-                if intpow::<P>(a, (P - 1) / 2) == P - 1 {
+                if intpow_const::<P>(a, (P - 1) / 2) == P - 1 {
                     res = a;
                     break;
                 }
