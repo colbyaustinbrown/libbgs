@@ -29,7 +29,7 @@ impl<const L: usize> Factorization<L> {
         let mut value = 1;
         let mut i = 0;
         while i < L {
-            value *= intpow(prime_powers[i].0, prime_powers[i].1, 0);
+            value *= intpow::<0>(prime_powers[i].0, prime_powers[i].1);
             i += 1;
         }
         Factorization {
@@ -59,7 +59,7 @@ impl<const L: usize> Factorization<L> {
     /// Returns the prime power factor represented by prime number `i`, $p_i^{t_i}$.
     /// This method will `panic` if `i` is out of bounds.
     pub fn factor(&self, i: usize) -> u128 {
-        intpow(self.prime_powers[i].0, self.prime_powers[i].1, 0)
+        intpow::<0>(self.prime_powers[i].0, self.prime_powers[i].1)
     }
 
     /// Gets the prime powers as an array.
@@ -80,7 +80,7 @@ impl<const L: usize> Factorization<L> {
             if *d > t {
                 return 0;
             } else {
-                total *= intpow(p, *d, 0);
+                total *= intpow::<0>(p, *d);
             }
         }
         total

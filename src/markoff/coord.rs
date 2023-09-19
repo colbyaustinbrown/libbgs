@@ -15,8 +15,8 @@ impl<const P: u128> Coord<P> {
     /// will be a `Right<FpNum<P>>`. Otherwise, $\chi \in \mathbb{F}\_{p^2}$, and the result will
     /// be a `Left<QuadNum<P>>`.
     pub fn to_chi(&self) -> Either<QuadNum<P>, FpNum<P>> {
-        let v3 = long_multiply(self.0, 3, P);
-        let disc = intpow(v3, 2, P);
+        let v3 = long_multiply::<P>(self.0, 3);
+        let disc = intpow::<P>(v3, 2);
         let disc = (disc + P - 4) % P;
         QuadNum::int_sqrt_either(disc).map_either(
             |mut x| {

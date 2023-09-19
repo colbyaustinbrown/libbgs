@@ -26,7 +26,7 @@ impl<const P: u128> FpNum<P> {
         let mut i = 1;
         let z = loop {
             let z = standard_affine_shift(P, i);
-            if legendre(z, P) == (P - 1) {
+            if legendre::<P>(z) == (P - 1) {
                 break z;
             }
             i += 1;
@@ -59,17 +59,17 @@ impl<const P: u128> FpNum<P> {
     }
 
     /// Returns a quadratic nonresidue modulo `p`.
-    pub const fn find_nonresidue(p: u128) -> u128 {
-        if p % 4 == 3 {
-            p - 1
-        } else if p % 8 == 3 || p % 8 == 5 {
+    pub const fn find_nonresidue() -> u128 {
+        if P % 4 == 3 {
+            P - 1
+        } else if P % 8 == 3 || P % 8 == 5 {
             2
         } else {
             let mut res = 0;
             let mut i = 0;
-            while i < p {
-                let a = standard_affine_shift(p, i);
-                if intpow(a, (p - 1) / 2, p) == p - 1 {
+            while i < P {
+                let a = standard_affine_shift(P, i);
+                if intpow::<P>(a, (P - 1) / 2) == P - 1 {
                     res = a;
                     break;
                 }
@@ -213,7 +213,7 @@ impl<const P: u128> SubAssign<u128> for FpNum<P> {
 impl<const P: u128> Mul<&Self> for FpNum<P> {
     type Output = FpNum<P>;
     fn mul(self, other: &FpNum<P>) -> FpNum<P> {
-        FpNum(long_multiply(self.0, other.0, P))
+        FpNum(long_multiply::<P>(self.0, other.0))
     }
 }
 
@@ -221,26 +221,26 @@ impl<const P: u128> Mul<Self> for FpNum<P> {
     type Output = FpNum<P>;
 
     fn mul(self, other: FpNum<P>) -> FpNum<P> {
-        FpNum(long_multiply(self.0, other.0, P))
+        FpNum(long_multiply::<P>(self.0, other.0))
     }
 }
 
 impl<const P: u128> MulAssign<&Self> for FpNum<P> {
     fn mul_assign(&mut self, other: &Self) {
-        self.0 = long_multiply(self.0, other.0, P);
+        self.0 = long_multiply::<P>(self.0, other.0);
     }
 }
 
 impl<const P: u128> MulAssign<Self> for FpNum<P> {
     fn mul_assign(&mut self, other: Self) {
-        self.0 = long_multiply(self.0, other.0, P);
+        self.0 = long_multiply::<P>(self.0, other.0);
     }
 }
 
 impl<const P: u128> Mul<FpNum<P>> for u128 {
     type Output = FpNum<P>;
     fn mul(self, other: FpNum<P>) -> FpNum<P> {
-        FpNum(long_multiply(self, other.0, P))
+        FpNum(long_multiply::<P>(self, other.0))
     }
 }
 
@@ -378,7 +378,7 @@ mod tests {
             SylowElem::<Phantom, 7, FpNum<BIG_P>>::FACTORS
                 .prime_powers()
                 .iter()
-                .map(|(p, d)| n % intpow(*p, *d, 0))
+                .map(|(p, d)| n % intpow::<0>(*p, *d))
                 .collect::<Vec<u128>>()
                 .try_into()
                 .unwrap(),
