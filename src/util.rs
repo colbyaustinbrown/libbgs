@@ -54,15 +54,6 @@ pub const fn standard_affine_shift(q: u128, i: u128) -> u128 {
 /// This function will panic if `m >= 2^127`.
 /// Otherwise, it is guarenteed that there will not be integer overflow.
 pub const fn long_multiply(mut a: u128, mut b: u128, m: u128) -> u128 {
-    a %= m;
-    b %= m;
-
-    if a < (1 << 63) && b < (1 << 63) {
-        return (a * b) % m;
-    } else if m >= (1 << 126) {
-        panic!("p too large! Greater than 1 << 126.");
-    }
-
     let mut res = 0;
     while b > 0 {
         if b & 1 == 1 {
