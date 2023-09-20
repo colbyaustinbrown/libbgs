@@ -91,20 +91,20 @@ pub fn long_multiply<const M: u128>(mut a: u128, mut b: u128) -> u128 {
         asm!(
             "mov {res_lo}, 0",
             "mov {res_hi}, 0",
-            "mov {tmp}, 0",
-            "mov {tmp2}, 0",
-            "mov {msk}, 0",
+            "mov {ptr:r}, 0",
+            "cmp {b_hi}, 0",
+            "setne {ptr:l}",
+            "shl {ptr:r}, 12",
             "2:",
-            "mov {tmp}, {b_lo}",
-            "or {tmp}, {b_hi}",
+            "mov {tmp}, {ptr:r}",
+            "and {tmp}, 0x1000",
+            "or {tmp}, {b_lo}",
             "jz 2f",
 
-            // b /= 2 (only the low bits for now)
-            "shr {b_lo}, 1",
-
-            // if the removed bit of b was 1,
+            // if b & 1 == 0
             // add a to the res
             "mov {msk}, 0",
+            "btr {b_lo:r}, {ptr:r}",
             "setnc {msk:l}",
             "sub {msk}, 1",
             "mov {tmp}, {msk}",
@@ -113,13 +113,15 @@ pub fn long_multiply<const M: u128>(mut a: u128, mut b: u128) -> u128 {
             "add {res_lo}, {tmp}",
             "adc {res_hi}, {msk}",
 
-            // b /= 2 (high bits now)
-            // and a *= 2
-            "mov {tmp}, 0",
-            "shr {b_hi}, 1",
-            "setc {tmp:l}",
-            "shl {tmp}, 63",
-            "xor {b_lo}, {tmp}",
+            // b /= 2
+            "add {ptr:r}, 1",
+            "cmp {ptr:r}, 0x1040",
+            "jne 3f",
+            "or {b_lo}, {b_hi}",
+            "and {ptr:r}, 0x0FFF",
+
+            "3:",
+            // a *= 2
             "shl {a_hi}, 1",
             "shl {a_lo}, 1",
             "adc {a_hi}, 0",
@@ -170,13 +172,15 @@ pub fn long_multiply<const M: u128>(mut a: u128, mut b: u128) -> u128 {
             a_lo = inout(reg) (a & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64 => _,
             b_hi = inout(reg) (b >> 64) as u64 => _,
             b_lo = inout(reg) (b & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64 => _,
-            m_lo = inout(reg) (M & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64 => _,
+            m_lo = in(reg) (M & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64,
             m_hi = in(reg) (M >> 64) as u64,
             res_hi = out(reg) res_hi,
             res_lo = out(reg) res_lo,
             tmp = out(reg) _,
             tmp2 = out(reg) _,
             msk = out(reg) _,
+            ptr = inout(reg) 0x80_00_00_00 as u32 => _,
+            options(pure, nomem),
         );
     }
     ((res_hi as u128) << 64) | (res_lo as u128)
