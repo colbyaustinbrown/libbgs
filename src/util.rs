@@ -82,91 +82,69 @@ pub const fn standard_affine_shift(q: u128, i: u128) -> u128 {
 /// Returns the product of `a` and `b` modulo `m`.
 /// This function will panic if `m >= 2^127`.
 /// Otherwise, it is guarenteed that there will not be integer overflow.
-pub fn long_multiply<const M: u128>(mut a: u128, mut b: u128) -> u128 {
-    a += 0;
-    b += 0;
+pub fn long_multiply<const M: u128>(a: u128, b: u128) -> u128 {
     let res_lo: u64;
     let res_hi: u64;
     unsafe {
         asm!(
-            "mov {res_lo}, 0",
-            "mov {res_hi}, 0",
-            "mov {ptr:r}, 0",
-            "cmp {b_hi}, 0",
-            "setne {ptr:l}",
-            "shl {ptr:r}, 12",
-            "2:",
-            "mov {tmp}, {ptr:r}",
-            "and {tmp}, 0x1000",
-            "or {tmp}, {b_lo}",
-            "jz 2f",
+            "xor {res_lo}, {res_lo}",
+            "xor {res_hi}, {res_hi}",
 
-            // if b & 1 == 0
-            // add a to the res
-            "mov {msk}, 0",
-            "btr {b_lo:r}, {ptr:r}",
+            "2:",
+            // if b % 2 == 1
+            // b /= 2
+            "xor {msk}, {msk}",
+            "shrd {b_lo}, {b_hi}, 1",
             "setnc {msk:l}",
+            "shr {b_hi}, 1",
             "sub {msk}, 1",
+            // "jz 3f",
+            
+            // add a to the res
             "mov {tmp}, {msk}",
             "and {tmp}, {a_lo}",
             "and {msk}, {a_hi}",
             "add {res_lo}, {tmp}",
             "adc {res_hi}, {msk}",
 
-            // b /= 2
-            "add {ptr:r}, 1",
-            "cmp {ptr:r}, 0x1040",
-            "jne 3f",
-            "or {b_lo}, {b_hi}",
-            "and {ptr:r}, 0x0FFF",
-
-            "3:",
-            // a *= 2
-            "shl {a_hi}, 1",
-            "shl {a_lo}, 1",
-            "adc {a_hi}, 0",
-
-            // if a >= m,
-            "mov {tmp}, 0",
-            "mov {tmp2}, 0",
-            "mov {msk}, 0",
-            "cmp {a_lo}, {m_lo}",
-            "setb {msk:l}",
-            "cmp {a_hi}, {m_hi}",
-            "setne {tmp:l}",
-            "setbe {tmp2:l}",
-            "or {msk}, {tmp}",
-            "and {msk}, {tmp2}",
-            "sub {msk}, 1",
-            // a -= m
-            "mov {tmp}, {msk}",
-            "and {tmp}, {m_lo}",
-            "and {msk}, {m_hi}",
-            "sub {a_lo}, {tmp}",
-            "adc {msk}, 0",
-            "sub {a_hi}, {msk}",
-
             // if res >= m,
-            "mov {tmp}, 0",
-            "mov {tmp2}, 0",
-            "cmp {res_lo}, {m_lo}",
-            "setb {msk:l}",
+            "xor {msk}, {msk}",
             "cmp {res_hi}, {m_hi}",
-            "setne {tmp:l}",
-            "setbe {tmp2:l}",
-            "or {msk}, {tmp}",
-            "and {msk}, {tmp2}",
+            "jne 5f",
+            "cmp {res_lo}, {m_lo}",
+            "5:",
+            "setbe {msk:l}",
             "sub {msk}, 1",
             // res -= m
             "mov {tmp}, {msk}",
             "and {tmp}, {m_lo}",
             "and {msk}, {m_hi}",
             "sub {res_lo}, {tmp}",
-            "adc {msk}, 0",
-            "sub {res_hi}, {msk}",
+            "sbb {res_hi}, {msk}",
 
-            "jmp 2b",
-            "2:",
+            // "3:",
+            // a *= 2
+            "shld {a_hi}, {a_lo}, 1",
+            "shl {a_lo}, 1",
+
+            // if a >= m,
+            "xor {msk}, {msk}",
+            "cmp {a_hi}, {m_hi}",
+            "jne 5f",
+            "cmp {a_lo}, {m_lo}",
+            "5:",
+            "setbe {msk:l}",
+            "sub {msk}, 1",
+            // a -= m
+            "mov {tmp}, {msk}",
+            "and {tmp}, {m_lo}",
+            "and {msk}, {m_hi}",
+            "sub {a_lo}, {tmp}",
+            "sbb {a_hi}, {msk}",
+
+            "mov {tmp}, {b_lo}",
+            "or {tmp}, {b_hi}",
+            "jnz 2b",
         
             a_hi = inout(reg) (a >> 64) as u64 => _,
             a_lo = inout(reg) (a & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64 => _,
@@ -177,10 +155,8 @@ pub fn long_multiply<const M: u128>(mut a: u128, mut b: u128) -> u128 {
             res_hi = out(reg) res_hi,
             res_lo = out(reg) res_lo,
             tmp = out(reg) _,
-            tmp2 = out(reg) _,
             msk = out(reg) _,
-            ptr = inout(reg) 0x80_00_00_00 as u32 => _,
-            options(pure, nomem),
+            options(pure, nomem, nostack),
         );
     }
     ((res_hi as u128) << 64) | (res_lo as u128)
@@ -290,5 +266,13 @@ pub mod tests {
         assert_eq!(res, 327_682_438_216_164_803_859);
         let res = long_multiply::<BIG_P>(a, a);
         assert_eq!(res, 327_682_438_216_164_803_859);
+    }
+
+    #[test]
+    fn test_long_multiply_5() {
+        let a: u128 = 538_744_077_496_950_347_511;
+        let b: u128 = 10_022_347_072_413_323_143;
+        let res = long_multiply::<BIG_P>(a, b);
+        assert_eq!(res, 1);
     }
 }
