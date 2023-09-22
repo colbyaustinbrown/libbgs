@@ -39,7 +39,7 @@ pub mod flags {
 /// A builder for a stream yielding elements of particular orders, as their Sylow decompositions.
 pub struct SylowStreamBuilder<S, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> {
     mode: u8,
-    targets: Vec<[u128; L]>,
+    targets: Vec<[usize; L]>,
     _phantom: PhantomData<(S, C)>,
 }
 
@@ -68,7 +68,7 @@ pub struct SylowSeqStream<S, const L: usize, C: SylowDecomposable<S, L>> {
 struct Seed<S, const L: usize, C: SylowDecomposable<S, L>> {
     i: usize,
     step: u128,
-    rs: [u128; L],
+    rs: [usize; L],
     part: SylowElem<S, L, C>,
     block_upper: bool,
     start: u128,
@@ -119,7 +119,7 @@ where
             self.push(Seed {
                 i,
                 part: SylowElem::one(),
-                step: unsafe { intpow::<0>(p, d - 1) },
+                step: unsafe { intpow::<0>(p, (d - 1) as u128) },
                 rs: [0; L],
                 block_upper: self.has_flag(flags::NO_UPPER_HALF),
                 start: 0,
@@ -198,7 +198,7 @@ where
                 let s = Seed {
                     i: k,
                     part: next.part,
-                    step: unsafe { intpow::<0>(p_next, d_next - 1) },
+                    step: unsafe { intpow::<0>(p_next, (d_next - 1) as u128) },
                     rs: next.rs,
                     block_upper: seed.block_upper 
                         && p == 2 
@@ -214,7 +214,7 @@ where
         }
     }
 
-    fn get_status(&self, rs: &[u128], i: usize) -> Status {
+    fn get_status(&self, rs: &[usize], i: usize) -> Status {
         let mut status = 0;
         for t in &self.builder().targets {
             let skip = rs.iter().zip(t).take(i).any(|(r, t)| {
@@ -256,7 +256,7 @@ impl<S, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug>
     /// Adds a target order to this `SylowStreamBuilder`.
     /// The `SylowStream` built from this builder will only yield elements of the orders of
     /// `target`s, or elements of order dividing `target` if `target
-    pub fn add_target(mut self, t: [u128; L]) -> SylowStreamBuilder<S, L, C> {
+    pub fn add_target(mut self, t: [usize; L]) -> SylowStreamBuilder<S, L, C> {
         if t.iter().all(|x| *x == 0) {
             self.mode |= flags::INCLUDE_ONE;
         } else {

@@ -74,7 +74,7 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
 
     /// Returns the number of elements of a particular order.
     /// The argument is the powers of the prime factors of the group's order.
-    fn count_elements_of_order<S, const L: usize>(ds: &[u128; L]) -> u128
+    fn count_elements_of_order<S, const L: usize>(ds: &[usize; L]) -> u128
     where
         // note: we only use the Factor trait here, but we require SylowDecomposable because this
         // count is only valid for finite cyclic groups.
@@ -85,7 +85,7 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
             if *d > *t {
                 return 0;
             } else if *d > 0 { 
-                total *= unsafe { intpow::<0>(*p, *d) - intpow::<0>(*p, *d - 1) };
+                total *= unsafe { intpow::<0>(*p, *d as u128) - intpow::<0>(*p, (*d - 1) as u128) };
             }
         }
         total

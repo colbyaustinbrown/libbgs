@@ -231,7 +231,7 @@ mod tests {
         for i in 0..g.generators().len() {
             let gen = &g.generators()[i];
             let d = SylowElem::<Phantom, 2, QuadNum<17>>::FACTORS.factor(i);
-            test_is_generator_small(gen, d);
+            test_is_generator_small(gen, d as usize);
         }
     }
 

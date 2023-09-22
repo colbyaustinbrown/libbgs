@@ -34,10 +34,10 @@ pub trait SylowDecomposable<S, const L: usize>: Factor<S, L> + GroupElem + Eq {
 
     /// True if the given element is a generator of the Sylow subgroup of the prime power
     /// represented by `d`.
-    fn is_sylow_generator(candidate: &Self, d: (u128, u128)) -> Option<Self> {
-        let pow = Self::size() / unsafe { intpow::<0>(d.0, d.1) };
+    fn is_sylow_generator(candidate: &Self, d: (u128, usize)) -> Option<Self> {
+        let pow = Self::size() / unsafe { intpow::<0>(d.0, d.1 as u128) };
         let res = candidate.pow(pow);
-        if res.pow(unsafe { intpow::<0>(d.0, d.1 - 1) }).is_one() {
+        if res.pow(unsafe { intpow::<0>(d.0, (d.1 - 1) as u128) }).is_one() {
             None
         } else {
             Some(res)
@@ -202,7 +202,7 @@ pub mod tests {
     /// Expensive and intended for use only with small values of `d`.
     pub fn test_is_generator_small<S, const L: usize, C: SylowDecomposable<S, L>>(
         x: &C,
-        d: u128,
+        d: usize,
     ) -> bool {
         let mut y = x.clone();
         for _ in 1..d {
@@ -218,7 +218,7 @@ pub mod tests {
     /// Much cheaper than `test_is_generator_small`, but may return a false positive.
     pub fn test_is_generator_big<S, const L: usize, C: SylowDecomposable<S, L>>(
         x: &C,
-        d: (u128, u128),
+        d: (u128, usize),
     ) {
         let mut y = x.clone();
         for _ in 0..d.1 {

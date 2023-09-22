@@ -349,7 +349,7 @@ mod tests {
         for i in 0..g.generators().len() {
             let gen = &g.generators()[i];
             let d = SylowElem::<Phantom, 2, FpNum<29>>::FACTORS.factor(i);
-            test_is_generator_small::<Phantom, 2, FpNum<29>>(gen, d);
+            test_is_generator_small::<Phantom, 2, FpNum<29>>(gen, d as usize);
         }
     }
 
@@ -379,7 +379,7 @@ mod tests {
             SylowElem::<Phantom, 7, FpNum<BIG_P>>::FACTORS
                 .prime_powers()
                 .iter()
-                .map(|(p, d)| n % unsafe { intpow::<0>(*p, *d) })
+                .map(|(p, d)| n % unsafe { intpow::<0>(*p, *d as u128) })
                 .collect::<Vec<u128>>()
                 .try_into()
                 .unwrap(),

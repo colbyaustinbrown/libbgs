@@ -3,8 +3,8 @@ use crate::util::intpow;
 /// An iterator yielding all of the factors of some number beneath a limit.
 /// The type parameter `L` is the length of the factorization.
 pub struct FactorStream<'a, const L: usize> {
-    source: &'a [(u128, u128)],
-    stack: Vec<(usize, [u128; L])>,
+    source: &'a [(u128, usize)],
+    stack: Vec<(usize, [usize; L])>,
     limit: u128,
     maximal_only: bool,
 }
@@ -17,7 +17,7 @@ impl<'a, const L: usize> FactorStream<'a, L> {
     /// * $d < limit$
     /// * (if and only if `maximal_only` is True) There does not exist a $k$, $d | k | n$, with $k <
     /// limit$
-    pub fn new(source: &'a [(u128, u128)], limit: u128, maximal_only: bool) -> FactorStream<L> {
+    pub fn new(source: &'a [(u128, usize)], limit: u128, maximal_only: bool) -> FactorStream<L> {
         FactorStream {
             source,
             limit,
@@ -28,15 +28,15 @@ impl<'a, const L: usize> FactorStream<'a, L> {
 }
 
 impl<'a, const L: usize> Iterator for FactorStream<'a, L> {
-    type Item = [u128; L];
+    type Item = [usize; L];
 
-    fn next(&mut self) -> Option<[u128; L]> {
+    fn next(&mut self) -> Option<[usize; L]> {
         let Some((i, state)) = self.stack.pop() else { return None; };
         // println!("{state:?}");
         let prod: u128 = state
             .iter()
             .zip(self.source)
-            .map(|(d, (p, _))| unsafe { intpow::<0>(*p, *d) })
+            .map(|(d, (p, _))| unsafe { intpow::<0>(*p, *d as u128) })
             .product();
         let mut maximal = true;
         for j in i..self.source.len() {
