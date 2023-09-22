@@ -98,7 +98,6 @@ pub fn long_multiply<const M: u128>(a: u128, b: u128) -> u128 {
             "setnc {msk:l}",
             "shr {b_hi}, 1",
             "sub {msk}, 1",
-            // "jz 3f",
             
             // add a to the res
             "mov {tmp}, {msk}",
@@ -106,6 +105,14 @@ pub fn long_multiply<const M: u128>(a: u128, b: u128) -> u128 {
             "and {msk}, {a_hi}",
             "add {res_lo}, {tmp}",
             "adc {res_hi}, {msk}",
+
+            // a *= 2
+            "shld {a_hi}, {a_lo}, 1",
+            "shl {a_lo}, 1",
+
+            "mov {tmp}, {m_hi}",
+            "or {tmp}, {m_lo}",
+            "jz 3f",
 
             // if res >= m,
             "xor {msk}, {msk}",
@@ -122,11 +129,6 @@ pub fn long_multiply<const M: u128>(a: u128, b: u128) -> u128 {
             "sub {res_lo}, {tmp}",
             "sbb {res_hi}, {msk}",
 
-            // "3:",
-            // a *= 2
-            "shld {a_hi}, {a_lo}, 1",
-            "shl {a_lo}, 1",
-
             // if a >= m,
             "xor {msk}, {msk}",
             "cmp {a_hi}, {m_hi}",
@@ -142,6 +144,7 @@ pub fn long_multiply<const M: u128>(a: u128, b: u128) -> u128 {
             "sub {a_lo}, {tmp}",
             "sbb {a_hi}, {msk}",
 
+            "3:",
             "mov {tmp}, {b_lo}",
             "or {tmp}, {b_hi}",
             "jnz 2b",
@@ -274,5 +277,10 @@ pub mod tests {
         let b: u128 = 10_022_347_072_413_323_143;
         let res = long_multiply::<BIG_P>(a, b);
         assert_eq!(res, 1);
+    }
+
+    #[test]
+    fn test_long_multiply_6() {
+        assert_eq!(long_multiply::<0>(100, 100), 10_000);
     }
 }
