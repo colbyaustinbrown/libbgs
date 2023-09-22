@@ -85,7 +85,7 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
             if *d > *t {
                 return 0;
             } else if *d > 0 { 
-                total *= intpow::<0>(*p, *d) - intpow::<0>(*p, *d - 1)
+                total *= unsafe { intpow::<0>(*p, *d) - intpow::<0>(*p, *d - 1) };
             }
         }
         total

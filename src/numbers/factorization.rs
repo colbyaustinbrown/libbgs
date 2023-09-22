@@ -18,6 +18,9 @@ pub struct Factorization<const L: usize> {
 /// coherence and orphan rules, but does not affect the memory layout of any instance of an object
 /// implementing `Factor`.
 /// See the Rust documentation on [coherence and the orphan rule](https://doc.rust-lang.org/reference/items/implementations.html#trait-implementation-coherence).
+///
+/// This type can only hold factors up to `2^126`. Behavior may be undefined for factorizations
+/// which contain larger factors.
 pub trait Factor<S, const L: usize> {
     /// The prime factorization of this object.
     const FACTORS: Factorization<L>;
@@ -59,7 +62,7 @@ impl<const L: usize> Factorization<L> {
     /// Returns the prime power factor represented by prime number `i`, $p_i^{t_i}$.
     /// This method will `panic` if `i` is out of bounds.
     pub fn factor(&self, i: usize) -> u128 {
-        intpow::<0>(self.prime_powers[i].0, self.prime_powers[i].1)
+        unsafe { intpow::<0>(self.prime_powers[i].0, self.prime_powers[i].1) }
     }
 
     /// Gets the prime powers as an array.
@@ -80,7 +83,7 @@ impl<const L: usize> Factorization<L> {
             if *d > t {
                 return 0;
             } else {
-                total *= intpow::<0>(p, *d);
+                total *= unsafe { intpow::<0>(p, *d) };
             }
         }
         total

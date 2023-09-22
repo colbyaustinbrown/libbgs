@@ -119,7 +119,7 @@ where
             self.push(Seed {
                 i,
                 part: SylowElem::one(),
-                step: intpow::<0>(p, d - 1),
+                step: unsafe { intpow::<0>(p, d - 1) },
                 rs: [0; L],
                 block_upper: self.has_flag(flags::NO_UPPER_HALF),
                 start: 0,
@@ -198,7 +198,7 @@ where
                 let s = Seed {
                     i: k,
                     part: next.part,
-                    step: intpow::<0>(p_next, d_next - 1),
+                    step: unsafe { intpow::<0>(p_next, d_next - 1) },
                     rs: next.rs,
                     block_upper: seed.block_upper 
                         && p == 2 

@@ -214,7 +214,7 @@ impl<const P: u128> SubAssign<u128> for FpNum<P> {
 impl<const P: u128> Mul<&Self> for FpNum<P> {
     type Output = FpNum<P>;
     fn mul(self, other: &FpNum<P>) -> FpNum<P> {
-        FpNum(long_multiply::<P>(self.0, other.0))
+        FpNum(unsafe { long_multiply::<P>(self.0, other.0) })
     }
 }
 
@@ -222,26 +222,26 @@ impl<const P: u128> Mul<Self> for FpNum<P> {
     type Output = FpNum<P>;
 
     fn mul(self, other: FpNum<P>) -> FpNum<P> {
-        FpNum(long_multiply::<P>(self.0, other.0))
+        FpNum(unsafe { long_multiply::<P>(self.0, other.0) })
     }
 }
 
 impl<const P: u128> MulAssign<&Self> for FpNum<P> {
     fn mul_assign(&mut self, other: &Self) {
-        self.0 = long_multiply::<P>(self.0, other.0);
+        self.0 = unsafe { long_multiply::<P>(self.0, other.0) };
     }
 }
 
 impl<const P: u128> MulAssign<Self> for FpNum<P> {
     fn mul_assign(&mut self, other: Self) {
-        self.0 = long_multiply::<P>(self.0, other.0);
+        self.0 = unsafe { long_multiply::<P>(self.0, other.0) };
     }
 }
 
 impl<const P: u128> Mul<FpNum<P>> for u128 {
     type Output = FpNum<P>;
     fn mul(self, other: FpNum<P>) -> FpNum<P> {
-        FpNum(long_multiply::<P>(self, other.0))
+        FpNum(unsafe { long_multiply::<P>(self, other.0) })
     }
 }
 
@@ -379,7 +379,7 @@ mod tests {
             SylowElem::<Phantom, 7, FpNum<BIG_P>>::FACTORS
                 .prime_powers()
                 .iter()
-                .map(|(p, d)| n % intpow::<0>(*p, *d))
+                .map(|(p, d)| n % unsafe { intpow::<0>(*p, *d) })
                 .collect::<Vec<u128>>()
                 .try_into()
                 .unwrap(),

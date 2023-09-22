@@ -88,16 +88,16 @@ mod tests {
         hashes.push(Box::new(|x| ((x >> 32) % 10_000) as usize));
         let mut filter = BloomFilter::<u128, _>::new(10_000, hashes);
         for i in 100_000..101_000 {
-            filter.add(& intpow::<0>(i * 1000 + i * 10 + i, 2));
+            filter.add(& unsafe { intpow::<0>(i * 1000 + i * 10 + i, 2) });
         }
         for i in 100_000..100_500 {
-            let x = intpow::<0>(i * 1000 + i * 10 + i, 2);
+            let x = unsafe { intpow::<0>(i * 1000 + i * 10 + i, 2) };
             let check = filter.is_member_prob(&x);
             assert!(check);
         }
         let mut all = true;
         for i in 1_501..2_000 {
-            let x = intpow::<0>(i * 1000 + i * 10 + i, 2);
+            let x = unsafe { intpow::<0>(i * 1000 + i * 10 + i, 2) };
             all &= filter.is_member_prob(&x);
             if !all { break; } 
         }

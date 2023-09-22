@@ -35,9 +35,9 @@ pub trait SylowDecomposable<S, const L: usize>: Factor<S, L> + GroupElem + Eq {
     /// True if the given element is a generator of the Sylow subgroup of the prime power
     /// represented by `d`.
     fn is_sylow_generator(candidate: &Self, d: (u128, u128)) -> Option<Self> {
-        let pow = Self::size() / intpow::<0>(d.0, d.1);
+        let pow = Self::size() / unsafe { intpow::<0>(d.0, d.1) };
         let res = candidate.pow(pow);
-        if res.pow(intpow::<0>(d.0, d.1 - 1)).is_one() {
+        if res.pow(unsafe { intpow::<0>(d.0, d.1 - 1) }).is_one() {
             None
         } else {
             Some(res)

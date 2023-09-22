@@ -88,8 +88,12 @@ impl<const P: u128> GroupElem for QuadNum<P> {
     }
 
     fn multiply(&self, other: &QuadNum<P>) -> QuadNum<P> {
-        let mut a0 = long_multiply::<P>(self.0, other.0) + long_multiply::<P>(self.1, long_multiply::<P>(other.1, QuadNum::<P>::R));
-        let mut a1 = long_multiply::<P>(self.1, other.0) + long_multiply::<P>(self.0, other.1);
+        let mut a0;
+        let mut a1;
+        unsafe {
+            a0 = long_multiply::<P>(self.0, other.0) + long_multiply::<P>(self.1, long_multiply::<P>(other.1, QuadNum::<P>::R));
+            a1 = long_multiply::<P>(self.1, other.0) + long_multiply::<P>(self.0, other.1);
+        }
         if a0 >= P {
             a0 -= P;
         }
