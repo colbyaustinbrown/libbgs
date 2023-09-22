@@ -40,6 +40,7 @@ pub mod flags {
 pub struct SylowStreamBuilder<S, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> {
     mode: u8,
     targets: Vec<[usize; L]>,
+    steps: [u128; L],
     _phantom: PhantomData<(S, C)>,
 }
 
@@ -67,7 +68,7 @@ pub struct SylowSeqStream<S, const L: usize, C: SylowDecomposable<S, L>> {
 #[derive(Debug)]
 struct Seed<S, const L: usize, C: SylowDecomposable<S, L>> {
     i: usize,
-    step: u128,
+    step_: u128,
     rs: [usize; L],
     part: SylowElem<S, L, C>,
     block_upper: bool,
@@ -101,7 +102,7 @@ where
 
         let mut count = 0;
         for i in 0..L {
-            let (p, d) = <C as Factor<S, L>>::FACTORS[i];
+            let (p, _) = <C as Factor<S, L>>::FACTORS[i];
 
             if !self.has_flag(flags::LEQ) 
                 && self.builder().targets
@@ -119,7 +120,7 @@ where
             self.push(Seed {
                 i,
                 part: SylowElem::one(),
-                step: unsafe { intpow::<0>(p, (d - 1) as u128) },
+                step_: self.builder().steps[i],
                 rs: [0; L],
                 block_upper: self.has_flag(flags::NO_UPPER_HALF),
                 start: 0,
@@ -155,7 +156,7 @@ where
         }
         let lim = <C as Factor<S, L>>::FACTORS.factor(seed.i) / 2;
         for j in seed.start..stop {
-            let tmp = seed.part.coords[seed.i] + j * seed.step;
+            let tmp = seed.part.coords[seed.i] + j * seed.step_;
 
             if seed.block_upper && tmp > lim {
                 break;
@@ -170,7 +171,7 @@ where
             let status = self.get_status(&rs, seed.i);
             let next = Seed {
                 i: seed.i,
-                step: seed.step / p,
+                step_: seed.step_ / p,
                 part,
                 rs,
                 block_upper: seed.block_upper,
@@ -194,11 +195,10 @@ where
                 if !(self.has_flag(flags::LEQ) || status.has(statuses::KEEP_GOING)) {
                     continue;
                 }
-                let (p_next, d_next) = <C as Factor<S, L>>::FACTORS[k];
                 let s = Seed {
                     i: k,
                     part: next.part,
-                    step: unsafe { intpow::<0>(p_next, (d_next - 1) as u128) },
+                    step_: self.builder().steps[k],
                     rs: next.rs,
                     block_upper: seed.block_upper 
                         && p == 2 
@@ -240,9 +240,15 @@ impl<S, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug>
 {
     /// Returns a new `SylowStreamBuilder`.
     pub fn new() -> SylowStreamBuilder<S, L, C> {
+        let mut steps = [0; L];
+        for i in 0..C::FACTORS.prime_powers().len() {
+            let (p, d) = C::FACTORS.prime_powers()[i];
+            steps[i] = unsafe { intpow::<0>(p, (d - 1) as u128) };
+        }
         SylowStreamBuilder {
             mode: flags::NONE,
             targets: Vec::new(),
+            steps,
             _phantom: PhantomData,
         }
     }
@@ -455,7 +461,7 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for Seed<S, L, C> {
     fn clone(&self) -> Seed<S, L, C> {
         Seed {
             i: self.i,
-            step: self.step,
+            step_: self.step_,
             rs: self.rs,
             part: self.part,
             block_upper: self.block_upper,
@@ -470,6 +476,7 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for SylowStreamBuilder
         SylowStreamBuilder {
             mode: self.mode,
             targets: self.targets.clone(),
+            steps: self.steps.clone(),
             _phantom: PhantomData
         }
     }
