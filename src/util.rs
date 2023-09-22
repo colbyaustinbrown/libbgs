@@ -1,5 +1,81 @@
 //! Various number theory utility methods used throughout the libbgs crate.
-use std::arch::asm;
+use std::arch::{asm, global_asm};
+
+/*
+ * Registers used:
+ * rdi, rsi -- a lo and hi (input, clobbered)
+ * rcx, rdx -- b lo and hi (input, clobbered)
+ * r8, r9 -- m lo and hi (input, clobbered)
+ * r10, r11 -- output registers
+ * rax, r13 -- temporary values
+ */
+global_asm!(
+    ".globl long_multiply",
+    "long_multiply:",
+    "xor r10, r10",
+    "xor r11, r11",
+
+    "2:",
+    // if b % 2 == 1
+    // b /= 2
+    "xor rax, rax",
+    "shrd rdi, rsi, 1",
+    "setnc al",
+    "shr rsi, 1",
+    "sub rax, 1",
+    
+    // res += a
+    "mov r13, rax",
+    "and r13, rcx",
+    "and rax, rdx",
+    "add r10, r13",
+    "adc r11, rax",
+
+    // if res >= m,
+    "mov rax, r8",
+    "or rax, r9",
+    "jz 5f",
+    "xor rax, rax",
+    "cmp r11, r9",
+    "jne 5f",
+    "cmp r10, r8",
+    "5:",
+    "setbe al",
+    "sub rax, 1",
+    // res -= m
+    "mov r13, rax",
+    "and r13, r8",
+    "and rax, r9",
+    "sub r10, r13",
+    "sbb r11, rax",
+
+    // a *= 2
+    "shld rdx, rcx, 1",
+    "shl rcx, 1",
+
+    // if a >= m,
+    "mov rax, r8",
+    "or rax, r9",
+    "jz 5f",
+    "xor rax, rax",
+    "cmp rdx, r9",
+    "jne 5f",
+    "cmp rcx, r8",
+    "5:",
+    "setbe al",
+    "sub rax, 1",
+    // a -= m
+    "mov r13, rax",
+    "and r13, r8",
+    "and rax, r9",
+    "sub rcx, r13",
+    "sbb rdx, rax",
+
+    "mov r13, rdi",
+    "or r13, rsi",
+    "jnz 2b",
+    "ret",
+);
 
 const fn gcd(mut a: u128, mut b: u128) -> u128 {
     let mut t;
@@ -40,7 +116,83 @@ pub const fn intpow_const<const M: u128>(mut x: u128, mut n: u128) -> u128 {
 }
 
 /// Returns `x` to the power of `n`, modulo `m`.
-pub fn intpow<const M: u128>(mut x: u128, mut n: u128) -> u128 {
+pub fn intpow<const M: u128>(x: u128, n: u128) -> u128 {
+    let res_lo: u64;
+    let res_hi: u64;
+    unsafe {
+        asm!(
+            "mov r15, 0",       // y_hi = 0
+            "mov r14, 1",       // y_lo = 1 
+            "mov rcx, rdi",     // b_lo = x_lo
+            "mov rdx, rsi",     // b_hi = y_hi
+            "xor r10, r10",     // r_lo = 0
+            "xor r11, r11",     // r_hi = 0
+            "cmp {n_hi}, 0",
+            "jne 2f",
+            "cmp {n_lo}, 1",
+            "ja 2f",
+            "jb 9f",
+            "mov r10, rdi",
+            "mov r11, rsi",
+            "jmp 4f",
+            "9:",
+            "mov r11, 0",
+            "mov r10, 1",
+            "jmp 4f",
+
+            "2:",
+            "shrd {n_lo}, {n_hi}, 1", // n /= 2
+            "setc al",
+            "shr {n_hi}, 1",
+            "test rax, 1",          // if n was odd
+            "jz 3f",                // {
+
+            "xchg rcx, r14",
+            "xchg rdx, r15",
+            "call long_multiply",   //      y = long_multiply(x, y, m)
+            "mov rdi, r14",
+            "mov rsi, r15",         
+            "mov r14, r10",
+            "mov r15, r11",
+
+            "3:",                   // }
+            "mov rcx, rdi",         // 
+            "mov rdx, rsi",
+            "call long_multiply",
+            "mov rdi, r10",
+            "mov rsi, r11",
+            "mov rcx, rdi",
+            "mov rdx, rsi",
+
+            "cmp {n_hi}, 0",
+            "jne 2b",
+            "cmp {n_lo}, 1",
+            "jne 2b",
+
+            "mov rcx, r14",
+            "mov rdx, r15",
+            "call long_multiply",
+            "4:",
+
+            in("r8") (M & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64,
+            in("r9") (M >> 64) as u64,
+            inout("rdi") (x & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64 => _,
+            inout("rsi") (x >> 64) as u64 => _,
+            out("rcx") _,
+            out("rdx") _,
+            n_lo = inout(reg) (n & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64 => _,
+            n_hi = inout(reg) (n >> 64) as u64 => _,
+            out("rax") _,
+            out("r13") _,
+            out("r10") res_lo,
+            out("r11") res_hi,
+            out("r14") _,
+            out("r15") _,
+            options(pure, nomem, nostack),
+        );
+    }
+    ((res_hi as u128) << 64) | (res_lo as u128)
+    /*
     if n == 0 {
         return 1;
     }
@@ -65,6 +217,7 @@ pub fn intpow<const M: u128>(mut x: u128, mut n: u128) -> u128 {
     } else {
         long_multiply::<M>(y, x)
     }
+    */
 }
 
 /// Returns a pseudo-random integer modulo `q`, unique for every `i` between `0` and `q`.
@@ -87,78 +240,77 @@ pub fn long_multiply<const M: u128>(a: u128, b: u128) -> u128 {
     let res_hi: u64;
     unsafe {
         asm!(
-            "xor {res_lo}, {res_lo}",
-            "xor {res_hi}, {res_hi}",
+            "xor r10, r10",
+            "xor r11, r11",
 
             "2:",
             // if b % 2 == 1
             // b /= 2
-            "xor {msk}, {msk}",
-            "shrd {b_lo}, {b_hi}, 1",
-            "setnc {msk:l}",
-            "shr {b_hi}, 1",
-            "sub {msk}, 1",
+            "xor rax, rax",
+            "shrd rdi, rsi, 1",
+            "setnc al",
+            "shr rsi, 1",
+            "sub rax, 1",
             
-            // add a to the res
-            "mov {tmp}, {msk}",
-            "and {tmp}, {a_lo}",
-            "and {msk}, {a_hi}",
-            "add {res_lo}, {tmp}",
-            "adc {res_hi}, {msk}",
+            // res += a
+            "mov r13, rax",
+            "and r13, rcx",
+            "and rax, rdx",
+            "add r10, r13",
+            "adc r11, rax",
 
             // a *= 2
-            "shld {a_hi}, {a_lo}, 1",
-            "shl {a_lo}, 1",
+            "shld rdx, rcx, 1",
+            "shl rcx, 1",
 
-            "mov {tmp}, {m_hi}",
-            "or {tmp}, {m_lo}",
-            "jz 3f",
+            // "mov rax, r9",
+            // "or rax, r8",
+            // "jz 3f",
 
             // if res >= m,
-            "xor {msk}, {msk}",
-            "cmp {res_hi}, {m_hi}",
+            "xor rax, rax",
+            "cmp r11, r9",
             "jne 5f",
-            "cmp {res_lo}, {m_lo}",
+            "cmp r10, r8",
             "5:",
-            "setbe {msk:l}",
-            "sub {msk}, 1",
+            "setbe al",
+            "sub rax, 1",
             // res -= m
-            "mov {tmp}, {msk}",
-            "and {tmp}, {m_lo}",
-            "and {msk}, {m_hi}",
-            "sub {res_lo}, {tmp}",
-            "sbb {res_hi}, {msk}",
+            "mov r13, rax",
+            "and r13, r8",
+            "and rax, r9",
+            "sub r10, r13",
+            "sbb r11, rax",
 
             // if a >= m,
-            "xor {msk}, {msk}",
-            "cmp {a_hi}, {m_hi}",
+            "xor rax, rax",
+            "cmp rdx, r9",
             "jne 5f",
-            "cmp {a_lo}, {m_lo}",
+            "cmp rcx, r8",
             "5:",
-            "setbe {msk:l}",
-            "sub {msk}, 1",
+            "setbe al",
+            "sub rax, 1",
             // a -= m
-            "mov {tmp}, {msk}",
-            "and {tmp}, {m_lo}",
-            "and {msk}, {m_hi}",
-            "sub {a_lo}, {tmp}",
-            "sbb {a_hi}, {msk}",
+            "mov r13, rax",
+            "and r13, r8",
+            "and rax, r9",
+            "sub rcx, r13",
+            "sbb rdx, rax",
 
             "3:",
-            "mov {tmp}, {b_lo}",
-            "or {tmp}, {b_hi}",
+            "mov r13, rdi",
+            "or r13, rsi",
             "jnz 2b",
-        
-            a_hi = inout(reg) (a >> 64) as u64 => _,
-            a_lo = inout(reg) (a & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64 => _,
-            b_hi = inout(reg) (b >> 64) as u64 => _,
-            b_lo = inout(reg) (b & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64 => _,
-            m_lo = in(reg) (M & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64,
-            m_hi = in(reg) (M >> 64) as u64,
-            res_hi = out(reg) res_hi,
-            res_lo = out(reg) res_lo,
-            tmp = out(reg) _,
-            msk = out(reg) _,
+            inout("rcx") (a & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64 => _,
+            inout("rdx") (a >> 64) as u64 => _,
+            inout("rdi") (b & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64 => _,
+            inout("rsi") (b >> 64) as u64 => _,
+            in("r8") (M & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64,
+            in("r9") (M >> 64) as u64,
+            out("r10") res_lo,
+            out("r11") res_hi,
+            out("rax") _,
+            out("r13") _,
             options(pure, nomem, nostack),
         );
     }
@@ -226,7 +378,7 @@ pub mod tests {
     const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
     #[test]
-    fn test_long_multiply() {
+    fn test_long_multiply_1() {
         let a = 109_9511_627_777 % BIG_P;
         let b = 846_719_626_338_931_482_199_954 % BIG_P;
         let res = long_multiply_const::<BIG_P>(a, b);
@@ -282,5 +434,28 @@ pub mod tests {
     #[test]
     fn test_long_multiply_6() {
         assert_eq!(long_multiply::<0>(100, 100), 10_000);
+    }
+    
+    #[test]
+    fn test_intpow_1() {
+        assert_eq!(intpow::<13>(10, 5), 4);
+    }
+
+    #[test]
+    fn test_intpow_2() {
+        let a: u128 = 123_456_789_123_456_789;
+        let b: u128 = 123_456;
+        let res = intpow::<BIG_P>(a, b);
+        assert_eq!(res, 748_418_297_532_596_964_525);
+    }
+
+    #[test]
+    fn test_intpow_3() {
+        assert_eq!(intpow::<0>(3, 1), 3);
+    }
+
+    #[test]
+    fn test_intpow_4() {
+        assert_eq!(intpow::<0>(999, 0), 1);
     }
 }
