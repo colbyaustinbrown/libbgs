@@ -3,7 +3,7 @@ use std::arch::{asm, global_asm};
 
 /*
  * Registers used:
- * rdi, rsi -- a lo and hi (input, clobbered)
+ * rdi, r12 -- a lo and hi (input, clobbered)
  * rcx, rdx -- b lo and hi (input, clobbered)
  * r8, r9 -- m lo and hi (input, clobbered)
  * r10, r11 -- output registers
@@ -19,9 +19,9 @@ global_asm!(
     // if b % 2 == 1
     // b /= 2
     "xor rax, rax",
-    "shrd rdi, rsi, 1",
+    "shrd rdi, r12, 1",
     "setnc al",
-    "shr rsi, 1",
+    "shr r12, 1",
     "sub rax, 1",
     
     // res += a
@@ -72,7 +72,7 @@ global_asm!(
     "sbb rdx, rax",
 
     "mov r13, rdi",
-    "or r13, rsi",
+    "or r13, r12",
     "jnz 2b",
     "ret",
 );
@@ -121,10 +121,12 @@ pub fn intpow<const M: u128>(x: u128, n: u128) -> u128 {
     let res_hi: u64;
     unsafe {
         asm!(
+            "push {n_lo}",
+            "push {n_hi}",
             "mov r15, 0",       // y_hi = 0
             "mov r14, 1",       // y_lo = 1 
             "mov rcx, rdi",     // b_lo = x_lo
-            "mov rdx, rsi",     // b_hi = y_hi
+            "mov rdx, r12",     // b_hi = y_hi
             "xor r10, r10",     // r_lo = 0
             "xor r11, r11",     // r_hi = 0
             "cmp {n_hi}, 0",
@@ -133,7 +135,7 @@ pub fn intpow<const M: u128>(x: u128, n: u128) -> u128 {
             "ja 2f",
             "jb 9f",
             "mov r10, rdi",
-            "mov r11, rsi",
+            "mov r11, r12",
             "jmp 4f",
             "9:",
             "mov r11, 0",
@@ -151,18 +153,18 @@ pub fn intpow<const M: u128>(x: u128, n: u128) -> u128 {
             "xchg rdx, r15",
             "call long_multiply",   //      y = long_multiply(x, y, m)
             "mov rdi, r14",
-            "mov rsi, r15",         
+            "mov r12, r15",         
             "mov r14, r10",
             "mov r15, r11",
 
             "3:",                   // }
             "mov rcx, rdi",         // 
-            "mov rdx, rsi",
+            "mov rdx, r12",
             "call long_multiply",
             "mov rdi, r10",
-            "mov rsi, r11",
+            "mov r12, r11",
             "mov rcx, rdi",
-            "mov rdx, rsi",
+            "mov rdx, r12",
 
             "cmp {n_hi}, 0",
             "jne 2b",
@@ -173,15 +175,17 @@ pub fn intpow<const M: u128>(x: u128, n: u128) -> u128 {
             "mov rdx, r15",
             "call long_multiply",
             "4:",
+            "pop {n_lo}",
+            "pop {n_hi}",
 
             in("r8") (M & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64,
             in("r9") (M >> 64) as u64,
             inout("rdi") (x & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64 => _,
-            inout("rsi") (x >> 64) as u64 => _,
+            inout("r12") (x >> 64) as u64 => _,
             out("rcx") _,
             out("rdx") _,
-            n_lo = inout(reg) (n & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64 => _,
-            n_hi = inout(reg) (n >> 64) as u64 => _,
+            n_lo = in(reg) (n & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64,
+            n_hi = in(reg) (n >> 64) as u64,
             out("rax") _,
             out("r13") _,
             out("r10") res_lo,
@@ -240,6 +244,7 @@ pub fn long_multiply<const M: u128>(a: u128, b: u128) -> u128 {
     let res_hi: u64;
     unsafe {
         asm!(
+            "push rdi",
             "xor r10, r10",
             "xor r11, r11",
 
@@ -247,9 +252,9 @@ pub fn long_multiply<const M: u128>(a: u128, b: u128) -> u128 {
             // if b % 2 == 1
             // b /= 2
             "xor rax, rax",
-            "shrd rdi, rsi, 1",
+            "shrd rdi, r12, 1",
             "setnc al",
-            "shr rsi, 1",
+            "shr r12, 1",
             "sub rax, 1",
             
             // res += a
@@ -299,12 +304,13 @@ pub fn long_multiply<const M: u128>(a: u128, b: u128) -> u128 {
 
             "3:",
             "mov r13, rdi",
-            "or r13, rsi",
+            "or r13, r12",
             "jnz 2b",
+            "pop rdi",
             inout("rcx") (a & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64 => _,
             inout("rdx") (a >> 64) as u64 => _,
-            inout("rdi") (b & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64 => _,
-            inout("rsi") (b >> 64) as u64 => _,
+            in("rdi") (b & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64,
+            inout("r12") (b >> 64) as u64 => _,
             in("r8") (M & 0xFF_FF_FF_FF_FF_FF_FF_FF) as u64,
             in("r9") (M >> 64) as u64,
             out("r10") res_lo,
