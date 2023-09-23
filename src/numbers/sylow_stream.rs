@@ -327,18 +327,8 @@ where
         }
         let folder = RefCell::new(Some(folder));
         
+        let mut count = 0;
         loop {
-            if let Some(mut split) = self.maybe_split(stolen) {
-                let (r1, r2) = (consumer.to_reducer(), consumer.to_reducer());
-                let left_consumer = consumer.split_off_left();
-
-                let (left, right) = rayon::join_context(
-                    |ctx| self.work(ctx.migrated(), left_consumer),
-                    |ctx| split.work(ctx.migrated(), consumer),
-                );
-                return r1.reduce(folder.into_inner().unwrap().complete(), r2.reduce(left, right));
-            }
-
             if let Some(top) = self.stack.pop() {
                 self.propogate(top, |_, e| {
                     let mut f = folder.take().unwrap();
@@ -348,6 +338,19 @@ where
             } else {
                 break;
             }
+
+            if count % 10_000 == 0 {
+                let Some(mut split) = self.maybe_split(stolen) else { continue; };
+                let (r1, r2) = (consumer.to_reducer(), consumer.to_reducer());
+                let left_consumer = consumer.split_off_left();
+
+                let (left, right) = rayon::join_context(
+                    |ctx| self.work(ctx.migrated(), left_consumer),
+                    |ctx| split.work(ctx.migrated(), consumer),
+                );
+                return r1.reduce(folder.into_inner().unwrap().complete(), r2.reduce(left, right));
+            }
+            count += 1;
         }
         folder.into_inner().unwrap().complete()
     }
