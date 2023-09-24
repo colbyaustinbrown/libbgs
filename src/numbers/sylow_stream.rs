@@ -243,7 +243,7 @@ impl<S, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug>
         let mut steps = [0; L];
         for i in 0..C::FACTORS.prime_powers().len() {
             let (p, d) = C::FACTORS.prime_powers()[i];
-            steps[i] = unsafe { intpow::<0>(p, (d - 1) as u128) };
+            steps[i] = intpow::<0>(p, (d - 1) as u128);
         }
         SylowStreamBuilder {
             mode: flags::NONE,

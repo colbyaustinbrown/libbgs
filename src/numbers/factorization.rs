@@ -1,7 +1,7 @@
 use std::ops::Index;
 
 use crate::numbers::FactorStream;
-use crate::util::{intpow, intpow_const};
+use crate::util::intpow;
 
 /// A prime power decomposition of a positive integer.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -32,7 +32,7 @@ impl<const L: usize> Factorization<L> {
         let mut value = 1;
         let mut i = 0;
         while i < L {
-            value *= intpow_const::<0>(prime_powers[i].0, prime_powers[i].1 as u128);
+            value *= intpow::<0>(prime_powers[i].0, prime_powers[i].1 as u128);
             i += 1;
         }
         Factorization {
@@ -62,7 +62,7 @@ impl<const L: usize> Factorization<L> {
     /// Returns the prime power factor represented by prime number `i`, $p_i^{t_i}$.
     /// This method will `panic` if `i` is out of bounds.
     pub fn factor(&self, i: usize) -> u128 {
-        unsafe { intpow::<0>(self.prime_powers[i].0, self.prime_powers[i].1 as u128) }
+        intpow::<0>(self.prime_powers[i].0, self.prime_powers[i].1 as u128)
     }
 
     /// Gets the prime powers as an array.
@@ -83,7 +83,7 @@ impl<const L: usize> Factorization<L> {
             if *d > t {
                 return 0;
             } else {
-                total *= unsafe { intpow::<0>(p, *d as u128) };
+                total *= intpow::<0>(p, *d as u128);
             }
         }
         total

@@ -36,7 +36,7 @@ impl<'a, const L: usize> Iterator for FactorStream<'a, L> {
         let prod: u128 = state
             .iter()
             .zip(self.source)
-            .map(|(d, (p, _))| unsafe { intpow::<0>(*p, *d as u128) })
+            .map(|(d, (p, _))| intpow::<0>(*p, *d as u128))
             .product();
         let mut maximal = true;
         for j in i..self.source.len() {

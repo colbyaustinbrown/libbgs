@@ -70,7 +70,7 @@ impl<const P: u128> FpNum<P> {
             let mut i = 0;
             while i < P {
                 let a = standard_affine_shift(P, i);
-                if intpow_const::<P>(a, (P - 1) / 2) == P - 1 {
+                if intpow::<P>(a, (P - 1) / 2) == P - 1 {
                     res = a;
                     break;
                 }
@@ -440,7 +440,7 @@ mod tests {
             SylowElem::<Phantom, 7, FpNum<BIG_P>>::FACTORS
                 .prime_powers()
                 .iter()
-                .map(|(p, d)| n % unsafe { intpow::<0>(*p, *d as u128) })
+                .map(|(p, d)| n % intpow::<0>(*p, *d as u128))
                 .collect::<Vec<u128>>()
                 .try_into()
                 .unwrap(),
