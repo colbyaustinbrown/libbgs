@@ -25,7 +25,6 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
     fn multiply(&self, other: &Self) -> Self;
 
     /// Raises this element to the power of `n`.
-    /// If you override this trait, you must guarantee that `x.pow(2) == x.square()` for all `x`.
     fn pow(&self, mut n: u128) -> Self {
         let mut y = Self::one();
         let mut res = self.clone();
