@@ -1,7 +1,6 @@
 use either::*;
 
 use crate::numbers::*;
-use crate::util::*;
 
 /// A coordinate for a Markoff triple.
 /// May represent any of $a$, $b$, or $c$ in a Markoff triple $(a, b, c)$.
@@ -15,9 +14,9 @@ impl<const P: u128> Coord<P> {
     /// will be a `Right<FpNum<P>>`. Otherwise, $\chi \in \mathbb{F}\_{p^2}$, and the result will
     /// be a `Left<QuadNum<P>>`.
     pub fn to_chi(&self) -> Either<QuadNum<P>, FpNum<P>> {
-        let v3 = unsafe { long_multiply::<P>(self.0, 3) };
-        let disc = unsafe { intpow::<P>(v3, 2) };
-        let disc = (disc + P - 4) % P;
+        let v3 = self.multiply(&FpNum::from(3));
+        let disc = v3.pow(2);
+        let disc = disc + P - 4;
         QuadNum::int_sqrt_either(disc).map_either(
             |mut x| {
                 x.0 += v3;
@@ -32,11 +31,11 @@ impl<const P: u128> Coord<P> {
                 x
             },
             |mut x| {
-                x.0 += v3;
-                if x.0 % 2 == 1 {
-                    x.0 += P;
+                x += v3;
+                if x % 2 == 1 {
+                    x += P;
                 }
-                x.0 /= 2;
+                x /= 2;
                 x
             },
         )
@@ -78,7 +77,7 @@ impl<const P: u128> Coord<P> {
     /// $a$ (the coordinate on which `rot` is called), beginning with $(a, b, c)$.
     pub fn rot(self, b: Coord<P>, c: Coord<P>) -> impl Iterator<Item = (Coord<P>, Coord<P>)> {
         std::iter::successors(Some((b, c)), move |(y, z)| {
-            let (b_, c_) = (*z, FpNum::from(self.0 * z.0 + P - y.0));
+            let (b_, c_) = (*z, self * z + P - *y);
             if b_ == b && c_ == c {
                 None
             } else {

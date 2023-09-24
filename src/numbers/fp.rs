@@ -5,7 +5,7 @@ use crate::util::*;
 
 /// An integer modulo `P`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct FpNum<const P: u128>(pub u128);
+pub struct FpNum<const P: u128>(u128);
 
 impl<const P: u128> FpNum<P> {
     /// Calculates this number's square root, if it is a quadratic residue; otherwise, returns
@@ -60,11 +60,11 @@ impl<const P: u128> FpNum<P> {
     }
 
     /// Returns a quadratic nonresidue modulo `p`.
-    pub const fn find_nonresidue() -> u128 {
+    pub const fn find_nonresidue() -> FpNum::<P> {
         if P % 4 == 3 {
-            P - 1
+            FpNum(P - 1)
         } else if P % 8 == 3 || P % 8 == 5 {
-            2
+            FpNum(2)
         } else {
             let mut res = 0;
             let mut i = 0;
@@ -76,7 +76,7 @@ impl<const P: u128> FpNum<P> {
                 }
                 i += 1;
             }
-            res
+            FpNum(res)
         }
     }
 
@@ -171,6 +171,13 @@ impl<const P: u128> Add<Self> for FpNum<P> {
     }
 }
 
+impl<const P: u128> Add<u128> for FpNum<P> {
+    type Output = FpNum<P>;
+    fn add(self, other: u128) -> FpNum<P> {
+        FpNum::from((self.0 + other) % P)
+    }
+}
+
 impl<const P: u128> AddAssign<Self> for FpNum<P> {
     fn add_assign(&mut self, other: Self) {
         self.0 += other.0;
@@ -207,6 +214,18 @@ impl<const P: u128> Sub<Self> for FpNum<P> {
         }
         value -= other.0;
         FpNum(value)
+    }
+}
+
+impl<const P: u128> Sub<u128> for FpNum<P> {
+    type Output = FpNum<P>;
+    fn sub(self, other: u128) -> FpNum<P> {
+        let mut res = self;
+        if res.0 < other {
+            res.0 += P;
+        }
+        res.0 -= other;
+        res
     }
 }
 
@@ -268,9 +287,28 @@ impl<const P: u128> Mul<FpNum<P>> for u128 {
     }
 }
 
+impl<const P: u128> Rem<u128> for FpNum<P> {
+    type Output = u128;
+    fn rem(self, rhs: u128) -> u128 {
+        self.0 % rhs
+    }
+}
+
+impl<const P: u128> DivAssign<u128> for FpNum<P> {
+    fn div_assign(&mut self, other: u128) {
+        self.0 /= other
+    }
+}
+
 impl<const P: u128> PartialEq<u128> for FpNum<P> {
     fn eq(&self, other: &u128) -> bool {
         self.0 == *other
+    }
+}
+
+impl<const P: u128> PartialOrd<u128> for FpNum<P> {
+    fn partial_cmp(&self, other: &u128) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(other)
     }
 }
 

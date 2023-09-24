@@ -23,9 +23,9 @@ pub struct QuadField<const P: u128> {
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub struct QuadNum<const P: u128>(
     /// The value $a_0$, when writing this `QuadNum` as $a_0 + a_1\sqrt{r}$.
-    pub u128, 
+    pub FpNum<P>, 
     /// The value $a_1$, when writing this `QuadNum` as $a_0 + a_1\sqrt{r}$.
-    pub u128,
+    pub FpNum<P>,
 );
 
 impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for QuadNum<P>
@@ -61,8 +61,7 @@ impl<const P: u128> QuadNum<P> {
     /// quadratic residue.
     /// Returns a `Left` `QuadNum<P>` if `x` is a quadratic nonresidue, or a `Right` `FpNum<P>` if
     /// `x` is a quadratic residue (including 0).
-    pub fn int_sqrt_either(x: u128) -> Either<QuadNum<P>, FpNum<P>> {
-        let mut x = FpNum::from(x);
+    pub fn int_sqrt_either(mut x: FpNum<P>) -> Either<QuadNum<P>, FpNum<P>> {
         if let Some(y) = x.int_sqrt() {
             return Right(y);
         }
@@ -70,16 +69,16 @@ impl<const P: u128> QuadNum<P> {
         let r = FpNum::from(Self::R).inverse();
         x = x.multiply(&r);
         let a1 = x.int_sqrt().unwrap();
-        Left(QuadNum(0, a1.into()))
+        Left(QuadNum(FpNum::from(0), a1))
     }
 
     /// Calculates the square root af in integer modulo `P`.
-    pub fn int_sqrt(x: u128) -> QuadNum<P> {
+    pub fn int_sqrt(x: FpNum<P>) -> QuadNum<P> {
         Self::int_sqrt_either(x).left_or_else(|n| QuadNum::from((n.into(), 0)))
     }
 
     /// The basis element for the numbers outside of the prime subfield.
-    pub const R: u128 = FpNum::<P>::find_nonresidue();
+    pub const R: FpNum::<P> = FpNum::<P>::find_nonresidue();
 }
 
 impl<const P: u128> GroupElem for QuadNum<P> {
@@ -90,10 +89,10 @@ impl<const P: u128> GroupElem for QuadNum<P> {
     fn multiply(&self, other: &QuadNum<P>) -> QuadNum<P> {
         let mut a0;
         let mut a1;
-        unsafe {
-            a0 = long_multiply::<P>(self.0, other.0) + long_multiply::<P>(self.1, long_multiply::<P>(other.1, QuadNum::<P>::R));
-            a1 = long_multiply::<P>(self.1, other.0) + long_multiply::<P>(self.0, other.1);
-        }
+
+        a0 = self.0.multiply(&other.0) + self.1.multiply(&other.1).multiply(&QuadNum::<P>::R); 
+        a1 = self.1.multiply(&other.0) + self.0.multiply(&other.1);
+
         if a0 >= P {
             a0 -= P;
         }
@@ -108,7 +107,7 @@ impl<const P: u128> GroupElem for QuadNum<P> {
     }
 
     fn one() -> QuadNum<P> {
-        QuadNum(1, 0)
+        QuadNum(FpNum::from(1), FpNum::from(0))
     }
 }
 
@@ -120,7 +119,7 @@ impl<const P: u128> PartialEq<u128> for QuadNum<P> {
 
 impl<const P: u128> From<(u128, u128)> for QuadNum<P> {
     fn from(value: (u128, u128)) -> QuadNum<P> {
-        QuadNum(value.0, value.1)
+        QuadNum(FpNum::from(value.0), FpNum::from(value.1))
     }
 }
 
@@ -195,7 +194,7 @@ mod tests {
     #[test]
     fn calculates_r_as_nonresidue() {
         for i in 2..7 {
-            assert_ne!((i * i) % 7, QuadNum::<7>::R);
+            assert_ne!((i * i) % 7, u128::from(QuadNum::<7>::R));
         }
     }
 
@@ -208,7 +207,7 @@ mod tests {
 
     #[test]
     fn powers_up_big() {
-        let mut x = QuadNum::<BIG_P>(3, 5);
+        let mut x = QuadNum::<BIG_P>::from((3, 5));
         x = x.pow(BIG_P - 1);
         x = x.pow(BIG_P + 1);
         assert!(x.is_one());
@@ -217,7 +216,7 @@ mod tests {
     #[test]
     fn finds_sqrt() {
         for i in 3..1003 {
-            let mut x = QuadNum::<BIG_P>::int_sqrt(i);
+            let mut x = QuadNum::<BIG_P>::int_sqrt(FpNum::from(i));
             println!("{x:?}");
             assert_ne!(x, i);
             x = x.multiply(&x);
