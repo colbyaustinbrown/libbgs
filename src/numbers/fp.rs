@@ -8,6 +8,12 @@ use crate::util::*;
 pub struct FpNum<const P: u128>(u128);
 
 impl<const P: u128> FpNum<P> {
+    /// Returns the Legendre symbol of `a` modulo `P`, i.e.,
+    /// $$\left(\frac({a}{p}\right)_L = a^{\frac{p - 1}{2}} \mod p$$.
+    pub fn legendre(&self) -> FpNum<P> {
+        self.pow((P - 1) / 2)
+    }
+
     /// Calculates this number's square root, if it is a quadratic residue; otherwise, returns
     /// `None`.
     pub fn int_sqrt(&self) -> Option<FpNum<P>> {
@@ -25,8 +31,8 @@ impl<const P: u128> FpNum<P> {
 
         let mut i = 1;
         let z = loop {
-            let z = standard_affine_shift(P, i);
-            if legendre::<P>(z) == (P - 1) {
+            let z = FpNum::from(standard_affine_shift(P, i));
+            if z.legendre() == (P - 1) {
                 break z;
             }
             i += 1;

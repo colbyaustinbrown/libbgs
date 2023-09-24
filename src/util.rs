@@ -82,12 +82,6 @@ pub const fn long_multiply<const M: u128>(mut a: u128, mut b: u128) -> u128 {
     res
 }
 
-/// Returns the Legendre symbol of `a` modulo `p`, i.e.,
-/// $$\left(\frac{a}{p}\right)_L = a^{\frac{p - 1}{2}} \mod p$$.
-pub fn legendre<const P: u128>(a: u128) -> u128 {
-    intpow::<P>(a % P, (P - 1) / 2)
-}
-
 /// Returns a quadratic non-residue modulo `p`.
 /// That is, it returns an integer $a \in \mathbb{Z} / p\mathbb{Z}$ such that there is no $x$
 /// satisfying $x^2 = a \mod p$.
