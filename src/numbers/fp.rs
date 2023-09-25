@@ -413,8 +413,8 @@ mod tests {
     #[test]
     fn sylow_finds_generators() {
         let g = SylowDecomp::new();
-        for i in 0..g.generators().len() {
-            let gen = &g.generators()[i];
+        for i in 0..2 {
+            let gen = g.generator(i);
             let d = SylowElem::<Phantom, 2, FpNum<29>>::FACTORS.factor(i);
             test_is_generator_small::<Phantom, 2, FpNum<29>>(gen, d as usize);
         }
@@ -423,8 +423,8 @@ mod tests {
     #[test]
     fn sylow_finds_generators_big() {
         let g = SylowDecomp::<Phantom, 7, FpNum<BIG_P>>::new();
-        for i in 0..g.generators().len() {
-            let gen = &g.generators()[i];
+        for i in 0..7 {
+            let gen = g.generator(i);
             let d = SylowElem::<Phantom, 7, FpNum<BIG_P>>::FACTORS.prime_powers()[i];
             test_is_generator_big::<Phantom, 7, FpNum<BIG_P>>(gen, d);
         }

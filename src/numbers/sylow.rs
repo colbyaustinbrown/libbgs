@@ -11,7 +11,8 @@ use crate::util::*;
 /// $$|G| = \prod_{i = 1}^n p_i^{t_i}$$
 /// and $G$ is a finite cyclic group.
 pub struct SylowDecomp<S, const L: usize, C: SylowDecomposable<S, L>> {
-    generators: [C; L],
+    precomputed: Vec<Vec<C>>,
+    generators_powered: [C; L],
     _phantom: PhantomData<S>,
 }
 
@@ -50,13 +51,23 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> SylowDecomp<S, L, C> {
     /// This method may be expensive because it calls `find_sylow_generator` for each Sylow
     /// subgroup.
     pub fn new() -> SylowDecomp<S, L, C> {
-        let generators = (0..L)
-            .map(|i| C::find_sylow_generator(i))
-            .collect::<Vec<C>>()
-            .try_into()
-            .unwrap();
+        let mut generators_powered = Vec::with_capacity(L);
+        let mut precomputed = Vec::with_capacity(L);
+        for i in 0..L {
+            let x = C::find_sylow_generator(i);
+            let mut g = C::one();
+            let mut gens = Vec::new();
+            for _ in 0..256 {
+                gens.push(g.clone());
+                g = g.multiply(&x);
+            }
+            precomputed.push(gens);
+            generators_powered.push(g);
+        }
+        let generators_powered = generators_powered.try_into().unwrap();
         SylowDecomp {
-            generators,
+            precomputed,
+            generators_powered,
             _phantom: PhantomData,
         }
     }
@@ -66,8 +77,8 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> SylowDecomp<S, L, C> {
     /// factorization. That is, if the prime power at index `i` of the factorization is $$(p, t)$$,
     /// then the generator at index `i` of the array returned by the `generators` method is a
     /// generator of the Sylow subgroup of order $$p^t$$.
-    pub fn generators(&self) -> &[C] {
-        &self.generators
+    pub fn generator(&self, i: usize) -> &C {
+        &self.precomputed[i][1]
     }
 }
 
@@ -100,7 +111,10 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> SylowElem<S, L, C> {
         (0..L)
             .filter(|i| self.coords[*i] > 0)
             .fold(C::one(), |x, i| {
-                let y = g.generators[i].pow(self.coords[i]);
+                let mut y = g.precomputed[i][(self.coords[i] & 0xFF) as usize].clone();
+                if self.coords[i] > 0xFF {
+                    y = y.multiply(&g.generators_powered[i].pow(self.coords[i] >> 8));
+                }
                 x.multiply(&y)
             })
     }

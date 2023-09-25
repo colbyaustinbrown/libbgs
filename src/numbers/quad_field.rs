@@ -227,18 +227,18 @@ mod tests {
     #[test]
     fn sylow_finds_generators() {
         let g = SylowDecomp::<Phantom, 2, QuadNum<17>>::new();
-        for i in 0..g.generators().len() {
-            let gen = &g.generators()[i];
+        for i in 0..2 {
+            let gen = &g.generator(i);
             let d = SylowElem::<Phantom, 2, QuadNum<17>>::FACTORS.factor(i);
-            test_is_generator_small(gen, d as usize);
+            test_is_generator_small(*gen, d as usize);
         }
     }
 
     #[test]
     fn sylow_finds_generators_big() {
         let g = SylowDecomp::<Phantom, 11, QuadNum<BIG_P>>::new();
-        for i in 0..g.generators().len() {
-            let gen = &g.generators()[i];
+        for i in 0..11 {
+            let gen = g.generator(i);
             let d = SylowElem::<Phantom, 11, QuadNum<BIG_P>>::FACTORS.prime_powers()[i];
             test_is_generator_big(gen, d);
         }
