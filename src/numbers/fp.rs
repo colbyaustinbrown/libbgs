@@ -85,16 +85,6 @@ impl<const P: u128> FpNum<P> {
             FpNum(res)
         }
     }
-
-    const LEADING_ZEROS: usize = {
-        let mut i = 0;
-        let mut p = P;
-        while p & (1 << 127) == 0 {
-            i += 1;
-            p <<= 1;
-        }
-        i
-    };
 }
 
 impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for FpNum<P>
@@ -121,12 +111,12 @@ impl<const P: u128> GroupElem for FpNum<P> {
         let mut res = 0;
         let mut b = u128::from(other);
         let mut a = u128::from(self);
-        let mask = (1 << Self::LEADING_ZEROS) - 1;
+        let mask = (1 << P.leading_zeros()) - 1;
         
         while b > 0 {
             res += a * (b & mask);
-            a <<= Self::LEADING_ZEROS;
-            b >>= Self::LEADING_ZEROS;
+            a <<= P.leading_zeros();
+            b >>= P.leading_zeros();
 
             res %= P;
             a %= P;
