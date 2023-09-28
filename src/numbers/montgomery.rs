@@ -101,6 +101,13 @@ impl<const N: u128> Montgomery<N> {
         }
         x.const_mul(&y)
     }
+
+    /// Returns the Montgomery representation of this number.
+    ///
+    /// This value is dependent on `Montgomery::<N>::R`, which is subject to change.
+    pub fn raw(&self) -> u128 {
+        self.0
+    }
 }
 
 impl<const N: u128> From<u128> for Montgomery<N> {

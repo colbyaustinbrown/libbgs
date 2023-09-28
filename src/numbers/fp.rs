@@ -84,6 +84,11 @@ impl<const P: u128> FpNum<P> {
             FpNum(Montgomery::<P>::from_u128(res))
         }
     }
+
+    /// Returns the underlying Montgomery number.
+    pub fn montgomery(&self) -> Montgomery<P> {
+        self.0
+    }
 }
 
 impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for FpNum<P>
