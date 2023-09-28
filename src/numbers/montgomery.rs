@@ -148,7 +148,11 @@ impl<const N: u128> Sub<&Montgomery<N>> for &Montgomery<N> {
 impl<const N: u128> Neg for Montgomery<N> {
     type Output = Montgomery<N>;
     fn neg(self) -> Montgomery<N> {
-        Montgomery(N - self.0)
+        if self.0 == 0 {
+            Montgomery(0)
+        } else {
+            Montgomery(N - self.0)
+        }
     }
 }
 
