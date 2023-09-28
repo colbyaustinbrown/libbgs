@@ -16,8 +16,8 @@ fn main() {
                 for (y, z) in Coord::<13>::from(a).rot(Coord::from(b), Coord::from(c)) {
                     println!(
                         "{a} {} {} ({})",
-                        y,
-                        z,
+                        u128::from(y),
+                        u128::from(z),
                         z.get_ord()
                     );
                 }

@@ -16,27 +16,18 @@ impl<const P: u128> Coord<P> {
     pub fn to_chi(&self) -> Either<QuadNum<P>, FpNum<P>> {
         let v3 = self.multiply(&FpNum::from(3));
         let disc = v3.pow(2);
-        let disc = disc + P - 4;
+        let disc = disc + FpNum::from(P) - FpNum::from(4);
+        let two_inv = FpNum::from(2).inverse();
         QuadNum::int_sqrt_either(disc).map_either(
             |mut x| {
                 x.0 += v3;
-                if x.0 % 2 == 1 {
-                    x.0 += P;
-                }
-                if x.1 % 2 == 1 {
-                    x.1 += P;
-                }
-                x.0 /= 2;
-                x.1 /= 2;
+                x.0 = x.0.multiply(&two_inv);
+                x.1 = x.1.multiply(&two_inv);
                 x
             },
             |mut x| {
                 x += v3;
-                if x % 2 == 1 {
-                    x += P;
-                }
-                x /= 2;
-                x
+                x.multiply(&two_inv)
             },
         )
     }
@@ -77,7 +68,7 @@ impl<const P: u128> Coord<P> {
     /// $a$ (the coordinate on which `rot` is called), beginning with $(a, b, c)$.
     pub fn rot(self, b: Coord<P>, c: Coord<P>) -> impl Iterator<Item = (Coord<P>, Coord<P>)> {
         std::iter::successors(Some((b, c)), move |(y, z)| {
-            let (b_, c_) = (*z, self * z + P - *y);
+            let (b_, c_) = (*z, self * z + FpNum::from(P) - *y);
             if b_ == b && c_ == c {
                 None
             } else {

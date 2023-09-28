@@ -87,18 +87,9 @@ impl<const P: u128> GroupElem for QuadNum<P> {
     }
 
     fn multiply(&self, other: &QuadNum<P>) -> QuadNum<P> {
-        let mut a0;
-        let mut a1;
+        let a0 = self.0.multiply(&other.0) + self.1.multiply(&other.1).multiply(&QuadNum::<P>::R); 
+        let a1 = self.1.multiply(&other.0) + self.0.multiply(&other.1);
 
-        a0 = self.0.multiply(&other.0) + self.1.multiply(&other.1).multiply(&QuadNum::<P>::R); 
-        a1 = self.1.multiply(&other.0) + self.0.multiply(&other.1);
-
-        if a0 >= P {
-            a0 -= P;
-        }
-        if a1 >= P {
-            a1 -= P;
-        }
         QuadNum(a0, a1)
     }
 
@@ -128,12 +119,6 @@ impl<const P: u128> Add<Self> for QuadNum<P> {
     fn add(self, other: Self) -> QuadNum<P> {
         let mut a0 = self.0 + other.0;
         let mut a1 = self.1 + other.1;
-        if a0 >= P {
-            a0 -= P;
-        }
-        if a1 >= P {
-            a1 -= P;
-        }
         QuadNum(a0, a1)
     }
 }
@@ -142,12 +127,6 @@ impl<const P: u128> AddAssign<Self> for QuadNum<P> {
     fn add_assign(&mut self, other: Self) {
         self.0 = self.0 + other.0;
         self.1 = self.1 + other.1;
-        if self.0 >= P {
-            self.0 -= P;
-        }
-        if self.1 >= P {
-            self.1 -= P;
-        }
     }
 }
 

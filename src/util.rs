@@ -104,6 +104,28 @@ pub fn find_nonresidue<const P: u128>() -> u128 {
     }
 }
 
+pub const fn carrying_mul(a: u128, b: u128) -> (u128, u128) {
+    let a_lo = a & 0xFF_FF_FF_FF_FF_FF_FF_FF;
+    let a_hi = a >> 64;
+    let b_lo = b & 0xFF_FF_FF_FF_FF_FF_FF_FF;
+    let b_hi = b >> 64;
+    
+    let cross = a_hi * b_lo + a_lo * b_hi;
+    let (c, res_lo) = carrying_add(a_lo * b_lo, (cross & 0xFF_FF_FF_FF_FF_FF_FF_FF) << 64);
+    let res_hi = a_hi * b_hi + (cross >> 64) + c;
+    (res_hi, res_lo)
+}
+
+pub const fn carrying_add(a: u128, b: u128) -> (u128, u128) {
+    let lo = (a & 0xFF_FF_FF_FF_FF_FF_FF_FF) + (b & 0xFF_FF_FF_FF_FF_FF_FF_FF);
+    let hi = (a >> 64) + (b >> 64) + (lo >> 64);
+    (hi >> 64, (hi << 64) | (lo & 0xFF_FF_FF_FF_FF_FF_FF_FF))
+}
+
+pub const fn shrd(dst: u128, src: u128, n: usize) -> u128 {
+    (dst >> n) | ((src & ((1 << n) - 1)) << (128 - n))
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -157,5 +179,19 @@ pub mod tests {
     #[test]
     fn test_long_multiply_6() {
         assert_eq!(long_multiply::<0>(100, 100), 10_000);
+    }
+
+    #[test]
+    fn carrying_multiply() {
+        let (hi, lo) = carrying_mul(BIG_P, BIG_P);
+        assert_eq!(hi, 0xb7a);
+        assert_eq!(lo, 0xbc6270503128ac1b3edc190389237521);
+    }
+
+    #[test]
+    fn carrying_addition() {
+        let (hi, lo) = carrying_add(BIG_P << 58, BIG_P << 58);
+        assert_eq!(hi, 1);
+        assert_eq!(lo, 0xb1ae4d6e2ef50f2f7800000000000000);
     }
 }

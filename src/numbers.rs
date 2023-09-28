@@ -10,6 +10,7 @@ mod group;
 mod quad_field;
 mod sylow;
 mod sylow_stream;
+mod montgomery;
 
 pub use factor_stream::*;
 pub use factorization::*;
@@ -18,3 +19,4 @@ pub use group::*;
 pub use quad_field::*;
 pub use sylow::*;
 pub use sylow_stream::*;
+pub use montgomery::*;

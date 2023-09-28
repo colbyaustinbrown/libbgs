@@ -5,7 +5,7 @@ use crate::util::*;
 
 /// An integer modulo `P`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct FpNum<const P: u128>(u128);
+pub struct FpNum<const P: u128>(Montgomery<P>);
 
 impl<const P: u128> FpNum<P> {
     /// Returns the Legendre symbol of `a` modulo `P`, i.e.,
@@ -17,7 +17,7 @@ impl<const P: u128> FpNum<P> {
     /// Calculates this number's square root, if it is a quadratic residue; otherwise, returns
     /// `None`.
     pub fn int_sqrt(&self) -> Option<FpNum<P>> {
-        if self.0 == 0 {
+        if self.0 == Montgomery::<P>::from_u128(0) {
             return Some(FpNum::from(0));
         }
 
@@ -44,7 +44,6 @@ impl<const P: u128> FpNum<P> {
 
         loop {
             if t == 1 {
-                r.0 %= P;
                 return Some(r);
             }
             let mut temp = t;
@@ -68,9 +67,9 @@ impl<const P: u128> FpNum<P> {
     /// Returns a quadratic nonresidue modulo `p`.
     pub const fn find_nonresidue() -> FpNum::<P> {
         if P % 4 == 3 {
-            FpNum(P - 1)
+            FpNum(Montgomery::<P>::from_u128(P - 1))
         } else if P % 8 == 3 || P % 8 == 5 {
-            FpNum(2)
+            FpNum(Montgomery::<P>::from_u128(2))
         } else {
             let mut res = 0;
             let mut i = 0;
@@ -82,7 +81,7 @@ impl<const P: u128> FpNum<P> {
                 }
                 i += 1;
             }
-            FpNum(res)
+            FpNum(Montgomery::<P>::from_u128(res))
         }
     }
 }
@@ -104,24 +103,11 @@ where
 
 impl<const P: u128> GroupElem for FpNum<P> {
     fn is_one(&self) -> bool {
-        self.0 == 1
+        self.0 == Montgomery::<P>::from_u128(1)
     }
 
     fn multiply(&self, other: &FpNum<P>) -> FpNum<P> {
-        let mut res = 0;
-        let mut b = u128::from(other);
-        let mut a = u128::from(self);
-        let mask = (1 << P.leading_zeros()) - 1;
-        
-        while b > 0 {
-            res += a * (b & mask);
-            a <<= P.leading_zeros();
-            b >>= P.leading_zeros();
-
-            res %= P;
-            a %= P;
-        }
-        FpNum::from(res)
+        FpNum(self.0 * other.0)
     }
 
     fn size() -> u128 {
@@ -135,117 +121,62 @@ impl<const P: u128> GroupElem for FpNum<P> {
 
 impl<const P: u128> From<u128> for FpNum<P> {
     fn from(value: u128) -> FpNum<P> {
-        FpNum(value)
+        FpNum(Montgomery::<P>::from(value))
     }
 }
 impl<const P: u128> From<FpNum<P>> for u128 {
     fn from(value: FpNum<P>) -> u128 {
-        value.0
+        u128::from(value.0)
     }
 }
 impl<const P: u128> From<&FpNum<P>> for u128 {
     fn from(value: &FpNum<P>) -> u128 {
-        value.0
+        u128::from(value.0)
     }
 }
 
 impl<const P: u128> Neg for FpNum<P> {
     type Output = FpNum<P>;
     fn neg(self) -> FpNum<P> {
-        FpNum(P - self.0)
+        FpNum(-self.0)
     }
 }
 
 impl<const P: u128> Add<Self> for FpNum<P> {
     type Output = FpNum<P>;
     fn add(self, other: Self) -> FpNum<P> {
-        let mut x = self.0 + other.0;
-        if x >= P {
-            x -= P;
-        }
-        FpNum(x)
-    }
-}
-
-impl<const P: u128> Add<u128> for FpNum<P> {
-    type Output = FpNum<P>;
-    fn add(self, other: u128) -> FpNum<P> {
-        FpNum::from((self.0 + other) % P)
+        FpNum(&self.0 + &other.0)
     }
 }
 
 impl<const P: u128> AddAssign<Self> for FpNum<P> {
     fn add_assign(&mut self, other: Self) {
-        self.0 += other.0;
-        if self.0 >= P {
-            self.0 -= P;
-        }
+        *self = FpNum(&self.0 + &other.0)
     }
 }
 
 impl<const P: u128> AddAssign<&Self> for FpNum<P> {
     fn add_assign(&mut self, other: &Self) {
-        self.0 += other.0;
-        if self.0 >= P {
-            self.0 -= P;
-        }
-    }
-}
-
-impl<const P: u128> AddAssign<u128> for FpNum<P> {
-    fn add_assign(&mut self, other: u128) {
-        self.0 += other;
-        if self.0 >= P {
-            self.0 -= P;
-        }
+        *self = FpNum(&self.0 + &other.0)
     }
 }
 
 impl<const P: u128> Sub<Self> for FpNum<P> {
     type Output = FpNum<P>;
     fn sub(self, other: Self) -> FpNum<P> {
-        let mut value = self.0;
-        if value < other.0 {
-            value += P;
-        }
-        value -= other.0;
-        FpNum(value)
-    }
-}
-
-impl<const P: u128> Sub<u128> for FpNum<P> {
-    type Output = FpNum<P>;
-    fn sub(self, other: u128) -> FpNum<P> {
-        let mut res = self;
-        if res.0 < other {
-            res.0 += P;
-        }
-        res.0 -= other;
-        res
+        FpNum(&self.0 - &other.0)
     }
 }
 
 impl<const P: u128> SubAssign<&Self> for FpNum<P> {
     fn sub_assign(&mut self, other: &Self) {
-        if self.0 < other.0 {
-            self.0 += P;
-        }
-        self.0 -= other.0;
+        *self = FpNum(&self.0 - &other.0)
     }
 }
 
 impl<const P: u128> SubAssign<Self> for FpNum<P> {
     fn sub_assign(&mut self, other: Self) {
-        *self -= &other;
-    }
-}
-
-impl<const P: u128> SubAssign<u128> for FpNum<P> {
-    fn sub_assign(&mut self, other: u128) {
-        if self.0 < other {
-            self.0 += P;
-        }
-        self.0 -= other;
+        *self = FpNum(&self.0 - &other.0)
     }
 }
 
@@ -283,34 +214,15 @@ impl<const P: u128> Mul<FpNum<P>> for u128 {
     }
 }
 
-impl<const P: u128> Rem<u128> for FpNum<P> {
-    type Output = u128;
-    fn rem(self, rhs: u128) -> u128 {
-        self.0 % rhs
-    }
-}
-
-impl<const P: u128> DivAssign<u128> for FpNum<P> {
-    fn div_assign(&mut self, other: u128) {
-        self.0 /= other
-    }
-}
-
 impl<const P: u128> PartialEq<u128> for FpNum<P> {
     fn eq(&self, other: &u128) -> bool {
-        self.0 == *other
+        u128::from(self) == *other
     }
 }
 
-impl<const P: u128> PartialOrd<u128> for FpNum<P> {
-    fn partial_cmp(&self, other: &u128) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(other)
-    }
-}
-
-impl<const P: u128> std::fmt::Display for FpNum<P> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        self.0.fmt(f)
+impl<const P: u128> PartialEq<FpNum<P>> for u128 {
+    fn eq(&self, other: &FpNum<P>) -> bool {
+        *self == u128::from(other)
     }
 }
 
@@ -353,33 +265,33 @@ mod tests {
     #[test]
     fn multiplies() {
         let mut x = FpNum::<7>::from(3);
-        assert_eq!(3, x.0);
+        assert_eq!(3, x);
         let five = FpNum::<7>::from(5);
         x = x.multiply(&five);
-        assert_eq!(1, x.0);
-        assert_eq!(5, five.0);
+        assert_eq!(1, x);
+        assert_eq!(5, five);
     }
 
     #[test]
     fn squares() {
         let mut x = FpNum::<7>::from(3);
         x *= x;
-        assert_eq!(2, x.0);
+        assert_eq!(2, x);
 
         let mut x = FpNum::<7>::from(2);
         x *= x;
-        assert_eq!(4, x.0);
+        assert_eq!(4, x);
     }
 
     #[test]
     fn powers_up() {
         let mut x = FpNum::<7>::from(2);
         x = x.pow(5);
-        assert_eq!(4, x.0);
+        assert_eq!(4, x);
 
         let mut x = FpNum::<7>::from(3);
         x = x.pow(3);
-        assert_eq!(6, x.0);
+        assert_eq!(6, x);
 
         let mut x = FpNum::<7>::from(5);
         x = x.pow(6);
