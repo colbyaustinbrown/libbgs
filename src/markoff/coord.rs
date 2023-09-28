@@ -7,7 +7,7 @@ use crate::numbers::*;
 /// This is a single field struct containing only an `FpNum<P>` for prime `P`.
 // pub struct Coord<const P: u128>(FpNum<P>);
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub struct Coord<const P: u128>(FpNum<P>);
+pub struct Coord<const P: u128>(pub FpNum<P>);
 
 impl<const P: u128> Coord<P> {
     /// Returns an element $\chi$ such that, for a coordinate $a$, $a = \chi + \chi^{-1}$.
@@ -100,3 +100,4 @@ impl<const P: u128> From<Coord<P>> for u128 {
         u128::from(src.0)
     }
 }
+
