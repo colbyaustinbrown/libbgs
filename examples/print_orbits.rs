@@ -18,7 +18,7 @@ fn main() {
                         "{a} {} {} ({})",
                         u128::from(y),
                         u128::from(z),
-                        z.get_ord()
+                        z.rot_order()
                     );
                 }
                 println!();
