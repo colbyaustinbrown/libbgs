@@ -104,6 +104,8 @@ pub fn find_nonresidue<const P: u128>() -> u128 {
     }
 }
 
+/// Returns the product of `a` and `b`, as two 128-bit words.
+/// The first element of the tuple is the high word, and the second is the low word.
 pub const fn carrying_mul(a: u128, b: u128) -> (u128, u128) {
     let a_lo = a & 0xFF_FF_FF_FF_FF_FF_FF_FF;
     let a_hi = a >> 64;
@@ -116,12 +118,17 @@ pub const fn carrying_mul(a: u128, b: u128) -> (u128, u128) {
     (res_hi, res_lo)
 }
 
+/// Returns the sum of `a` and `b` as two 128-bit words.
+/// The first element of the tuple is the high word (guaranteed to be either 0 or 1) and the second
+/// is the low word.
 pub const fn carrying_add(a: u128, b: u128) -> (u128, u128) {
     let lo = (a & 0xFF_FF_FF_FF_FF_FF_FF_FF) + (b & 0xFF_FF_FF_FF_FF_FF_FF_FF);
     let hi = (a >> 64) + (b >> 64) + (lo >> 64);
     (hi >> 64, (hi << 64) | (lo & 0xFF_FF_FF_FF_FF_FF_FF_FF))
 }
 
+/// Shifts `dst` to the right `n` bits, filling in from the left with the least significant bits of
+/// `src`.
 pub const fn shrd(dst: u128, src: u128, n: usize) -> u128 {
     (dst >> n) | ((src & ((1 << n) - 1)) << (128 - n))
 }

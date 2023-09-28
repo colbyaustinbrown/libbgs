@@ -117,8 +117,8 @@ impl<const P: u128> From<(u128, u128)> for QuadNum<P> {
 impl<const P: u128> Add<Self> for QuadNum<P> {
     type Output = QuadNum<P>;
     fn add(self, other: Self) -> QuadNum<P> {
-        let mut a0 = self.0 + other.0;
-        let mut a1 = self.1 + other.1;
+        let a0 = self.0 + other.0;
+        let a1 = self.1 + other.1;
         QuadNum(a0, a1)
     }
 }

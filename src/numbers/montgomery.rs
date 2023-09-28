@@ -48,7 +48,20 @@ impl<const N: u128> Montgomery<N> {
         }
     }
 
-    const fn redc2((hi, lo): (u128, u128)) -> Montgomery<N> {
+    fn redc2((hi, lo): (u128, u128)) -> Montgomery<N> {
+        let (_, m) = carrying_mul(lo & Self::MASK, Self::MAGIC);
+        let m = m & Self::MASK;
+        let (c1, t) = carrying_mul(m, N);
+        let (c2, t) = carrying_add(t, lo);
+        let t = shrd(t, c1 + c2 + hi, Self::SHIFT as usize);
+        if t >= N {
+            Montgomery(t - N)
+        } else {
+            Montgomery(t)
+        }
+    }
+
+    const fn const_redc2((hi, lo): (u128, u128)) -> Montgomery<N> {
         let (_, m) = carrying_mul(lo & Self::MASK, Self::MAGIC);
         let m = m & Self::MASK;
         let (c1, t) = carrying_mul(m, N);
@@ -63,12 +76,14 @@ impl<const N: u128> Montgomery<N> {
 
     const fn const_mul(&self, rhs: &Montgomery<N>) -> Montgomery<N> {
         let (hi, lo) = carrying_mul(self.0, rhs.0);
-        Montgomery::<N>::redc2((hi, lo))
+        Montgomery::<N>::const_redc2((hi, lo))
     }
 
+    /// Converts a `u128` into its Montgomery representation.
+    /// This operation is expensive.
     pub const fn from_u128(src: u128) -> Montgomery<N> {
         let r2 = long_multiply::<N>(Self::R, Self::R);
-        Montgomery::<N>::redc2(carrying_mul(src, r2))
+        Montgomery::<N>::const_redc2(carrying_mul(src, r2))
     }
 
     const fn const_pow(self, mut n: u128) -> Montgomery<N> {
