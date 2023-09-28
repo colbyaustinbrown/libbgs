@@ -1,6 +1,6 @@
 [package]
 name = "libbgs"
-version = "0.8.1"
+version = "0.8.2"
 edition = "2021"
 authors = ["Colby Brown <colbyabrown@math.ucdavis.edu>"]
 repository = "https://github.com/colbyaustinbrown/libbgs"

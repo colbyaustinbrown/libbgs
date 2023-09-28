@@ -108,6 +108,12 @@ impl<const P: u128> PartialEq<u128> for QuadNum<P> {
     }
 }
 
+impl<const P: u128> From<FpNum<P>> for QuadNum<P> {
+    fn from(value: FpNum<P>) -> QuadNum<P> {
+        QuadNum(value, FpNum::from(0))
+    }
+}
+
 impl<const P: u128> From<(u128, u128)> for QuadNum<P> {
     fn from(value: (u128, u128)) -> QuadNum<P> {
         QuadNum(FpNum::from(value.0), FpNum::from(value.1))
@@ -127,6 +133,13 @@ impl<const P: u128> AddAssign<Self> for QuadNum<P> {
     fn add_assign(&mut self, other: Self) {
         self.0 = self.0 + other.0;
         self.1 = self.1 + other.1;
+    }
+}
+
+impl<const P: u128> Mul<Self> for QuadNum<P> {
+    type Output = QuadNum<P>;
+    fn mul(self, other: Self) -> QuadNum<P> {
+        self.multiply(&other)
     }
 }
 
