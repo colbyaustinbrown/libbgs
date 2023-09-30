@@ -68,7 +68,7 @@ pub struct SylowSeqStream<S, const L: usize, C: SylowDecomposable<S, L>> {
 #[derive(Debug)]
 struct Seed<S, const L: usize, C: SylowDecomposable<S, L>> {
     i: usize,
-    step_: u128,
+    step: u128,
     rs: [usize; L],
     part: SylowElem<S, L, C>,
     block_upper: bool,
@@ -121,7 +121,7 @@ where
             self.push(Seed {
                 i,
                 part: SylowElem::one(),
-                step_: self.builder().steps[i],
+                step: self.builder().steps[i],
                 rs: [0; L],
                 block_upper: self.has_flag(flags::NO_UPPER_HALF),
                 start: 0,
@@ -157,7 +157,7 @@ where
         }
         let lim = <C as Factor<S, L>>::FACTORS.factor(seed.i) / 2;
         for j in seed.start..stop {
-            let tmp = seed.part.coords[seed.i] + j * seed.step_;
+            let tmp = seed.part.coords[seed.i] + j * seed.step;
 
             if seed.block_upper && tmp > lim {
                 break;
@@ -172,7 +172,7 @@ where
             let status = self.get_status(&rs, seed.i);
             let next = Seed {
                 i: seed.i,
-                step_: seed.step_ / p,
+                step: seed.step / p,
                 part,
                 rs,
                 block_upper: seed.block_upper,
@@ -201,7 +201,7 @@ where
                 let s = Seed {
                     i: k,
                     part: next.part,
-                    step_: self.builder().steps[k],
+                    step: self.builder().steps[k],
                     rs: next.rs,
                     block_upper: seed.block_upper 
                         && p == 2 
@@ -485,7 +485,7 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for Seed<S, L, C> {
     fn clone(&self) -> Seed<S, L, C> {
         Seed {
             i: self.i,
-            step_: self.step_,
+            step: self.step,
             rs: self.rs,
             part: self.part,
             block_upper: self.block_upper,
