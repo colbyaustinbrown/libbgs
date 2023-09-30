@@ -73,8 +73,10 @@ struct Seed<S, const L: usize, C: SylowDecomposable<S, L>> {
     part: SylowElem<S, L, C>,
     block_upper: bool,
     start: u128,
+    status: Status,
 }
 
+#[derive(Clone, Copy, Debug)]
 struct Status(u8);
 
 mod statuses {
@@ -125,6 +127,7 @@ where
                 rs: [0; L],
                 block_upper: self.has_flag(flags::NO_UPPER_HALF),
                 start: 0,
+                status: self.get_status(&[0; L], i),
             });
         }
 
@@ -141,8 +144,7 @@ where
     {
         let (p, _) = <C as Factor<S, L>>::FACTORS[seed.i];
 
-        let status = self.get_status(&seed.rs, seed.i);
-        if !status.has(statuses::KEEP_GOING) { return; }
+        if !seed.status.has(statuses::KEEP_GOING) { return; }
 
         // First, create new seeds by incrementing
         // the current power.
@@ -156,6 +158,14 @@ where
             stop = seed.start + STACK_ADDITION_LIMIT as u128;
         }
         let lim = <C as Factor<S, L>>::FACTORS.factor(seed.i) / 2;
+
+        let mut rs = seed.rs;
+        rs[seed.i] += 1;
+        let status = self.get_status(&rs, seed.i);
+        let next_status = ((seed.i + 1)..L).into_iter()
+            .map(|k| self.get_status(&rs, k))
+            .collect::<Vec<Status>>();
+
         for j in seed.start..stop {
             let tmp = seed.part.coords[seed.i] + j * seed.step;
 
@@ -166,20 +176,16 @@ where
             let mut part = seed.part;
             part.coords[seed.i] = tmp;
 
-            let mut rs = seed.rs;
-            rs[seed.i] += 1;
-
-            let status = self.get_status(&rs, seed.i);
-            let next = Seed {
-                i: seed.i,
-                step: seed.step / p,
-                part,
-                rs,
-                block_upper: seed.block_upper,
-                start: 0,
-            };
             if status.has(statuses::KEEP_GOING) {
-                self.push(next);
+                self.push(Seed {
+                    i: seed.i,
+                    step: seed.step / p,
+                    part, // to be replaced below
+                    rs,
+                    block_upper: seed.block_upper,
+                    start: 0,
+                    status,
+                });
             }
 
             // Next, create new seeds by moving to the next prime power,
@@ -189,24 +195,24 @@ where
                 continue; 
             }
             if status.has(statuses::CONSUME) {
-                consume(self, next.part);
+                consume(self, part);
             }
 
             // Note: In Rust, (a..a) is the empty iterator.
             for k in (seed.i + 1)..L {
-                let status = self.get_status(&next.rs, k);
-                if !(self.has_flag(flags::LEQ) || status.has(statuses::KEEP_GOING)) {
+                if !(self.has_flag(flags::LEQ) || next_status[k - seed.i - 1].has(statuses::KEEP_GOING)) {
                     continue;
                 }
                 let s = Seed {
                     i: k,
-                    part: next.part,
+                    part,
                     step: self.builder().steps[k],
-                    rs: next.rs,
+                    rs,
                     block_upper: seed.block_upper 
                         && p == 2 
                         && rs[seed.i] == 1,
                     start: 0,
+                    status: next_status[k - seed.i - 1],
                 };
                 self.push(s);
             }
@@ -490,6 +496,7 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for Seed<S, L, C> {
             part: self.part,
             block_upper: self.block_upper,
             start: self.start,
+            status: self.status,
         }
     }
 }
