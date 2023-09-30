@@ -82,6 +82,7 @@ mod statuses {
     pub const EQ: u8 = 0x01;
     pub const ONE_AWAY: u8 = 0x02;
     pub const KEEP_GOING: u8 = 0x04;
+    pub const CONSUME: u8 = 0x08;
 }
 
 trait SylowStream<'a, S, const L: usize, C>
@@ -187,8 +188,10 @@ where
             if !status.has(statuses::EQ) && !self.has_flag(flags::LEQ) { 
                 continue; 
             }
+            if status.has(statuses::CONSUME) {
+                consume(self, next.part);
+            }
 
-            let mut pushed_any = false;
             // Note: In Rust, (a..a) is the empty iterator.
             for k in (seed.i + 1)..L {
                 let status = self.get_status(&next.rs, k);
@@ -206,26 +209,44 @@ where
                     start: 0,
                 };
                 self.push(s);
-                pushed_any = true;
-            }
-            if self.has_flag(flags::LEQ) || !pushed_any {
-                consume(self, next.part);
             }
         }
     }
 
     fn get_status(&self, rs: &[usize], i: usize) -> Status {
-        let mut status = 0;
+        let mut status = if self.has_flag(flags::LEQ) {
+            statuses::CONSUME
+        } else {
+            statuses::NONE
+        };
+
         for t in &self.builder().targets {
-            let skip = rs.iter().zip(t).take(i).any(|(r, t)| {
-                self.has_flag(flags::LEQ) && r > t || !self.has_flag(flags::LEQ) && r != t
-            });
-            if skip {
+            if rs.iter()
+                .zip(t)
+                .take(i)
+                .any(|(r, t)| {
+                    self.has_flag(flags::LEQ) && r > t 
+                        || !self.has_flag(flags::LEQ) && r != t
+                })
+            {
                 continue;
             }
 
             status |= match t[i].overflowing_sub(rs[i]) {
-                (0, false) => statuses::EQ,
+                (0, false) => {
+                    if !self.has_flag(flags::LEQ) && {
+                        let mut j = i + 1;
+                        loop {
+                            if j == L { break true; }
+                            if t[j] != 0 { break false; }
+                            j += 1;
+                        }
+                    } {
+                        statuses::EQ | statuses::CONSUME
+                    } else {
+                        statuses::EQ
+                    }
+                }
                 (1, false) => statuses::ONE_AWAY | statuses::KEEP_GOING,
                 (_, false) => statuses::KEEP_GOING,
                 (_, true) => statuses::NONE,
@@ -833,5 +854,15 @@ mod tests {
             .into_par_iter()
             .count();
         assert_eq!(count, 9);
+    }
+
+    #[test]
+    pub fn test_subordinate_target() {
+        let count = SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
+            .add_target([0, 1, 0])
+            .add_target([0, 1, 1])
+            .into_iter()
+            .count();
+        assert_eq!(count, 10);
     }
 }
