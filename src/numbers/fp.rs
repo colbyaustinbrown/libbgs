@@ -9,7 +9,7 @@ pub struct FpNum<const P: u128>(Montgomery<P>);
 
 impl<const P: u128> FpNum<P> {
     /// Returns the Legendre symbol of `a` modulo `P`, i.e.,
-    /// $$\left(\frac({a}{p}\right)_L = a^{\frac{p - 1}{2}} \mod p$$.
+    /// $$\left(\frac{a}{p}\right)_L = a^{\frac{p - 1}{2}} \mod p$$.
     pub fn legendre(&self) -> FpNum<P> {
         self.pow((P - 1) / 2)
     }
