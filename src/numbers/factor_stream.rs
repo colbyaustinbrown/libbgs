@@ -53,7 +53,14 @@ impl<'a, const L: usize> Iterator for FactorStream<'a, L> {
             self.stack.push((j, next));
             maximal = false;
         }
-        maximal &= prod * self.source[0].0 > self.limit;
+        let Some((nonexhausted, _)) = self.source.iter()
+            .enumerate()
+            .find(|(j, (_, d))| {
+                state[*j] < *d
+            }) else {
+                return Some(state);
+            };
+        maximal &= prod * self.source[nonexhausted].0 > self.limit;
         if self.maximal_only && !maximal {
             self.next()
         } else {
@@ -69,11 +76,7 @@ mod tests {
     #[test]
     fn test_stream_max() {
         let facts = [(2, 3), (3, 2), (5, 1)];
-        let stream = FactorStream::<3>::new(&facts, 25, true);
-        let mut count = 0;
-        for _ in stream {
-            count += 1;
-        }
+        let count = FactorStream::<3>::new(&facts, 25, true).count();
         assert_eq!(count, 4);
     }
 
@@ -86,5 +89,12 @@ mod tests {
             count += 1;
         }
         assert_eq!(count, 14);
+    }
+
+    #[test]
+    fn test_stream_maximal_only() {
+       let facts = [(2, 1), (7, 1), (13, 1)];
+       let count = FactorStream::<3>::new(&facts, 10, true).count();
+       assert_eq!(count, 2);
     }
 }
