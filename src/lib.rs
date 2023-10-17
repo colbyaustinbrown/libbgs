@@ -6,6 +6,7 @@
 pub mod markoff;
 pub mod numbers;
 pub mod util;
+pub mod stock_impls;
 
 #[cfg(test)]
 mod tests {

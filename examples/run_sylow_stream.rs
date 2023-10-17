@@ -1,4 +1,5 @@
 use libbgs::numbers::*;
+use libbgs::stock_impls::*;
 
 use std::time::*;
 
@@ -7,23 +8,9 @@ use rayon::iter::*;
 const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 // const BIG_P_SQRT: u128 = 31_622_776_602;
 
-struct Phantom {}
-
-impl Factor<Phantom, 7> for FpNum<BIG_P> {
-    const FACTORS: Factorization<7> = Factorization::new([
-        (2, 1),
-        (7, 1),
-        (13, 1),
-        (29, 2),
-        (43, 1),
-        (705737, 1),
-        (215288719, 1),
-    ]);
-}
-
 fn main() {
     // let decomp = SylowDecomp::<Phantom, 7, FpNum<BIG_P>>::new();
-    let mut builder = SylowStreamBuilder::<Phantom, 7, FpNum<BIG_P>>::new()
+    let mut builder = SylowStreamBuilder::<Stock, 7, FpNum<BIG_P>>::new()
         .add_flag(flags::LEQ)
         .add_flag(flags::NO_PARABOLIC)
         .add_flag(flags::NO_UPPER_HALF);
