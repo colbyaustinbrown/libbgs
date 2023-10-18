@@ -11,7 +11,7 @@ use crate::util::*;
 /// $$|G| = \prod_{i = 1}^n p_i^{t_i}$$
 /// and $G$ is a finite cyclic group.
 pub struct SylowDecomp<S, const L: usize, C: SylowDecomposable<S>> {
-    precomputed: Vec<Vec<C>>,
+    precomputed: [[C; 256]; L],
     generators_powered: [C; L],
     _phantom: PhantomData<S>,
 }
@@ -51,20 +51,21 @@ impl<S, const L: usize, C: SylowDecomposable<S>> SylowDecomp<S, L, C> {
     /// This method may be expensive because it calls `find_sylow_generator` for each Sylow
     /// subgroup.
     pub fn new() -> SylowDecomp<S, L, C> {
-        let mut generators_powered = Vec::with_capacity(L);
-        let mut precomputed = Vec::with_capacity(L);
-        for i in 0..L {
+        let mut generators_powered = [C::one(); L];
+        let mut precomputed = [[C::one(); 256]; L];
+        let mut i = 0;
+        while i < L {
             let x = C::find_sylow_generator(i);
             let mut g = C::one();
-            let mut gens = Vec::new();
-            for _ in 0..256 {
-                gens.push(g.clone());
+            let mut j = 0;
+            while j < 256 {
+                precomputed[i][j] = g.clone();
                 g = g.multiply(&x);
+                j += 1;
             }
-            precomputed.push(gens);
-            generators_powered.push(g);
+            generators_powered[i] = g;
+            i += 1;
         }
-        let generators_powered = generators_powered.try_into().unwrap();
         SylowDecomp {
             precomputed,
             generators_powered,
