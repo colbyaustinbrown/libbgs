@@ -97,8 +97,8 @@ where
 {
     fn find_sylow_generator(i: usize) -> FpNum<P> {
         match Self::FACTORS[i] {
-            (2, 1) => FpNum::from(FpNum::<P>::size()),
-            (p, t) => (1..FpNum::<P>::size())
+            (2, 1) => FpNum::from(FpNum::<P>::SIZE),
+            (p, t) => (1..FpNum::<P>::SIZE)
                 .map(|j| FpNum::from(standard_affine_shift(P, j)))
                 .find_map(|c| <FpNum<P> as SylowDecomposable<S>>::is_sylow_generator(&c, (p, t)))
                 .unwrap(),
@@ -108,17 +108,10 @@ where
 
 impl<const P: u128> GroupElem for FpNum<P> {
     const ONE: Self = FpNum(Montgomery::from_u128(1));
-
-    fn is_one(&self) -> bool {
-        self.0 == Montgomery::<P>::from_u128(1)
-    }
+    const SIZE: u128 = P - 1;
 
     fn multiply(&self, other: &FpNum<P>) -> FpNum<P> {
         FpNum(self.0 * other.0)
-    }
-
-    fn size() -> u128 {
-        P - 1
     }
 }
 
@@ -260,12 +253,6 @@ mod tests {
     struct Phantom {}
 
     #[test]
-    fn one_is_one() {
-        let one = FpNum::<7>::ONE;
-        assert!(one.is_one());
-    }
-
-    #[test]
     fn multiplies() {
         let mut x = FpNum::<7>::from(3);
         assert_eq!(3, x);
@@ -298,7 +285,7 @@ mod tests {
 
         let mut x = FpNum::<7>::from(5);
         x = x.pow(6);
-        assert!(x.is_one());
+        assert!(x == FpNum::ONE);
     }
 
     #[test]
@@ -306,13 +293,13 @@ mod tests {
         let mut x = FpNum::<BIG_P>::from(3);
         x = x.pow(BIG_P - 1);
         println!("x is {x:?}");
-        assert!(x.is_one());
+        assert!(x == FpNum::ONE);
     }
 
     #[test]
     fn sylow_one_is_one() {
         let one = SylowElem::<Phantom, 2, FpNum<13>>::ONE;
-        assert!(one.is_one());
+        assert!(one == SylowElem::ONE);
     }
 
     #[test]
@@ -340,7 +327,7 @@ mod tests {
         for i in 1..13 {
             let mut x = SylowElem::<Phantom, 2, FpNum<13>>::new([i % 4, i % 3]);
             x = x.pow(x.order());
-            assert!(x.is_one());
+            assert!(x == SylowElem::ONE);
         }
     }
 
@@ -358,7 +345,7 @@ mod tests {
         );
         let or = x.order();
         x = x.pow(or);
-        assert!(x.is_one());
+        assert!(x == SylowElem::ONE);
     }
 
     #[test]
@@ -386,9 +373,9 @@ mod tests {
             println!("{x:?}");
             x = x.inverse();
             println!("{x:?}");
-            assert!(!x.is_one());
+            assert!(x != FpNum::ONE);
             x = x.multiply(&y);
-            assert!(x.is_one());
+            assert!(x == FpNum::ONE);
         }
     }
 }

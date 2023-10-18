@@ -14,10 +14,7 @@ pub trait GroupElem: Copy + PartialEq + Eq + fmt::Debug {
     const ONE: Self;
 
     /// Gets the size of the group this element belongs to.
-    fn size() -> u128;
-    
-    /// True if this element is the multiplicative identity; false otherwise.
-    fn is_one(&self) -> bool;
+    const SIZE: u128;
 
     /// Returns the product of two elements under the group binary operator.
     /// If you implement this trait, you must guarantee that the operation is associative; that is,
@@ -42,7 +39,7 @@ pub trait GroupElem: Copy + PartialEq + Eq + fmt::Debug {
     /// If you implement this trait, you must guarantee `x.inverse().multiply(x)` and
     /// `x.multiply(x.inverse())` both evaluate to the unique identity element.
     fn inverse(&self) -> Self {
-        self.pow(Self::size() - 1)
+        self.pow(Self::SIZE - 1)
     }
 
     /// Returns the order of this element, that is, the smallest positive power `p` for which
@@ -62,7 +59,7 @@ pub trait GroupElem: Copy + PartialEq + Eq + fmt::Debug {
             }
 
             let mut r = 0;
-            while !x.is_one() {
+            while x != Self::ONE {
                 x = x.pow(Self::FACTORS[i].0);
                 r += 1;
             }

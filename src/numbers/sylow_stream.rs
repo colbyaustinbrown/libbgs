@@ -559,9 +559,9 @@ mod tests {
         let coords: Vec<SylowElem<Phantom, 3, FpNum<61>>> = stream.collect();
         assert_eq!(coords.len(), 1);
         let mut x = coords[0].clone();
-        assert!(!x.is_one());
+        assert!(x != SylowElem::ONE);
         x = x.pow(2);
-        assert!(x.is_one());
+        assert!(x == SylowElem::ONE);
 
         let mut count = 0;
         SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
@@ -571,10 +571,10 @@ mod tests {
                 count += 1;
                 for _ in 1..3 {
                     let y = x.clone();
-                    assert!(!x.is_one());
+                    assert!(x != SylowElem::ONE);
                     x = x.multiply(&y);
                 }
-                assert!(x.is_one());
+                assert!(x == SylowElem::ONE);
             });
         assert_eq!(count, 2);
 
@@ -607,9 +607,9 @@ mod tests {
             .into_iter()
             .take(2)
             .for_each(|mut x| {
-                assert!(!x.is_one());
+                assert!(x != SylowElem::ONE);
                 x = x.pow(705737);
-                assert!(x.is_one());
+                assert!(x == SylowElem::ONE);
             });
     }
 
@@ -668,9 +668,9 @@ mod tests {
             .add_target([2, 0, 1])
             .into_iter()
             .for_each(|mut x| {
-                assert!(!x.is_one());
+                assert!(x != SylowElem::ONE);
                 x = x.multiply(&x);
-                assert!(!x.is_one());
+                assert!(x != SylowElem::ONE);
                 count += 1;
             });
         assert_eq!(count, 18);
@@ -695,9 +695,9 @@ mod tests {
         let coords: Vec<SylowElem<Phantom, 3, FpNum<61>>> = stream.collect();
         assert_eq!(coords.len(), 1);
         let mut x = coords[0].clone();
-        assert!(!x.is_one());
+        assert!(x != SylowElem::ONE);
         x = x.pow(2);
-        assert!(x.is_one());
+        assert!(x == SylowElem::ONE);
 
         let count = AtomicUsize::new(0);
         SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
@@ -707,10 +707,10 @@ mod tests {
                 count.fetch_add(1, Ordering::Relaxed);
                 for _ in 1..3 {
                     let y = x.clone();
-                    assert!(!x.is_one());
+                    assert!(x != SylowElem::ONE);
                     x = x.multiply(&y);
                 }
-                assert!(x.is_one());
+                assert!(x == SylowElem::ONE);
             });
         assert_eq!(count.into_inner(), 2);
 
@@ -733,9 +733,9 @@ mod tests {
             .into_par_iter()
             .take_any(2)
             .for_each(|mut x| {
-                assert!(!x.is_one());
+                assert!(x != SylowElem::ONE);
                 x = x.pow(705737);
-                assert!(x.is_one());
+                assert!(x == SylowElem::ONE);
             });
     }
 
@@ -794,9 +794,9 @@ mod tests {
             .add_target([2, 0, 1])
             .into_par_iter()
             .for_each(|mut x| {
-                assert!(!x.is_one());
+                assert!(x != SylowElem::ONE);
                 x = x.multiply(&x);
-                assert!(!x.is_one());
+                assert!(x != SylowElem::ONE);
                 count.fetch_add(1, Ordering::Relaxed);
             });
         assert_eq!(count.into_inner(), 18);

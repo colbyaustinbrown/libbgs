@@ -36,9 +36,9 @@ pub trait SylowDecomposable<S>: Factor<S> + GroupElem + Eq {
     /// True if the given element is a generator of the Sylow subgroup of the prime power
     /// represented by `d`.
     fn is_sylow_generator(candidate: &Self, d: (u128, usize)) -> Option<Self> {
-        let pow = Self::size() / intpow::<0>(d.0, d.1 as u128);
+        let pow = Self::SIZE / intpow::<0>(d.0, d.1 as u128);
         let res = candidate.pow(pow);
-        if res.pow(intpow::<0>(d.0, (d.1 - 1) as u128)).is_one() {
+        if res.pow(intpow::<0>(d.0, (d.1 - 1) as u128)) == Self::ONE {
             None
         } else {
             Some(res)
@@ -133,7 +133,7 @@ impl<S, const L: usize, C: SylowDecomposable<S>> SylowElem<S, L, C> {
             }
 
             let mut r = 0;
-            while !x.is_one() {
+            while x != Self::ONE {
                 x = x.pow(C::FACTORS[i].0);
                 r += 1;
             }
@@ -152,9 +152,7 @@ where
         _phantom: PhantomData,
     };
 
-    fn is_one(&self) -> bool {
-        self.coords.iter().all(|x| *x == 0)
-    }
+    const SIZE: u128 = C::SIZE;
 
     fn multiply(&self, other: &SylowElem<S, L, C>) -> SylowElem<S, L, C> {
         let mut coords = self.coords;
@@ -176,10 +174,6 @@ where
             coords,
             _phantom: PhantomData,
         }
-    }
-
-    fn size() -> u128 {
-        C::size()
     }
 }
 
@@ -219,12 +213,12 @@ pub mod tests {
     ) -> bool {
         let mut y = x.clone();
         for _ in 1..d {
-            if y.is_one() {
+            if y == C::ONE {
                 return false;
             }
             y = y.multiply(x);
         }
-        y.is_one()
+        y == C::ONE
     }
 
     /// True if `x` is not of order prime power dividing `d`, but is a prime power of `d`.
@@ -235,10 +229,10 @@ pub mod tests {
     ) {
         let mut y = x.clone();
         for _ in 0..d.1 {
-            assert!(!y.is_one());
+            assert!(y != C::ONE);
             y = y.pow(d.0);
         }
         y = y.pow(d.0);
-        assert!(y.is_one());
+        assert!(y == C::ONE);
     }
 }

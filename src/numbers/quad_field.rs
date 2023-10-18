@@ -83,20 +83,13 @@ impl<const P: u128> QuadNum<P> {
 
 impl<const P: u128> GroupElem for QuadNum<P> {
     const ONE: Self = QuadNum(FpNum(Montgomery::from_u128(1)), FpNum(Montgomery::from_u128(0)));
-
-    fn is_one(&self) -> bool {
-        self.0 == 1 && self.1 == 0
-    }
+    const SIZE: u128 = P + 1;
 
     fn multiply(&self, other: &QuadNum<P>) -> QuadNum<P> {
         let a0 = self.0.multiply(&other.0) + self.1.multiply(&other.1).multiply(&QuadNum::<P>::R); 
         let a1 = self.1.multiply(&other.0) + self.0.multiply(&other.1);
 
         QuadNum(a0, a1)
-    }
-
-    fn size() -> u128 {
-        P + 1
     }
 }
 
@@ -161,12 +154,6 @@ mod tests {
     }
 
     #[test]
-    fn one_is_one() {
-        let one = QuadNum::<7>::ONE;
-        assert!(one.is_one());
-    }
-
-    #[test]
     fn calculates_r_as_nonresidue() {
         for i in 2..7 {
             assert_ne!((i * i) % 7, u128::from(QuadNum::<7>::R));
@@ -177,7 +164,7 @@ mod tests {
     fn powers_up() {
         let mut x = QuadNum::<7>::from((3, 4));
         x = x.pow(48);
-        assert!(x.is_one());
+        assert!(x == QuadNum::ONE);
     }
 
     #[test]
@@ -185,7 +172,7 @@ mod tests {
         let mut x = QuadNum::<BIG_P>::from((3, 5));
         x = x.pow(BIG_P - 1);
         x = x.pow(BIG_P + 1);
-        assert!(x.is_one());
+        assert!(x == QuadNum::ONE);
     }
 
     #[test]
