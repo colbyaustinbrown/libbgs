@@ -36,7 +36,7 @@ pub mod flags {
 }
 
 /// A builder for a stream yielding elements of particular orders, as their Sylow decompositions.
-pub struct SylowStreamBuilder<S, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> {
+pub struct SylowStreamBuilder<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> {
     mode: u8,
     tree: FactorNode<L>,
     _phantom: PhantomData<(S, C)>,
@@ -47,7 +47,7 @@ pub struct SylowStreamBuilder<S, const L: usize, C: SylowDecomposable<S, L> + st
 pub struct SylowParStream<
     S: Send + Sync,
     const L: usize,
-    C: SylowDecomposable<S, L> + std::fmt::Debug,
+    C: SylowDecomposable<S> + std::fmt::Debug,
 > {
     stack: Vec<Seed<S, L, C>>,
     splits: usize,
@@ -57,14 +57,14 @@ pub struct SylowParStream<
 
 /// A stream yielding elements of particular orders, as their Sylow decompositions.
 /// Generates the elements sequentially on a single thread.
-pub struct SylowSeqStream<S, const L: usize, C: SylowDecomposable<S, L>> {
+pub struct SylowSeqStream<S, const L: usize, C: SylowDecomposable<S>> {
     stack: Vec<Seed<S, L, C>>,
     buffer: Vec<SylowElem<S, L, C>>,
     tree: FactorNode<L>,
 }
 
 #[derive(Debug)]
-struct Seed<S, const L: usize, C: SylowDecomposable<S, L>> {
+struct Seed<S, const L: usize, C: SylowDecomposable<S>> {
     part: SylowElem<S, L, C>,
     start: u128,
     node: *const FactorNode<L>,
@@ -83,7 +83,7 @@ struct FactorNode<const L: usize> {
 trait SylowStream<'a, S, const L: usize, C>
 where
     Self: Sized,
-    C: SylowDecomposable<S, L>,
+    C: SylowDecomposable<S>,
 {
     fn push(&mut self, e: Seed<S, L, C>);
     fn stack(&mut self) -> &mut Vec<Seed<S, L, C>>;
@@ -171,7 +171,7 @@ where
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> SylowStreamBuilder<S, L, C> {
+impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBuilder<S, L, C> {
     /// Returns a new `SylowStreamBuilder`.
     pub fn new() -> SylowStreamBuilder<S, L, C> {
         SylowStreamBuilder {
@@ -268,7 +268,7 @@ impl<S, const L: usize, C: SylowDecomposable<S, L> + std::fmt::Debug> SylowStrea
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S, L>> Iterator for SylowSeqStream<S, L, C> {
+impl<S, const L: usize, C: SylowDecomposable<S>> Iterator for SylowSeqStream<S, L, C> {
     type Item = SylowElem<S, L, C>;
 
     fn next(&mut self) -> Option<SylowElem<S, L, C>> {
@@ -286,7 +286,7 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> Iterator for SylowSeqStream<
 impl<S, const L: usize, C> SylowParStream<S, L, C>
 where
     S: Send + Sync,
-    C: SylowDecomposable<S, L> + Send + Sync,
+    C: SylowDecomposable<S> + Send + Sync,
 {
     fn maybe_split(&mut self, stolen: bool) -> Option<Self> {
         if stolen {
@@ -360,7 +360,7 @@ where
 impl<S, const L: usize, C> ParallelIterator for SylowParStream<S, L, C>
 where
     S: Send + Sync,
-    C: SylowDecomposable<S, L> + Send + Sync,
+    C: SylowDecomposable<S> + Send + Sync,
 {
     type Item = SylowElem<S, L, C>;
 
@@ -374,7 +374,7 @@ where
 
 impl<S, const L: usize, C> IntoIterator for SylowStreamBuilder<S, L, C>
 where
-    C: SylowDecomposable<S, L>,
+    C: SylowDecomposable<S>,
 {
     type Item = SylowElem<S, L, C>;
     type IntoIter = SylowSeqStream<S, L, C>;
@@ -399,7 +399,7 @@ where
 impl<S, const L: usize, C> IntoParallelIterator for SylowStreamBuilder<S, L, C>
 where
     S: Send + Sync,
-    C: SylowDecomposable<S, L> + Send + Sync,
+    C: SylowDecomposable<S> + Send + Sync,
 {
     type Item = SylowElem<S, L, C>;
     type Iter = SylowParStream<S, L, C>;
@@ -419,7 +419,7 @@ where
 
 impl<'a, S, const L: usize, C> SylowStream<'a, S, L, C> for SylowSeqStream<S, L, C>
 where
-    C: SylowDecomposable<S, L>,
+    C: SylowDecomposable<S>,
 {
     fn push(&mut self, e: Seed<S, L, C>) {
         self.stack.push(e);
@@ -437,7 +437,7 @@ where
 impl<'a, S, const L: usize, C> SylowStream<'a, S, L, C> for SylowParStream<S, L, C>
 where
     S: Send + Sync,
-    C: SylowDecomposable<S, L>,
+    C: SylowDecomposable<S>,
 {
     fn push(&mut self, e: Seed<S, L, C>) {
         self.stack.push(e);
@@ -452,7 +452,7 @@ where
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for Seed<S, L, C> {
+impl<S, const L: usize, C: SylowDecomposable<S>> Clone for Seed<S, L, C> {
     fn clone(&self) -> Seed<S, L, C> {
         Seed {
             part: self.part,
@@ -461,9 +461,9 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for Seed<S, L, C> {
         }
     }
 }
-impl<S, const L: usize, C: SylowDecomposable<S, L>> Copy for Seed<S, L, C> {}
+impl<S, const L: usize, C: SylowDecomposable<S>> Copy for Seed<S, L, C> {}
 
-impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for SylowStreamBuilder<S, L, C> {
+impl<S, const L: usize, C: SylowDecomposable<S>> Clone for SylowStreamBuilder<S, L, C> {
     fn clone(&self) -> Self {
         SylowStreamBuilder {
             mode: self.mode,
@@ -473,7 +473,7 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for SylowStreamBuilder
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for SylowSeqStream<S, L, C> {
+impl<S, const L: usize, C: SylowDecomposable<S>> Clone for SylowSeqStream<S, L, C> {
     fn clone(&self) -> SylowSeqStream<S, L, C> {
         SylowSeqStream {
             stack: self.stack.clone(),
@@ -483,7 +483,7 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for SylowSeqStream<S, 
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for SylowParStream<S, L, C>
+impl<S, const L: usize, C: SylowDecomposable<S>> Clone for SylowParStream<S, L, C>
 where
     S: Send + Sync,
 {
@@ -497,7 +497,7 @@ where
     }
 }
 
-unsafe impl<S, const L: usize, C: SylowDecomposable<S, L>> Send for Seed<S, L, C> {}
+unsafe impl<S, const L: usize, C: SylowDecomposable<S>> Send for Seed<S, L, C> {}
 
 #[cfg(test)]
 mod tests {

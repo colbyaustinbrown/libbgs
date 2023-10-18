@@ -91,7 +91,7 @@ impl<const P: u128> FpNum<P> {
     }
 }
 
-impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for FpNum<P>
+impl<S, const P: u128> SylowDecomposable<S> for FpNum<P>
 where
     FpNum<P>: Factor<S>,
 {
@@ -100,7 +100,7 @@ where
             (2, 1) => FpNum::from(FpNum::<P>::size()),
             (p, t) => (1..FpNum::<P>::size())
                 .map(|j| FpNum::from(standard_affine_shift(P, j)))
-                .find_map(|c| <FpNum<P> as SylowDecomposable<S, L>>::is_sylow_generator(&c, (p, t)))
+                .find_map(|c| <FpNum<P> as SylowDecomposable<S>>::is_sylow_generator(&c, (p, t)))
                 .unwrap(),
         }
     }

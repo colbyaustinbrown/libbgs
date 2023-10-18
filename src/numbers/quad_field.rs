@@ -28,7 +28,7 @@ pub struct QuadNum<const P: u128>(
     pub FpNum<P>,
 );
 
-impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for QuadNum<P>
+impl<S, const P: u128> SylowDecomposable<S> for QuadNum<P>
 where
     QuadNum<P>: Factor<S>,
 {
@@ -41,7 +41,7 @@ where
                 let p = QuadNum::steinitz(j);
                 p.pow(pow)
             })
-            .find_map(|c| <QuadNum<P> as SylowDecomposable<S, L>>::is_sylow_generator(&c, Self::FACTORS[i]))
+            .find_map(|c| <QuadNum<P> as SylowDecomposable<S>>::is_sylow_generator(&c, Self::FACTORS[i]))
             .unwrap()
     }
 }

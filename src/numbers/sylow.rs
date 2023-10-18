@@ -10,7 +10,7 @@ use crate::util::*;
 /// where
 /// $$|G| = \prod_{i = 1}^n p_i^{t_i}$$
 /// and $G$ is a finite cyclic group.
-pub struct SylowDecomp<S, const L: usize, C: SylowDecomposable<S, L>> {
+pub struct SylowDecomp<S, const L: usize, C: SylowDecomposable<S>> {
     precomputed: Vec<Vec<C>>,
     generators_powered: [C; L],
     _phantom: PhantomData<S>,
@@ -18,7 +18,7 @@ pub struct SylowDecomp<S, const L: usize, C: SylowDecomposable<S, L>> {
 
 /// An element of the decomposition of a finite cyclic group into the direct sum of its Sylow
 /// subgroups.
-pub struct SylowElem<S, const L: usize, C: SylowDecomposable<S, L>> {
+pub struct SylowElem<S, const L: usize, C: SylowDecomposable<S>> {
     /// The powers on the generators of the Sylow subgroups.
     /// In particular, if an element of a group $G$ with generators $g_1,\ldots,g_n$ is
     /// $$g = \prod_{i = 1}^n g_i^{r_i},$$
@@ -29,7 +29,7 @@ pub struct SylowElem<S, const L: usize, C: SylowDecomposable<S, L>> {
 
 /// Groups that can be decomposed into a direct sum of cyclic Sylow subgroups.
 /// In particular, these groups must be finite and cyclic.
-pub trait SylowDecomposable<S, const L: usize>: Factor<S> + GroupElem + Eq {
+pub trait SylowDecomposable<S>: Factor<S> + GroupElem + Eq {
     /// Finds a Sylow generator for the Sylow subgroup of prime power index `i`.
     fn find_sylow_generator(i: usize) -> Self;
 
@@ -46,7 +46,7 @@ pub trait SylowDecomposable<S, const L: usize>: Factor<S> + GroupElem + Eq {
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S, L>> SylowDecomp<S, L, C> {
+impl<S, const L: usize, C: SylowDecomposable<S>> SylowDecomp<S, L, C> {
     /// Returns a decomposition for the group.
     /// This method may be expensive because it calls `find_sylow_generator` for each Sylow
     /// subgroup.
@@ -82,11 +82,11 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> SylowDecomp<S, L, C> {
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S, L>> Factor<S> for SylowElem<S, L, C> {
+impl<S, const L: usize, C: SylowDecomposable<S>> Factor<S> for SylowElem<S, L, C> {
     const FACTORS: Factorization = <C as Factor<S>>::FACTORS;
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S, L>> SylowDecomposable<S, L> for SylowElem<S, L, C> {
+impl<S, const L: usize, C: SylowDecomposable<S>> SylowDecomposable<S> for SylowElem<S, L, C> {
     fn find_sylow_generator(i: usize) -> Self {
         let mut coords = [0; L];
         coords[i] = 1;
@@ -97,7 +97,7 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> SylowDecomposable<S, L> for 
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S, L>> SylowElem<S, L, C> {
+impl<S, const L: usize, C: SylowDecomposable<S>> SylowElem<S, L, C> {
     /// Returns an element of the Sylow decomposition with the given coordinates.
     pub fn new(coords: [u128; L]) -> SylowElem<S, L, C> {
         SylowElem {
@@ -144,7 +144,7 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> SylowElem<S, L, C> {
 
 impl<S, const L: usize, C: Eq> GroupElem for SylowElem<S, L, C>
 where
-    C: SylowDecomposable<S, L>,
+    C: SylowDecomposable<S>,
 {
     fn is_one(&self) -> bool {
         self.coords.iter().all(|x| *x == 0)
@@ -184,14 +184,14 @@ where
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S, L>> PartialEq for SylowElem<S, L, C> {
+impl<S, const L: usize, C: SylowDecomposable<S>> PartialEq for SylowElem<S, L, C> {
     fn eq(&self, other: &Self) -> bool {
         self.coords == other.coords
     }
 }
-impl<S, const L: usize, C: SylowDecomposable<S, L>> Eq for SylowElem<S, L, C> {}
+impl<S, const L: usize, C: SylowDecomposable<S>> Eq for SylowElem<S, L, C> {}
 
-impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for SylowElem<S, L, C> {
+impl<S, const L: usize, C: SylowDecomposable<S>> Clone for SylowElem<S, L, C> {
     fn clone(&self) -> Self {
         SylowElem {
             coords: self.coords,
@@ -199,9 +199,9 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> Clone for SylowElem<S, L, C>
         }
     }
 }
-impl<S, const L: usize, C: SylowDecomposable<S, L>> Copy for SylowElem<S, L, C> {}
+impl<S, const L: usize, C: SylowDecomposable<S>> Copy for SylowElem<S, L, C> {}
 
-impl<S, const L: usize, C: SylowDecomposable<S, L>> fmt::Debug for SylowElem<S, L, C> {
+impl<S, const L: usize, C: SylowDecomposable<S>> fmt::Debug for SylowElem<S, L, C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.coords.fmt(f)
     }
@@ -214,7 +214,7 @@ pub mod tests {
 
     /// True if `x` is of order `d`, False otherwise.
     /// Expensive and intended for use only with small values of `d`.
-    pub fn test_is_generator_small<S, const L: usize, C: SylowDecomposable<S, L>>(
+    pub fn test_is_generator_small<S, const L: usize, C: SylowDecomposable<S>>(
         x: &C,
         d: usize,
     ) -> bool {
@@ -230,7 +230,7 @@ pub mod tests {
 
     /// True if `x` is not of order prime power dividing `d`, but is a prime power of `d`.
     /// Much cheaper than `test_is_generator_small`, but may return a false positive.
-    pub fn test_is_generator_big<S, const L: usize, C: SylowDecomposable<S, L>>(
+    pub fn test_is_generator_big<S, const L: usize, C: SylowDecomposable<S>>(
         x: &C,
         d: (u128, usize),
     ) {
