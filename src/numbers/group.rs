@@ -9,7 +9,7 @@ use crate::util::*;
 /// * The type has a binary operator (`multiply`).
 /// * The type must have a unique element given by `one()`.
 /// * Event element of the type must have element given by `inverse()`.
-pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
+pub trait GroupElem: Copy + PartialEq + Eq + fmt::Debug {
     /// Gets the size of the group this element belongs to.
     fn size() -> u128;
     
