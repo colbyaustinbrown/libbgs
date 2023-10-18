@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::numbers::{Factor};
+use crate::numbers::{Factor, Length};
 use crate::numbers::SylowDecomposable;
 use crate::util::*;
 
@@ -52,9 +52,9 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
         Self: Factor<S>,
     {
         let mut res = 1;
-        for i in 0..Self::LEN {
+        for i in 0..Self::LENGTH {
             let mut x = self.clone();
-            for j in 0..Self::LEN {
+            for j in 0..Self::LENGTH {
                 if j == i {
                     continue;
                 }

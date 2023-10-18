@@ -10,6 +10,12 @@ pub struct Factorization {
     prime_powers: &'static [(u128, usize)],
 }
 
+/// A placeholder trait for storing the length of a prime factorization; required to be separate
+/// from the Factor trait in order for the trait solver to avoid cycles.
+pub trait Length<S> {
+    /// The length of a prime factorization, i.e., the number of unique prime factors.
+    const LENGTH: usize;
+}
 
 /// Types that have a size or order which can be expressed as a product of prime powers.
 /// The type parameter `S` is a phantom type to allow users of this library to provide their own
@@ -22,10 +28,12 @@ pub struct Factorization {
 /// This type can only hold factors up to `2^126`. Behavior may be undefined for factorizations
 /// which contain larger factors.
 pub trait Factor<S> {
-    /// The number of prime factors in the factorization.
-    const LEN: usize = Self::FACTORS.len();
     /// The prime factorization of this object.
     const FACTORS: Factorization;
+}
+
+impl<S, T: Factor<S>> Length<S> for T {
+    const LENGTH: usize = T::FACTORS.len();
 }
 
 impl Factorization {
