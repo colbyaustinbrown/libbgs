@@ -30,7 +30,7 @@ pub struct QuadNum<const P: u128>(
 
 impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for QuadNum<P>
 where
-    QuadNum<P>: Factor<S, L>,
+    QuadNum<P>: Factor<S>,
 {
     fn find_sylow_generator(i: usize) -> QuadNum<P> {
         let pow = P - 1;
@@ -41,7 +41,7 @@ where
                 let p = QuadNum::steinitz(j);
                 p.pow(pow)
             })
-            .find_map(|c| QuadNum::is_sylow_generator(&c, <Self as Factor<S, L>>::FACTORS[i]))
+            .find_map(|c| <QuadNum<P> as SylowDecomposable<S, L>>::is_sylow_generator(&c, Self::FACTORS[i]))
             .unwrap()
     }
 }
@@ -154,12 +154,12 @@ mod tests {
     #[derive(PartialEq, Eq)]
     struct Phantom {}
 
-    impl Factor<Phantom, 1> for QuadNum<7> {
-        const FACTORS: Factorization<1> = Factorization::new(&[(2, 3)]);
+    impl Factor<Phantom> for QuadNum<7> {
+        const FACTORS: Factorization = Factorization::new(&[(2, 3)]);
     }
 
-    impl Factor<Phantom, 2> for QuadNum<17> {
-        const FACTORS: Factorization<2> = Factorization::new(&[(2, 1), (3, 2)]);
+    impl Factor<Phantom> for QuadNum<17> {
+        const FACTORS: Factorization = Factorization::new(&[(2, 1), (3, 2)]);
     }
 
     #[test]
@@ -207,7 +207,7 @@ mod tests {
         for i in 0..2 {
             let gen = &g.generator(i);
             let d = SylowElem::<Phantom, 2, QuadNum<17>>::FACTORS.factor(i);
-            test_is_generator_small(*gen, d as usize);
+            test_is_generator_small::<Phantom, 2, QuadNum<17>>(*gen, d as usize);
         }
     }
 
@@ -217,7 +217,7 @@ mod tests {
         for i in 0..11 {
             let gen = g.generator(i);
             let d = SylowElem::<Stock, 11, QuadNum<BIG_P>>::FACTORS.prime_powers()[i];
-            test_is_generator_big(gen, d);
+            test_is_generator_big::<Stock, 11, QuadNum<BIG_P>>(gen, d);
         }
     }
 }

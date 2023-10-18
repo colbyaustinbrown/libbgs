@@ -5,7 +5,7 @@ use crate::util::intpow;
 
 /// A prime power decomposition of a positive integer.
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Factorization<const L: usize> {
+pub struct Factorization {
     value: u128,
     prime_powers: &'static [(u128, usize)],
 }
@@ -21,19 +21,19 @@ pub struct Factorization<const L: usize> {
 ///
 /// This type can only hold factors up to `2^126`. Behavior may be undefined for factorizations
 /// which contain larger factors.
-pub trait Factor<S, const L: usize> {
+pub trait Factor<S> {
     /// The number of prime factors in the factorization.
     const LEN: usize = Self::FACTORS.len();
     /// The prime factorization of this object.
-    const FACTORS: Factorization<L>;
+    const FACTORS: Factorization;
 }
 
-impl<const L: usize> Factorization<L> {
+impl Factorization {
     /// Creates a new factorization from the given prime powers.
-    pub const fn new(prime_powers: &'static [(u128, usize)]) -> Factorization<L> {
+    pub const fn new(prime_powers: &'static [(u128, usize)]) -> Factorization {
         let mut value = 1;
         let mut i = 0;
-        while i < L {
+        while i < prime_powers.len() {
             value *= intpow::<0>(prime_powers[i].0, prime_powers[i].1 as u128);
             i += 1;
         }
@@ -51,7 +51,7 @@ impl<const L: usize> Factorization<L> {
     /// * there are no elements $k | n$ such that $d | k$ and $k \leq l$.
     ///
     /// The iterator cannot outlive the `Factorization`, although the vectors yielded by it may.
-    pub fn maximal_divisors(&self, l: u128) -> impl Iterator<Item = [usize; L]> + '_ {
+    pub fn maximal_divisors<const L: usize>(&self, l: u128) -> impl Iterator<Item = [usize; L]> + '_ {
         FactorStream::new(&self.prime_powers, l, true)
     }
 
@@ -79,7 +79,7 @@ impl<const L: usize> Factorization<L> {
     }
 
     /// Converts an array of powers on the prime factors into an integer.
-    pub fn from_powers(&self, ds: &[usize; L]) -> u128 {
+    pub fn from_powers(&self, ds: &[usize]) -> u128 {
         let mut total = 1;
         for (d, (p, t)) in ds.iter().zip(self.prime_powers) {
             if d > t {
@@ -97,7 +97,7 @@ impl<const L: usize> Factorization<L> {
     }
 }
 
-impl<const L: usize> Index<usize> for Factorization<L> {
+impl Index<usize> for Factorization {
     type Output = (u128, usize);
 
     fn index(&self, index: usize) -> &(u128, usize) {

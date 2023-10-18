@@ -27,10 +27,10 @@ fn main() {
     }
 }
 
-impl Factor<Phantom, 2> for FpNum<13> {
-    const FACTORS: Factorization<2> = Factorization::new(&[(2, 2), (3, 1)]);
+impl Factor<Phantom> for FpNum<13> {
+    const FACTORS: Factorization = Factorization::new(&[(2, 2), (3, 1)]);
 }
 
-impl Factor<Phantom, 2> for QuadNum<13> {
-    const FACTORS: Factorization<2> = Factorization::new(&[(2, 1), (7, 1)]);
+impl Factor<Phantom> for QuadNum<13> {
+    const FACTORS: Factorization = Factorization::new(&[(2, 1), (7, 1)]);
 }

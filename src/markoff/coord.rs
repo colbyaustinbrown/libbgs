@@ -33,7 +33,7 @@ impl<const P: u128> Coord<P> {
         decomp: &SylowDecomp<S, L, FpNum<P>>,
     ) -> Coord<P>
     where
-        FpNum<P>: Factor<S, L>,
+        FpNum<P>: Factor<S>,
     {
         let chi_inv = chi.inverse().to_product(decomp);
         let chi = chi.to_product(decomp);
@@ -49,7 +49,7 @@ impl<const P: u128> Coord<P> {
         decomp: &SylowDecomp<S, L, QuadNum<P>>,
     ) -> Coord<P>
     where
-        QuadNum<P>: Factor<S, L>,
+        QuadNum<P>: Factor<S>,
     {
         let chi_inv = chi.inverse().to_product(decomp);
         let chi = chi.to_product(decomp);
@@ -73,15 +73,10 @@ impl<const P: u128> Coord<P> {
     }
 
     /// Returns the order of the map $\text{rot}\_a$, that is, $\lvert \langle \text{rot}\_a \rangle \rvert$.
-    pub fn rot_order<
-        S1, 
-        S2, 
-        const L1: usize, 
-        const L2: usize
-    >(&self) -> u128
+    pub fn rot_order<S1, S2>(&self) -> u128
     where
-        FpNum<P>: Factor<S1, L1>,
-        QuadNum<P>: Factor<S2, L2>,
+        FpNum<P>: Factor<S1>,
+        QuadNum<P>: Factor<S2>,
     {
         self.to_chi()
             .as_ref()

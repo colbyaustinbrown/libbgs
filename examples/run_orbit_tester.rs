@@ -3,14 +3,12 @@ use std::sync::Mutex;
 
 use libbgs::markoff::*;
 use libbgs::numbers::*;
+use libbgs::stock_impls::*;
 
 const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
-#[derive(PartialEq, Eq)]
-struct Phantom {}
-
 fn main() {
-    let fp_decomp = SylowDecomp::new();
+    let fp_decomp = SylowDecomp::<Stock, 7, FpNum<BIG_P>>::new();
     let fp2_decomp = SylowDecomp::new();
 
     const LIMIT: u128 = 10_000;
@@ -29,7 +27,7 @@ fn main() {
         fp_stream_builder = fp_stream_builder.add_target(d);
     }
     println!("Adding these targets from F_p^2: ");
-    for d in QuadNum::<BIG_P>::FACTORS.maximal_divisors(LIMIT) {
+    for d in QuadNum::<BIG_P>::FACTORS.maximal_divisors::<{ QuadNum::<BIG_P>::LEN }>(LIMIT) {
         println!("\t{d:?}");
         fp2_stream_builder = fp2_stream_builder.add_target(d);
     }

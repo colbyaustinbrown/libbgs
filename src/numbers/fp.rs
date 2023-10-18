@@ -93,14 +93,14 @@ impl<const P: u128> FpNum<P> {
 
 impl<S, const P: u128, const L: usize> SylowDecomposable<S, L> for FpNum<P>
 where
-    FpNum<P>: Factor<S, L>,
+    FpNum<P>: Factor<S>,
 {
     fn find_sylow_generator(i: usize) -> FpNum<P> {
-        match <Self as Factor<S, L>>::FACTORS[i] {
+        match Self::FACTORS[i] {
             (2, 1) => FpNum::from(FpNum::<P>::size()),
             (p, t) => (1..FpNum::<P>::size())
                 .map(|j| FpNum::from(standard_affine_shift(P, j)))
-                .find_map(|c| FpNum::is_sylow_generator(&c, (p, t)))
+                .find_map(|c| <FpNum<P> as SylowDecomposable<S, L>>::is_sylow_generator(&c, (p, t)))
                 .unwrap(),
         }
     }
@@ -238,16 +238,16 @@ mod tests {
 
     const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
-    impl Factor<Phantom, 2> for FpNum<13> {
-        const FACTORS: Factorization<2> = Factorization::new(&[(2, 2), (3, 1)]);
+    impl Factor<Phantom> for FpNum<13> {
+        const FACTORS: Factorization = Factorization::new(&[(2, 2), (3, 1)]);
     }
 
-    impl Factor<Phantom, 2> for FpNum<29> {
-        const FACTORS: Factorization<2> = Factorization::new(&[(2, 2), (7, 1)]);
+    impl Factor<Phantom> for FpNum<29> {
+        const FACTORS: Factorization = Factorization::new(&[(2, 2), (7, 1)]);
     }
 
-    impl Factor<Phantom, 7> for FpNum<BIG_P> {
-        const FACTORS: Factorization<7> = Factorization::new(&[
+    impl Factor<Phantom> for FpNum<BIG_P> {
+        const FACTORS: Factorization = Factorization::new(&[
             (2, 1),
             (7, 1),
             (13, 1),
@@ -319,7 +319,7 @@ mod tests {
 
     #[test]
     fn sylow_finds_generators() {
-        let g = SylowDecomp::new();
+        let g = SylowDecomp::<Phantom, 2, FpNum<29>>::new();
         for i in 0..2 {
             let gen = g.generator(i);
             let d = SylowElem::<Phantom, 2, FpNum<29>>::FACTORS.factor(i);

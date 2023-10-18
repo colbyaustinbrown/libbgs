@@ -47,14 +47,14 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
 
     /// Returns the order of this element, that is, the smallest positive power `p` for which
     /// `a.pow(p, &g).is_one(&g)` returns True.
-    fn order<S, const L: usize>(&self) -> u128
+    fn order<S>(&self) -> u128
     where
-        Self: Factor<S, L>,
+        Self: Factor<S>,
     {
         let mut res = 1;
-        for i in 0..L {
+        for i in 0..Self::LEN {
             let mut x = self.clone();
-            for j in 0..L {
+            for j in 0..Self::LEN {
                 if j == i {
                     continue;
                 }

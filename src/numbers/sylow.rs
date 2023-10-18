@@ -29,7 +29,7 @@ pub struct SylowElem<S, const L: usize, C: SylowDecomposable<S, L>> {
 
 /// Groups that can be decomposed into a direct sum of cyclic Sylow subgroups.
 /// In particular, these groups must be finite and cyclic.
-pub trait SylowDecomposable<S, const L: usize>: Factor<S, L> + GroupElem + Eq {
+pub trait SylowDecomposable<S, const L: usize>: Factor<S> + GroupElem + Eq {
     /// Finds a Sylow generator for the Sylow subgroup of prime power index `i`.
     fn find_sylow_generator(i: usize) -> Self;
 
@@ -82,8 +82,8 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> SylowDecomp<S, L, C> {
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S, L>> Factor<S, L> for SylowElem<S, L, C> {
-    const FACTORS: Factorization<L> = <C as Factor<S, L>>::FACTORS;
+impl<S, const L: usize, C: SylowDecomposable<S, L>> Factor<S> for SylowElem<S, L, C> {
+    const FACTORS: Factorization = <C as Factor<S>>::FACTORS;
 }
 
 impl<S, const L: usize, C: SylowDecomposable<S, L>> SylowDecomposable<S, L> for SylowElem<S, L, C> {
@@ -128,12 +128,12 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> SylowElem<S, L, C> {
                 if j == i {
                     continue;
                 }
-                x = x.pow(<C as Factor<S, L>>::FACTORS.factor(j));
+                x = x.pow(C::FACTORS.factor(j));
             }
 
             let mut r = 0;
             while !x.is_one() {
-                x = x.pow(<C as Factor<S, L>>::FACTORS[i].0);
+                x = x.pow(C::FACTORS[i].0);
                 r += 1;
             }
             res *= intpow::<0>(C::FACTORS[i].0, r);
@@ -153,7 +153,7 @@ where
     fn multiply(&self, other: &SylowElem<S, L, C>) -> SylowElem<S, L, C> {
         let mut coords = self.coords;
         for i in 0..L {
-            coords[i] = (coords[i] + other.coords[i]) % <C as Factor<S, L>>::FACTORS.factor(i);
+            coords[i] = (coords[i] + other.coords[i]) % C::FACTORS.factor(i);
         }
         SylowElem {
             coords,
@@ -164,7 +164,7 @@ where
     fn inverse(&self) -> SylowElem<S, L, C> {
         let mut coords = self.coords;
         for i in 0..L {
-            coords[i] = <C as Factor<S, L>>::FACTORS.factor(i) - coords[i];
+            coords[i] = C::FACTORS.factor(i) - coords[i];
         }
         SylowElem {
             coords,
