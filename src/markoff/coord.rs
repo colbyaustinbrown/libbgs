@@ -85,7 +85,7 @@ impl<const P: u128> Coord<P> {
     {
         self.to_chi()
             .as_ref()
-            .either(|l| l.order().value(), |r| r.order().value())
+            .either(|l| l.order(), |r| r.order())
     }
 }
 

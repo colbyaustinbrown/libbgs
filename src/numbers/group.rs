@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::numbers::{Factor, Factorization};
+use crate::numbers::{Factor};
 use crate::numbers::SylowDecomposable;
 use crate::util::*;
 
@@ -47,11 +47,11 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
 
     /// Returns the order of this element, that is, the smallest positive power `p` for which
     /// `a.pow(p, &g).is_one(&g)` returns True.
-    fn order<S, const L: usize>(&self) -> Factorization<L> 
+    fn order<S, const L: usize>(&self) -> u128
     where
         Self: Factor<S, L>,
     {
-        let mut prime_powers = [(0, 0); L];
+        let mut res = 1;
         for i in 0..L {
             let mut x = self.clone();
             for j in 0..L {
@@ -66,9 +66,9 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
                 x = x.pow(Self::FACTORS[i].0);
                 r += 1;
             }
-            prime_powers[i] = (Self::FACTORS[i].0, r)
+            res *= intpow::<0>(Self::FACTORS[i].0, r);
         }
-        Factorization::new(prime_powers)
+        res
     }
 
     /// Returns the number of elements of a particular order.
