@@ -24,6 +24,8 @@ pub struct Factorization<const L: usize> {
 pub trait Factor<S, const L: usize> {
     /// The prime factorization of this object.
     const FACTORS: Factorization<L>;
+    /// The number of prime factors in the factorization.
+    const LEN: usize = Self::FACTORS.len();
 }
 
 impl<const L: usize> Factorization<L> {
@@ -55,24 +57,24 @@ impl<const L: usize> Factorization<L> {
 
     /// True if there the factorization represents 1.
     /// False otherwise.
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.prime_powers.is_empty()
     }
 
     /// Returns the prime power factor represented by prime number `i`, $p_i^{t_i}$.
     /// This method will `panic` if `i` is out of bounds.
-    pub fn factor(&self, i: usize) -> u128 {
+    pub const fn factor(&self, i: usize) -> u128 {
         intpow::<0>(self.prime_powers[i].0, self.prime_powers[i].1 as u128)
     }
 
     /// Gets the prime powers as an array.
     /// The first element of each entry is the prime, and the second is the power.
-    pub fn prime_powers(&self) -> &[(u128, usize); L] {
+    pub const fn prime_powers(&self) -> &[(u128, usize); L] {
         &self.prime_powers
     }
 
     /// Returns the positive integer represented by this `Factorization`.
-    pub fn value(&self) -> u128 {
+    pub const fn value(&self) -> u128 {
         self.value
     }
 
@@ -87,6 +89,11 @@ impl<const L: usize> Factorization<L> {
             }
         }
         total
+    }
+
+    /// Returns the number of prime factors in the factorization.
+    pub const fn len(&self) -> usize {
+        self.prime_powers.len()
     }
 }
 
