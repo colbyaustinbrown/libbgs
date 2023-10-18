@@ -100,7 +100,7 @@ impl<S, const L: usize, C: SylowDecomposable<S>> SylowDecomposable<S> for SylowE
 
 impl<S, const L: usize, C: SylowDecomposable<S>> SylowElem<S, L, C> {
     /// Returns an element of the Sylow decomposition with the given coordinates.
-    pub fn new(coords: [u128; L]) -> SylowElem<S, L, C> {
+    pub const fn new(coords: [u128; L]) -> SylowElem<S, L, C> {
         SylowElem {
             coords,
             _phantom: PhantomData,
