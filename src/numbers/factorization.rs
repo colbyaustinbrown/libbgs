@@ -7,7 +7,7 @@ use crate::util::intpow;
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Factorization<const L: usize> {
     value: u128,
-    prime_powers: [(u128, usize); L],
+    prime_powers: &'static [(u128, usize)],
 }
 
 
@@ -22,15 +22,15 @@ pub struct Factorization<const L: usize> {
 /// This type can only hold factors up to `2^126`. Behavior may be undefined for factorizations
 /// which contain larger factors.
 pub trait Factor<S, const L: usize> {
-    /// The prime factorization of this object.
-    const FACTORS: Factorization<L>;
     /// The number of prime factors in the factorization.
     const LEN: usize = Self::FACTORS.len();
+    /// The prime factorization of this object.
+    const FACTORS: Factorization<L>;
 }
 
 impl<const L: usize> Factorization<L> {
     /// Creates a new factorization from the given prime powers.
-    pub const fn new(prime_powers: [(u128, usize); L]) -> Factorization<L> {
+    pub const fn new(prime_powers: &'static [(u128, usize)]) -> Factorization<L> {
         let mut value = 1;
         let mut i = 0;
         while i < L {
@@ -69,8 +69,8 @@ impl<const L: usize> Factorization<L> {
 
     /// Gets the prime powers as an array.
     /// The first element of each entry is the prime, and the second is the power.
-    pub const fn prime_powers(&self) -> &[(u128, usize); L] {
-        &self.prime_powers
+    pub const fn prime_powers(&self) -> &'static [(u128, usize)] {
+        self.prime_powers
     }
 
     /// Returns the positive integer represented by this `Factorization`.
@@ -82,10 +82,10 @@ impl<const L: usize> Factorization<L> {
     pub fn from_powers(&self, ds: &[usize; L]) -> u128 {
         let mut total = 1;
         for (d, (p, t)) in ds.iter().zip(self.prime_powers) {
-            if *d > t {
+            if d > t {
                 return 0;
             } else {
-                total *= intpow::<0>(p, *d as u128);
+                total *= intpow::<0>(*p, *d as u128);
             }
         }
         total

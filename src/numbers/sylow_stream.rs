@@ -511,15 +511,15 @@ mod tests {
     struct Phantom {}
 
     impl Factor<Phantom, 2> for FpNum<7> {
-        const FACTORS: Factorization<2> = Factorization::new([(2, 1), (3, 1)]);
+        const FACTORS: Factorization<2> = Factorization::new(&[(2, 1), (3, 1)]);
     }
 
     impl Factor<Phantom, 3> for FpNum<61> {
-        const FACTORS: Factorization<3> = Factorization::new([(2, 2), (3, 1), (5, 1)]);
+        const FACTORS: Factorization<3> = Factorization::new(&[(2, 2), (3, 1), (5, 1)]);
     }
 
     impl Factor<Phantom, 7> for FpNum<BIG_P> {
-        const FACTORS: Factorization<7> = Factorization::new([
+        const FACTORS: Factorization<7> = Factorization::new(&[
             (2, 1),
             (7, 1),
             (13, 1),
@@ -531,15 +531,15 @@ mod tests {
     }
 
     impl Factor<Phantom, 3> for FpNum<271> {
-        const FACTORS: Factorization<3> = Factorization::new([(2, 1), (3, 3), (5, 1)]);
+        const FACTORS: Factorization<3> = Factorization::new(&[(2, 1), (3, 3), (5, 1)]);
     }
 
     impl Factor<Phantom, 4> for FpNum<13928643> {
-        const FACTORS: Factorization<4> = Factorization::new([(2, 1), (7, 2), (13, 2), (29, 2)]);
+        const FACTORS: Factorization<4> = Factorization::new(&[(2, 1), (7, 2), (13, 2), (29, 2)]);
     }
 
     impl Factor<Phantom, 2> for FpNum<41> {
-        const FACTORS: Factorization<2> = Factorization::new([(2, 3), (5, 1)]);
+        const FACTORS: Factorization<2> = Factorization::new(&[(2, 3), (5, 1)]);
     }
 
     #[test]

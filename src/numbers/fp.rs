@@ -239,15 +239,15 @@ mod tests {
     const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
     impl Factor<Phantom, 2> for FpNum<13> {
-        const FACTORS: Factorization<2> = Factorization::new([(2, 2), (3, 1)]);
+        const FACTORS: Factorization<2> = Factorization::new(&[(2, 2), (3, 1)]);
     }
 
     impl Factor<Phantom, 2> for FpNum<29> {
-        const FACTORS: Factorization<2> = Factorization::new([(2, 2), (7, 1)]);
+        const FACTORS: Factorization<2> = Factorization::new(&[(2, 2), (7, 1)]);
     }
 
     impl Factor<Phantom, 7> for FpNum<BIG_P> {
-        const FACTORS: Factorization<7> = Factorization::new([
+        const FACTORS: Factorization<7> = Factorization::new(&[
             (2, 1),
             (7, 1),
             (13, 1),
@@ -341,7 +341,7 @@ mod tests {
     fn sylow_order() {
         for i in 1..13 {
             let mut x = SylowElem::<Phantom, 2, FpNum<13>>::new([i % 4, i % 3]);
-            x = x.pow(x.order().value());
+            x = x.pow(x.order());
             assert!(x.is_one());
         }
     }
@@ -358,7 +358,7 @@ mod tests {
                 .try_into()
                 .unwrap(),
         );
-        let or = x.order().value();
+        let or = x.order();
         x = x.pow(or);
         assert!(x.is_one());
     }

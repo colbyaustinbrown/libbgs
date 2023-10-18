@@ -120,8 +120,8 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> SylowElem<S, L, C> {
     }
 
     /// Returns the positive integer represented by this `Factorization`.
-    pub fn order(&self) -> Factorization<L> {
-        let mut prime_powers = [(0, 0); L];
+    pub fn order(&self) -> u128 {
+        let mut res = 1;
         for i in 0..L {
             let mut x = *self;
             for j in 0..L {
@@ -136,9 +136,9 @@ impl<S, const L: usize, C: SylowDecomposable<S, L>> SylowElem<S, L, C> {
                 x = x.pow(<C as Factor<S, L>>::FACTORS[i].0);
                 r += 1;
             }
-            prime_powers[i] = (<C as Factor<S, L>>::FACTORS[i].0, r);
+            res *= intpow::<0>(C::FACTORS[i].0, r);
         }
-        Factorization::new(prime_powers)
+        res
     }
 }
 

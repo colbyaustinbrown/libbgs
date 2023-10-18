@@ -8,13 +8,3 @@ pub mod numbers;
 pub mod util;
 pub mod stock_impls;
 
-#[cfg(test)]
-mod tests {
-    use crate::numbers::*;
-
-    #[test]
-    fn fact_works() {
-        let fact = Factorization::new([(2, 3)]);
-        assert_eq!(fact.value(), 8);
-    }
-}

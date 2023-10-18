@@ -155,11 +155,11 @@ mod tests {
     struct Phantom {}
 
     impl Factor<Phantom, 1> for QuadNum<7> {
-        const FACTORS: Factorization<1> = Factorization::new([(2, 3)]);
+        const FACTORS: Factorization<1> = Factorization::new(&[(2, 3)]);
     }
 
     impl Factor<Phantom, 2> for QuadNum<17> {
-        const FACTORS: Factorization<2> = Factorization::new([(2, 1), (3, 2)]);
+        const FACTORS: Factorization<2> = Factorization::new(&[(2, 1), (3, 2)]);
     }
 
     #[test]
