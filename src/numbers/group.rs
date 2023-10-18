@@ -10,12 +10,12 @@ use crate::util::*;
 /// * The type must have a unique element given by `one()`.
 /// * Event element of the type must have element given by `inverse()`.
 pub trait GroupElem: Copy + PartialEq + Eq + fmt::Debug {
+    /// Gets the unique identity element of this group.
+    const ONE: Self;
+
     /// Gets the size of the group this element belongs to.
     fn size() -> u128;
     
-    /// Gets the unique identity element of this group.
-    fn one() -> Self;
-
     /// True if this element is the multiplicative identity; false otherwise.
     fn is_one(&self) -> bool;
 
@@ -26,7 +26,7 @@ pub trait GroupElem: Copy + PartialEq + Eq + fmt::Debug {
 
     /// Raises this element to the power of `n`.
     fn pow(&self, mut n: u128) -> Self {
-        let mut y = Self::one();
+        let mut y = Self::ONE;
         let mut res = self.clone();
         while n > 1 {
             if n & 1 == 1 {

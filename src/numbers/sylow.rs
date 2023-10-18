@@ -51,12 +51,12 @@ impl<S, const L: usize, C: SylowDecomposable<S>> SylowDecomp<S, L, C> {
     /// This method may be expensive because it calls `find_sylow_generator` for each Sylow
     /// subgroup.
     pub fn new() -> SylowDecomp<S, L, C> {
-        let mut generators_powered = [C::one(); L];
-        let mut precomputed = [[C::one(); 256]; L];
+        let mut generators_powered = [C::ONE; L];
+        let mut precomputed = [[C::ONE; 256]; L];
         let mut i = 0;
         while i < L {
             let x = C::find_sylow_generator(i);
-            let mut g = C::one();
+            let mut g = C::ONE;
             let mut j = 0;
             while j < 256 {
                 precomputed[i][j] = g.clone();
@@ -111,7 +111,7 @@ impl<S, const L: usize, C: SylowDecomposable<S>> SylowElem<S, L, C> {
     pub fn to_product(&self, g: &SylowDecomp<S, L, C>) -> C {
         (0..L)
             .filter(|i| self.coords[*i] > 0)
-            .fold(C::one(), |x, i| {
+            .fold(C::ONE, |x, i| {
                 let mut y = g.precomputed[i][(self.coords[i] & 0xFF) as usize].clone();
                 if self.coords[i] > 0xFF {
                     y = y.multiply(&g.generators_powered[i].pow(self.coords[i] >> 8));
@@ -147,6 +147,11 @@ impl<S, const L: usize, C: Eq> GroupElem for SylowElem<S, L, C>
 where
     C: SylowDecomposable<S>,
 {
+    const ONE: Self = SylowElem {
+        coords: [0; L],
+        _phantom: PhantomData,
+    };
+
     fn is_one(&self) -> bool {
         self.coords.iter().all(|x| *x == 0)
     }
@@ -169,13 +174,6 @@ where
         }
         SylowElem {
             coords,
-            _phantom: PhantomData,
-        }
-    }
-
-    fn one() -> SylowElem<S, L, C> {
-        SylowElem {
-            coords: [0; L],
             _phantom: PhantomData,
         }
     }

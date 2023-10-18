@@ -5,7 +5,7 @@ use crate::util::*;
 
 /// An integer modulo `P`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct FpNum<const P: u128>(Montgomery<P>);
+pub struct FpNum<const P: u128>(pub Montgomery<P>);
 
 impl<const P: u128> FpNum<P> {
     /// Returns the Legendre symbol of `a` modulo `P`, i.e.,
@@ -107,6 +107,8 @@ where
 }
 
 impl<const P: u128> GroupElem for FpNum<P> {
+    const ONE: Self = FpNum(Montgomery::from_u128(1));
+
     fn is_one(&self) -> bool {
         self.0 == Montgomery::<P>::from_u128(1)
     }
@@ -117,10 +119,6 @@ impl<const P: u128> GroupElem for FpNum<P> {
 
     fn size() -> u128 {
         P - 1
-    }
-
-    fn one() -> FpNum<P> {
-        FpNum::from(1)
     }
 }
 
@@ -263,7 +261,7 @@ mod tests {
 
     #[test]
     fn one_is_one() {
-        let one = FpNum::<7>::one();
+        let one = FpNum::<7>::ONE;
         assert!(one.is_one());
     }
 
@@ -313,7 +311,7 @@ mod tests {
 
     #[test]
     fn sylow_one_is_one() {
-        let one = SylowElem::<Phantom, 2, FpNum<13>>::one();
+        let one = SylowElem::<Phantom, 2, FpNum<13>>::ONE;
         assert!(one.is_one());
     }
 

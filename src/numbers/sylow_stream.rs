@@ -96,7 +96,7 @@ where
             };
 
             let seed = Seed {
-                part: SylowElem::one(),
+                part: SylowElem::ONE,
                 start: 0,
                 node: &**n,
             };
@@ -318,7 +318,7 @@ where
     {
         let mut folder = consumer.split_off_left().into_folder();
         if self.emit_one {
-            folder = folder.consume(SylowElem::one());
+            folder = folder.consume(SylowElem::ONE);
             self.emit_one = false;
         }
         let folder = RefCell::new(Some(folder));
@@ -384,7 +384,7 @@ where
         if (self.mode & flags::INCLUDE_ONE != 0)
             || (self.mode & flags::LEQ != 0 && self.mode & flags::NO_PARABOLIC == 0)
         {
-            buffer.push(SylowElem::one());
+            buffer.push(SylowElem::ONE);
         }
         let mut stream = SylowSeqStream {
             tree: self.tree,

@@ -82,6 +82,8 @@ impl<const P: u128> QuadNum<P> {
 }
 
 impl<const P: u128> GroupElem for QuadNum<P> {
+    const ONE: Self = QuadNum(FpNum(Montgomery::from_u128(1)), FpNum(Montgomery::from_u128(0)));
+
     fn is_one(&self) -> bool {
         self.0 == 1 && self.1 == 0
     }
@@ -95,10 +97,6 @@ impl<const P: u128> GroupElem for QuadNum<P> {
 
     fn size() -> u128 {
         P + 1
-    }
-
-    fn one() -> QuadNum<P> {
-        QuadNum(FpNum::from(1), FpNum::from(0))
     }
 }
 
@@ -164,7 +162,7 @@ mod tests {
 
     #[test]
     fn one_is_one() {
-        let one = QuadNum::<7>::one();
+        let one = QuadNum::<7>::ONE;
         assert!(one.is_one());
     }
 
