@@ -39,6 +39,58 @@ impl Factor<Stock> for QuadNum<1_000_033> {
     ]);
 }
 
+impl Factor<Stock> for FpNum<1_000_099> {
+    const FACTORS: Factorization = Factorization::new(&[
+        (2, 1),
+        (3, 2),
+        (11, 1),
+        (5051, 1),
+    ]);
+}
+
+impl Factor<Stock> for QuadNum<1_000_099> {
+    const FACTORS: Factorization = Factorization::new(&[
+        (2, 2),
+        (5, 2),
+        (73, 1),
+        (137, 1),
+    ]);
+}
+
+impl Factor<Stock> for FpNum<1_234_577> {
+    const FACTORS: Factorization = Factorization::new(&[
+        (2, 4),
+        (7, 1),
+        (73, 1),
+        (151, 1),
+    ]);
+}
+
+impl Factor<Stock> for QuadNum<1_234_577> {
+    const FACTORS: Factorization = Factorization::new(&[
+        (2, 1),
+        (3, 1),
+        (205_763, 1),
+    ]);
+}
+
+impl Factor<Stock> for FpNum<1_500_007> {
+    const FACTORS: Factorization = Factorization::new(&[
+        (2, 1),
+        (3, 1),
+        (53, 2),
+        (89, 1),
+    ]);
+}
+
+impl Factor<Stock> for QuadNum<1_500_007> {
+    const FACTORS: Factorization = Factorization::new(&[
+        (2, 3),
+        (97, 1),
+        (1933, 1),
+    ]);
+}
+
 impl Factor<Stock> for FpNum<10_000_139> {
     const FACTORS: Factorization = Factorization::new(&[
         (2, 1),
