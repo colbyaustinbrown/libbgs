@@ -155,7 +155,6 @@ where
                 consume(self, part);
             }
 
-            // Note: In Rust, (a..a) is the empty iterator.
             node.next
                 .iter()
                 .skip(node.i + 1)
@@ -502,7 +501,6 @@ unsafe impl<S, const L: usize, C: SylowDecomposable<S>> Send for Seed<S, L, C> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::numbers::fp::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
 
     const BIG_P: u128 = 1_000_000_000_000_000_124_399;

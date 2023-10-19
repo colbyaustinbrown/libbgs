@@ -1,4 +1,5 @@
 use libbgs::numbers::*;
+use libbgs::streams::*;
 use libbgs::stock_impls::*;
 
 use std::time::*;

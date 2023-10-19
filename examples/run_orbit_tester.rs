@@ -3,6 +3,7 @@ use std::sync::Mutex;
 
 use libbgs::markoff::*;
 use libbgs::numbers::*;
+use libbgs::streams::*;
 use libbgs::stock_impls::*;
 
 const BIG_P: u128 = 1_000_000_000_000_000_124_399;

@@ -1,6 +1,6 @@
 use std::ops::Index;
 
-use crate::numbers::FactorStream;
+use crate::streams::FactorStream;
 use crate::util::intpow;
 
 /// A prime power decomposition of a positive integer.
