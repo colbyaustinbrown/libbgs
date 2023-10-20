@@ -267,6 +267,21 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
     }
 }
 
+impl<S, const L: usize, C: SylowDecomposable<S>> SylowSeqStream<S, L, C> {
+    /// Converts a sequential Sylow stream into a parallel one.
+    pub fn parallelize(self) -> SylowParStream<S, L, C>
+    where
+        S: Send + Sync,
+    {
+        SylowParStream {
+            stack: self.stack,
+            buffer: self.buffer,
+            splits: rayon::current_num_threads(),
+            tree: Arc::new(self.tree),
+        }
+    }
+}
+
 impl<S, const L: usize, C: SylowDecomposable<S>> Iterator for SylowSeqStream<S, L, C> {
     type Item = SylowElem<S, L, C>;
 
