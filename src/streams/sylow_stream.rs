@@ -38,7 +38,7 @@ pub mod flags {
 /// A builder for a stream yielding elements of particular orders, as their Sylow decompositions.
 pub struct SylowStreamBuilder<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> {
     mode: u8,
-    tree: FactorNode<L>,
+    tree: Box<FactorNode<L>>,
     _phantom: PhantomData<(S, C)>,
 }
 
@@ -60,7 +60,7 @@ pub struct SylowParStream<
 pub struct SylowSeqStream<S, const L: usize, C: SylowDecomposable<S>> {
     stack: Vec<Seed<S, L, C>>,
     buffer: Vec<SylowElem<S, L, C>>,
-    tree: FactorNode<L>,
+    tree: Box<FactorNode<L>>,
 }
 
 #[derive(Debug)]
@@ -175,14 +175,14 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
     pub fn new() -> SylowStreamBuilder<S, L, C> {
         SylowStreamBuilder {
             mode: flags::NONE,
-            tree: FactorNode {
+            tree: Box::new(FactorNode {
                 i: 0,
                 rs: [0; L],
                 step: 0,
                 lim: 0,
                 consume: false,
                 next: std::array::from_fn(|_| None),
-            },
+            }),
             _phantom: PhantomData,
         }
     }
@@ -277,7 +277,7 @@ impl<S, const L: usize, C: SylowDecomposable<S>> SylowSeqStream<S, L, C> {
             stack: self.stack,
             buffer: self.buffer,
             splits: rayon::current_num_threads(),
-            tree: Arc::new(self.tree),
+            tree: Arc::from(self.tree),
         }
     }
 }
@@ -427,7 +427,7 @@ where
                 } else {
                     Vec::new()
                 },
-            tree: Arc::new(self.tree),
+            tree: Arc::from(self.tree),
         };
         res.init_stack(self.mode);
         res
