@@ -2,6 +2,7 @@
 use crate::numbers::*;
 
 /// Empty marker struct for stock implementations.
+#[derive(Clone)]
 pub struct Stock {}
 
 impl Factor<Stock> for FpNum<100_003> {
