@@ -52,7 +52,8 @@ impl<S, const L: usize, C: SylowDecomposable<S>> SylowDecomp<S, L, C> {
     /// subgroup.
     pub fn new() -> SylowDecomp<S, L, C> {
         let mut generators_powered = [C::ONE; L];
-        let mut precomputed = [[C::ONE; 256]; L];
+        #[allow(deprecated)]
+        let mut precomputed = [C::ONE_256; L];
         let mut i = 0;
         while i < L {
             let x = C::find_sylow_generator(i);
