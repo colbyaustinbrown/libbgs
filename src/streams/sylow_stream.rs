@@ -51,7 +51,7 @@ pub struct SylowParStream<
 > {
     stack: Vec<Seed<S, L, C>>,
     splits: usize,
-    emit_one: bool,
+    buffer: Vec<SylowElem<S, L, C>>,
     tree: Arc<FactorNode<L>>,
 }
 
@@ -306,7 +306,7 @@ where
             tree: Arc::clone(&self.tree),
             stack,
             splits: self.splits,
-            emit_one: false,
+            buffer: Vec::new(),
         })
     }
 
@@ -316,9 +316,8 @@ where
         Con: UnindexedConsumer<SylowElem<S, L, C>>,
     {
         let mut folder = consumer.split_off_left().into_folder();
-        if self.emit_one {
-            folder = folder.consume(SylowElem::ONE);
-            self.emit_one = false;
+        while let Some(buf) = self.buffer.pop() {
+            folder = folder.consume(buf);
         }
         let folder = RefCell::new(Some(folder));
 
@@ -407,8 +406,12 @@ where
         let mut res = SylowParStream {
             splits: rayon::current_num_threads(),
             stack: Vec::new(),
-            emit_one: self.mode & flags::INCLUDE_ONE != 0
-                || (self.mode & flags::LEQ != 0 && self.mode & flags::NO_PARABOLIC == 0),
+            buffer: if self.mode & flags::INCLUDE_ONE != 0
+                || (self.mode & flags::LEQ != 0 && self.mode & flags::NO_PARABOLIC == 0) {
+                    vec![SylowElem::ONE]
+                } else {
+                    Vec::new()
+                },
             tree: Arc::new(self.tree),
         };
         res.init_stack(self.mode);
@@ -490,7 +493,7 @@ where
         SylowParStream {
             stack: self.stack.clone(),
             splits: self.splits,
-            emit_one: self.emit_one,
+            buffer: self.buffer.clone(),
             tree: Arc::clone(&self.tree),
         }
     }
