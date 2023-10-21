@@ -2,7 +2,7 @@ use rayon::iter::plumbing::*;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use std::cell::RefCell;
-use std::marker::PhantomData;
+use std::marker::{PhantomData};
 use std::sync::Arc;
 
 use crate::numbers::*;
@@ -60,7 +60,7 @@ pub struct SylowParStream<
 pub struct SylowSeqStream<S, const L: usize, C: SylowDecomposable<S>> {
     stack: Vec<Seed<S, L, C>>,
     buffer: Vec<SylowElem<S, L, C>>,
-    tree: Box<FactorNode<L>>,
+    tree: Arc<FactorNode<L>>,
 }
 
 #[derive(Debug)]
@@ -400,7 +400,7 @@ where
             buffer.push(SylowElem::ONE);
         }
         let mut stream = SylowSeqStream {
-            tree: self.tree,
+            tree: Arc::from(self.tree),
             stack: Vec::new(),
             buffer,
         };
