@@ -122,9 +122,10 @@ impl Factor<Stock> for QuadNum<10_000_139> {
         (2, 2),
         (3, 1),
         (5, 1),
-        (16669, 1),
+        (166_669, 1),
     ]);
 }
+
 
 impl Factor<Stock> for FpNum<1_000_000_000_000_000_124_399> {
     const FACTORS: Factorization = Factorization::new(&[
