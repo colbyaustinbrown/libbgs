@@ -5,6 +5,7 @@ use crate::streams::*;
 use rayon::iter::plumbing::*;
 use rayon::iter::*;
 
+/// A stream which can be run either in sequence or parallel, yielding Markoff numbers modulo `P`.
 #[derive(Clone)]
 pub struct CoordStream<'a, S, const L_HYPER: usize, const L_ELLIP: usize, const P: u128>
 where
@@ -23,6 +24,7 @@ where
     FpNum<P>: SylowDecomposable<S>,
     QuadNum<P>: SylowDecomposable<S>,
 {
+    /// Creates a new `CoordStream` with orders up to `limit`.
     pub fn new(
         hyper_decomp: &'a SylowDecomp<S, L_HYPER, FpNum<P>>,
         ellip_decomp: &'a SylowDecomp<S, L_ELLIP, QuadNum<P>>,
@@ -56,6 +58,7 @@ where
         }
     }
 
+    /// Returns an iterator yielding pairs of coordinates without repeats up to permutation.
     pub fn upper_triangle(self) -> impl ParallelIterator<Item = (Coord<P>, Coord<P>)> + 'a
     where
         S: Clone + Send + Sync,
