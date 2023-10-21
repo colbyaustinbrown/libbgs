@@ -92,6 +92,22 @@ impl Factor<Stock> for QuadNum<1_500_007> {
     ]);
 }
 
+impl Factor<Stock> for FpNum<4_999_999> {
+    const FACTORS: Factorization = Factorization::new(&[
+        (2, 1),
+        (3, 1),
+        (191, 1),
+        (4363, 1),
+    ]);
+}
+
+impl Factor<Stock> for QuadNum<4_999_999> {
+    const FACTORS: Factorization = Factorization::new(&[
+        (2, 6),
+        (5, 7),
+    ]);
+}
+
 impl Factor<Stock> for FpNum<10_000_139> {
     const FACTORS: Factorization = Factorization::new(&[
         (2, 1),
