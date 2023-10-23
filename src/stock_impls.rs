@@ -1,12 +1,13 @@
 //! Stock implementations of the `Factor` trait for some commonly used primes.
 use crate::numbers::*;
+use crate::impl_factors;
 
 /// Empty marker struct for stock implementations.
 #[derive(Clone)]
 pub struct Stock {}
 
 impl_factors!(Stock, 100_003);
-impl_factors!(Stock, 1_000_033..1_000_099);
+impl_factors!(Stock, 1_000_033..1_000_100);
 
 impl Factor<Stock> for FpNum<1_234_577> {
     const FACTORS: Factorization = Factorization::new(&[

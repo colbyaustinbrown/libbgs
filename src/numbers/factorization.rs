@@ -10,17 +10,17 @@ use libbgs_util::intpow;
 macro_rules! impl_factors {
     ($mrk:ident, $($n:literal),+ $(,)?) => {$(
         impl Factor<$mrk> for FpNum<$n> {
-            const FACTORS: Factorization = Factorization::new(libbgs_macros::make_factor!({$n - 1}));
+            const FACTORS: Factorization = Factorization::new(make_factor!({$n - 1}));
         }
         impl Factor<$mrk> for QuadNum<$n> {
-            const FACTORS: Factorization = Factorization::new(libbgs_macros::make_factor!({$n + 1}));
+            const FACTORS: Factorization = Factorization::new(make_factor!({$n + 1}));
         }
     )+};
     ($mrk:ident, $start:literal..$end:literal) => {
-        libbgs_macros::primes!(impl_factors, $mrk, $start..$end); 
+        primes!(impl_factors, $mrk, $start..$end); 
     }
 }
-
+pub use impl_factors;
 
 /// A prime power decomposition of a positive integer.
 #[derive(Clone, PartialEq, Eq, Debug)]

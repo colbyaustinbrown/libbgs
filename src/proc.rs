@@ -1,3 +1,5 @@
+extern crate proc_macro;
+
 use proc_macro::*;
 use syn::*;
 use syn::parse::{Parse, ParseStream};
