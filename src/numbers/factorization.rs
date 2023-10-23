@@ -3,6 +3,21 @@ use std::ops::Index;
 use crate::streams::FactorStream;
 use libbgs_util::intpow;
 
+/// When called with phantom type marker `Ph` and a list of integers, each integer `P` is turned
+/// into an implementation of `Factor<Ph> for FpNum<P>` and `Factor<Ph> for QuadNum<P>`.
+#[macro_export]
+macro_rules! impl_factor {
+    ($mrk:ident, $($n:literal),+) => {$(
+        impl Factor<$mrk> for FpNum<$n> {
+            const FACTORS: Factorization = Factorization::new(libbgs_macros::make_factor!({$n - 1}));
+        }
+        impl Factor<$mrk> for QuadNum<$n> {
+            const FACTORS: Factorization = Factorization::new(libbgs_macros::make_factor!({$n + 1}));
+        }
+    )+};
+}
+
+
 /// A prime power decomposition of a positive integer.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Factorization {

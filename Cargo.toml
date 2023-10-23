@@ -38,4 +38,6 @@ crossbeam = "0.8.2"
 either = "1.9.0"
 itertools = "0.11.0"
 rayon = "1.7.0"
+# libbgs-macros = { path = "libbgs-macros" }
 libbgs-util = { path = "libbgs-util" }
+libbgs-macros = { path = "libbgs-macros" }

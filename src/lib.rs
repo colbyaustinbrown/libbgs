@@ -4,6 +4,7 @@
 //! A library for the manipulation and investigation of Markoff numbers and Markoff graphs modulo
 //! primes, specifically with a focus on the Bourgain, Gamburd, and Sarnak algorithm.
 pub mod markoff;
+#[macro_use]
 pub mod numbers;
 pub mod stock_impls;
 pub mod streams;
