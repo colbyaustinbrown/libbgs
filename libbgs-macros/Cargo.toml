@@ -10,6 +10,7 @@ crate_type = ["proc-macro"]
 
 [dependencies]
 prime_factorization = "1.0.4"
+primes = "0.3.0"
 proc-macro2 = "1.0.69"
 quote = "1.0.33"
-syn = { version = "2.0.38", features = ["full", "parsing", "extra-traits"] }
+syn = { version = "2.0.38", features = ["full", "parsing", "extra-traits", "printing"] }

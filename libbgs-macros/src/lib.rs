@@ -3,10 +3,13 @@ extern crate proc_macro;
 use proc_macro::*;
 use syn::*;
 use syn::parse::{Parse, ParseStream};
+use quote::ToTokens;
 
 use prime_factorization::Factorization;
+use primes::{Sieve, PrimeSet};
 
 struct Number(u128);
+struct Range(Number, Number);
 
 impl Parse for Number {
     fn parse(input: ParseStream) -> Result<Self> {
@@ -56,6 +59,22 @@ impl Parse for Number {
     }
 }
 
+impl Parse for Range {
+    fn parse(input: ParseStream) -> Result<Range> {
+        let range = input.parse::<ExprRange>()?;
+        let left = range.start
+            .ok_or(Error::new(input.span(), "ranges here must be bounded on both sides"))?;
+        let left = syn::parse::<Number>(TokenStream::from(left.to_token_stream()))?;
+        let right = range.end
+            .ok_or(Error::new(input.span(), "ranges here must be bounded on both sides"))?;
+        let mut right = syn::parse::<Number>(TokenStream::from(right.to_token_stream()))?;
+        if let RangeLimits::Closed(_) = range.limits {
+            right.0 += 1;
+        }
+        Ok(Range(left, right))
+    }
+}
+
 #[proc_macro]
 pub fn make_factor(tokens: TokenStream) -> TokenStream {
     let mut res = Vec::<TokenTree>::new();
@@ -79,5 +98,42 @@ pub fn make_factor(tokens: TokenStream) -> TokenStream {
         TokenStream::from_iter(entries),
     )));
 
+    TokenStream::from_iter(res)
+}
+
+#[proc_macro]
+pub fn impl_factors_range(tokens: TokenStream) -> TokenStream {
+    struct Helper(syn::Ident, Range);
+    impl Parse for Helper {
+        fn parse(input: ParseStream) -> Result<Helper> {
+            let ident = input.parse::<syn::Ident>()?;
+            input.parse::<Token![,]>()?;
+            let range = input.parse::<Range>()?;
+            Ok(Helper(ident, range))
+        }
+    }
+    let Helper(phantom, Range(start, end)) = parse_macro_input!(tokens as Helper);
+    let mut list = Sieve::new()
+        .iter()
+        .skip_while(|x| x < &(start.0 as u64))
+        .take_while(|x| x < &(end.0 as u64))
+        .flat_map(|x| vec![
+            TokenTree::Literal(Literal::u128_unsuffixed(x as u128)),
+            TokenTree::Punct(Punct::new(',', Spacing::Alone)),
+        ])
+        .collect::<Vec<_>>();
+    let mut res = Vec::new();
+    res.push(TokenTree::Ident(proc_macro::Ident::new("impl_factors", Span::call_site())));
+    res.push(TokenTree::Punct(Punct::new('!', Spacing::Alone)));
+    let mut args = vec![
+        TokenTree::Ident(proc_macro::Ident::new(&phantom.to_string(), Span::call_site())),
+        TokenTree::Punct(Punct::new(',', Spacing::Alone)),
+    ];
+    args.append(&mut list);
+    res.push(TokenTree::Group(Group::new(
+        Delimiter::Parenthesis,
+        TokenStream::from_iter(args),
+    )));
+    res.push(TokenTree::Punct(Punct::new(';', Spacing::Alone)));
     TokenStream::from_iter(res)
 }

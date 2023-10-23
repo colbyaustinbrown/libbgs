@@ -5,6 +5,7 @@ use crate::numbers::*;
 #[derive(Clone)]
 pub struct Stock {}
 
+/*
 impl_factor!(Stock, 100_003, 1_000_033);
 
 impl Factor<Stock> for FpNum<1_000_099> {
@@ -24,6 +25,8 @@ impl Factor<Stock> for QuadNum<1_000_099> {
         (137, 1),
     ]);
 }
+*/
+impl_factors!(Stock, 1_000_033..1_000_099);
 
 impl Factor<Stock> for FpNum<1_234_577> {
     const FACTORS: Factorization = Factorization::new(&[
