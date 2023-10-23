@@ -102,38 +102,46 @@ pub fn make_factor(tokens: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn impl_factors_range(tokens: TokenStream) -> TokenStream {
-    struct Helper(syn::Ident, Range);
+pub fn primes(tokens: TokenStream) -> TokenStream {
+    struct Helper(syn::Ident, Option<syn::Ident>, Range);
     impl Parse for Helper {
         fn parse(input: ParseStream) -> Result<Helper> {
-            let ident = input.parse::<syn::Ident>()?;
+            let callback = input.parse::<syn::Ident>()?;
+            let marker = if input.peek2(syn::Ident) {
+                input.parse::<Token![,]>()?;
+                Some(input.parse::<syn::Ident>()?)
+            } else {
+                None
+            };
             input.parse::<Token![,]>()?;
             let range = input.parse::<Range>()?;
-            Ok(Helper(ident, range))
+            Ok(Helper(callback, marker, range))
         }
     }
-    let Helper(phantom, Range(start, end)) = parse_macro_input!(tokens as Helper);
-    let mut list = Sieve::new()
+    let Helper(callback, marker, Range(start, end)) = parse_macro_input!(tokens as Helper);
+    let mut args = Vec::<TokenTree>::new();
+    if let Some(marker) = marker {
+        TokenStream::from(marker.to_token_stream())
+            .into_iter()
+            .for_each(|x| args.push(x));
+        args.push(TokenTree::Punct(Punct::new(',', Spacing::Alone)));
+    }
+    Sieve::new()
         .iter()
         .skip_while(|x| x < &(start.0 as u64))
         .take_while(|x| x < &(end.0 as u64))
-        .flat_map(|x| vec![
-            TokenTree::Literal(Literal::u128_unsuffixed(x as u128)),
-            TokenTree::Punct(Punct::new(',', Spacing::Alone)),
-        ])
-        .collect::<Vec<_>>();
-    let mut res = Vec::new();
-    res.push(TokenTree::Ident(proc_macro::Ident::new("impl_factors", Span::call_site())));
-    res.push(TokenTree::Punct(Punct::new('!', Spacing::Alone)));
-    let mut args = vec![
-        TokenTree::Ident(proc_macro::Ident::new(&phantom.to_string(), Span::call_site())),
-        TokenTree::Punct(Punct::new(',', Spacing::Alone)),
-    ];
-    args.append(&mut list);
-    res.push(TokenTree::Group(Group::new(
-        Delimiter::Parenthesis,
-        TokenStream::from_iter(args),
-    )));
-    res.push(TokenTree::Punct(Punct::new(';', Spacing::Alone)));
-    TokenStream::from_iter(res)
+        .for_each(|x| {
+            args.push(TokenTree::Literal(Literal::u128_unsuffixed(x as u128)));
+            args.push(TokenTree::Punct(Punct::new(',', Spacing::Alone)));
+        });
+    TokenStream::from_iter(vec![
+        TokenTree::Ident(proc_macro::Ident::new(&callback.to_string(), Span::call_site())),
+        TokenTree::Punct(Punct::new('!', Spacing::Alone)),
+        TokenTree::Group(Group::new(
+            Delimiter::Parenthesis,
+            TokenStream::from_iter(args),
+        )),
+        TokenTree::Punct(Punct::new(';', Spacing::Alone))
+    ])
 }
+

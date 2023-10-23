@@ -5,6 +5,7 @@ use libbgs_util::intpow;
 
 /// When called with phantom type marker `Ph` and a list of integers, each integer `P` is turned
 /// into an implementation of `Factor<Ph> for FpNum<P>` and `Factor<Ph> for QuadNum<P>`.
+
 #[macro_export]
 macro_rules! impl_factors {
     ($mrk:ident, $($n:literal),+ $(,)?) => {$(
@@ -15,9 +16,9 @@ macro_rules! impl_factors {
             const FACTORS: Factorization = Factorization::new(libbgs_macros::make_factor!({$n + 1}));
         }
     )+};
-    ($mrk:ident, $($start:literal..$end:literal),+ $(,)?) => {$(
-        libbgs_macros::impl_factors_range!($mrk, $start..$end); 
-    )+}
+    ($mrk:ident, $start:literal..$end:literal) => {
+        libbgs_macros::primes!(impl_factors, $mrk, $start..$end); 
+    }
 }
 
 
