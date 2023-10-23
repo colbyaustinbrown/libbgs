@@ -79,7 +79,7 @@ impl<T, F> Clone for BloomFilter<T, F> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::util::*;
+    use libbgs_util::*;
 
     #[test]
     fn test_bloom_filter() {

@@ -1,7 +1,7 @@
 use std::ops::*;
 
 use crate::numbers::*;
-use crate::util::*;
+use libbgs_util::*;
 
 /// An integer modulo `P`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

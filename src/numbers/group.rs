@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::numbers::{Factor, Length};
 use crate::numbers::SylowDecomposable;
-use crate::util::*;
+use libbgs_util::*;
 
 /// Types that represent the elements of a group.
 /// In order for a type to represent the elements of the group, the type must satisfy these axioms:

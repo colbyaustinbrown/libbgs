@@ -1,5 +1,5 @@
 [alias]
-gen-docs = "doc --no-deps"
+gen-docs = "doc --no-deps --package libbgs --package libbgs-util"
 
 [build]
 rustdocflags = [ "--html-in-header", "./src/docs-header.html" ]

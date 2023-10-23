@@ -3,7 +3,7 @@ use std::ops::*;
 use either::*;
 
 use crate::numbers::*;
-use crate::util::*;
+use libbgs_util::*;
 
 /// The finite field of size `P^2`. Isomorphic to $\mathbb{Z} / P^2\mathbb{Z}$.
 /// Each `QuadField` has a fixed quadratic nonresidue `r` used as a basis element for the numbers

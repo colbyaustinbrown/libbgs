@@ -1,4 +1,4 @@
-use crate::util::intpow;
+use libbgs_util::intpow;
 
 /// An iterator yielding all of the factors of some number beneath a limit.
 /// The type parameter `L` is the length of the factorization.

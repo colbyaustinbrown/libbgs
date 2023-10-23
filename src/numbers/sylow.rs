@@ -2,7 +2,7 @@ use std::fmt;
 use std::marker::PhantomData;
 
 use crate::numbers::*;
-use crate::util::*;
+use libbgs_util::*;
 
 /// A decomposition of a finite cyclic group into the direct sum of its Sylow subgroups.
 /// In particular, this group represents the right hand side of the isomorphism

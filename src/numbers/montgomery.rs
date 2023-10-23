@@ -1,6 +1,6 @@
 use std::ops::*;
 
-use crate::util::*;
+use libbgs_util::*;
 
 /// A number in the Montgomery modular arithmetic system, modulo N.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -1,7 +1,7 @@
 use std::ops::Index;
 
 use crate::streams::FactorStream;
-use crate::util::intpow;
+use libbgs_util::intpow;
 
 /// A prime power decomposition of a positive integer.
 #[derive(Clone, PartialEq, Eq, Debug)]

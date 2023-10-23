@@ -6,7 +6,7 @@ use std::marker::{PhantomData};
 use std::sync::Arc;
 
 use crate::numbers::*;
-use crate::util::*;
+use libbgs_util::*;
 
 const STACK_ADDITION_LIMIT: u8 = 127;
 
