@@ -4,9 +4,12 @@ use std::sync::Mutex;
 use libbgs::markoff::*;
 use libbgs::numbers::*;
 use libbgs::streams::*;
-use libbgs::stock_impls::*;
 
 const BIG_P: u128 = 1_000_000_000_000_000_124_399;
+
+struct Stock {}
+
+impl_factors!(Stock, 1_000_000_000_000_000_124_399);
 
 fn main() {
     let fp_decomp = SylowDecomp::<Stock, 7, FpNum<BIG_P>>::new();

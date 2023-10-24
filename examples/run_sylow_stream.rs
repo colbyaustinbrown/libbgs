@@ -1,13 +1,14 @@
 use libbgs::numbers::*;
 use libbgs::streams::*;
-use libbgs::stock_impls::*;
 
 use std::time::*;
 
 use rayon::iter::*;
 
 const BIG_P: u128 = 1_000_000_000_000_000_124_399;
-// const BIG_P_SQRT: u128 = 31_622_776_602;
+
+struct Stock {}
+impl_factors!(Stock, 1_000_000_000_000_000_124_399);
 
 fn main() {
     // let decomp = SylowDecomp::<Phantom, 7, FpNum<BIG_P>>::new();

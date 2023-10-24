@@ -5,5 +5,4 @@
 //! primes, specifically with a focus on the Bourgain, Gamburd, and Sarnak algorithm.
 pub mod markoff;
 pub mod numbers;
-pub mod stock_impls;
 pub mod streams;

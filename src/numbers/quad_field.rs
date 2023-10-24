@@ -138,12 +138,13 @@ impl<const P: u128> Mul<Self> for QuadNum<P> {
 mod tests {
     use super::*;
     use crate::numbers::sylow::tests::*;
-    use crate::stock_impls::*;
 
     const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
     #[derive(PartialEq, Eq)]
     struct Phantom {}
+
+    impl_factors!(Phantom, 1_000_000_000_000_000_124_399);
 
     impl Factor<Phantom> for QuadNum<7> {
         const FACTORS: Factorization = Factorization::new(&[(2, 3)]);
@@ -198,11 +199,11 @@ mod tests {
 
     #[test]
     fn sylow_finds_generators_big() {
-        let g = SylowDecomp::<Stock, 11, QuadNum<BIG_P>>::new();
+        let g = SylowDecomp::<Phantom, 11, QuadNum<BIG_P>>::new();
         for i in 0..11 {
             let gen = g.generator(i);
-            let d = SylowElem::<Stock, 11, QuadNum<BIG_P>>::FACTORS.prime_powers()[i];
-            test_is_generator_big::<Stock, 11, QuadNum<BIG_P>>(gen, d);
+            let d = SylowElem::<Phantom, 11, QuadNum<BIG_P>>::FACTORS.prime_powers()[i];
+            test_is_generator_big::<Phantom, 11, QuadNum<BIG_P>>(gen, d);
         }
     }
 }
