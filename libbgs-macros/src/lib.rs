@@ -143,3 +143,22 @@ pub fn primes(tokens: TokenStream) -> TokenStream {
     ])
 }
 
+#[proc_macro]
+pub fn lit_to_ident(tokens: TokenStream) -> TokenStream {
+    struct Helper(syn::Ident, syn::LitInt);
+    impl Parse for Helper {
+        fn parse(input: ParseStream) -> Result<Helper> {
+            let ident = input.parse::<syn::Ident>()?;
+            input.parse::<Token![,]>()?;
+            let lit = input.parse::<syn::LitInt>()?;
+            Ok(Helper(ident, lit))
+        }
+    }
+    let Helper(ident, lit) = parse_macro_input!(tokens as Helper);
+    let mut name = ident.to_string().to_owned();
+    name.push_str(&lit.to_string());
+    TokenStream::from_iter(vec![
+        TokenTree::Ident(proc_macro::Ident::new(&name, Span::call_site())),
+    ])
+}
+
