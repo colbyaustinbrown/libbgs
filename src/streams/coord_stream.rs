@@ -28,9 +28,10 @@ where
     pub fn new(
         hyper_decomp: &'a SylowDecomp<S, L_HYPER, FpNum<P>>,
         ellip_decomp: &'a SylowDecomp<S, L_ELLIP, QuadNum<P>>,
-        limit: u128,
+        hyper_lim: u128,
+        ellip_lim: u128,
     ) -> CoordStream<'a, S, L_HYPER, L_ELLIP, P> {
-        let hyper_stream = FactorStream::new(FpNum::FACTORS.prime_powers(), limit, true)
+        let hyper_stream = FactorStream::new(FpNum::FACTORS.prime_powers(), hyper_lim, true)
             .into_iter()
             .fold(
                 SylowStreamBuilder::<S, L_HYPER, FpNum<P>>::new()
@@ -40,7 +41,7 @@ where
                 |b, x| b.add_target(x),
             )
             .into_iter();
-        let ellip_stream = FactorStream::new(QuadNum::FACTORS.prime_powers(), limit, true)
+        let ellip_stream = FactorStream::new(QuadNum::FACTORS.prime_powers(), ellip_lim, true)
             .into_iter()
             .fold(
                 SylowStreamBuilder::<S, L_ELLIP, QuadNum<P>>::new()
