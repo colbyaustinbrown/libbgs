@@ -5,7 +5,6 @@ use libbgs_util::intpow;
 
 /// When called with phantom type marker `Ph` and a list of integers, each integer `P` is turned
 /// into an implementation of `Factor<Ph> for FpNum<P>` and `Factor<Ph> for QuadNum<P>`.
-
 #[macro_export]
 macro_rules! impl_factors {
     ($mrk:ident, $($n:literal),+ $(,)?) => {$(
@@ -121,6 +120,36 @@ impl Factorization {
     /// Returns the number of prime factors in the factorization.
     pub const fn len(&self) -> usize {
         self.prime_powers.len()
+    }
+
+    /// Returns $\tau$(`&self`), the number of divisors of this integer.
+    /// See OEIS sequence [A000005].
+    ///
+    /// [A000005]: https://oeis.org/A000005
+    pub const fn tau(&self) -> u128 {
+        let mut res = 1u128;
+        let mut i = 0;
+        while i < self.prime_powers.len() {
+            res *= (self.prime_powers[i].1 + 1) as u128;
+            i += 1;
+        }
+        res
+    }
+
+    /// Returns $\phi$(`&self`), the Euler totient function of this integer.
+    /// The totient function $\phi(n)$ is the number of integers $\leq n$ and relatively prime to
+    /// $n$. See OEIS sequence [A000010].
+    ///
+    /// [A000010]: https://oeis.org/A000010
+    pub const fn phi(&self) -> u128 {
+        let mut res = 1;
+        let mut i = 0;
+        while i < self.prime_powers.len() {
+            res *= intpow::<0>(self.prime_powers[i].0, (self.prime_powers[i].1 - 1) as u128);
+            res *= self.prime_powers[i].0 - 1;
+            i += 1;
+        }
+        res
     }
 }
 

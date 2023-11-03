@@ -82,6 +82,22 @@ impl<const P: u128> Coord<P> {
             .as_ref()
             .either(|l| l.order(), |r| r.order())
     }
+
+    /// Returns an upper bound on the endgame breakpoint.
+    /// That is, every triple with order larger than the value returned by this method is
+    /// guarenteed to lie in the endgame.
+    pub fn endgame<S>() -> (u128, u128) 
+    where
+        FpNum::<P>: Factor<S>,
+        QuadNum::<P>: Factor<S>,
+    {
+        let tmp = 8.0 * (P as f64).sqrt(); 
+        let hyper = tmp * ((P - 1) * FpNum::FACTORS.tau()) as f64;
+        let hyper = hyper / (FpNum::FACTORS.phi() as f64);
+        let ellip = tmp * ((P + 1) * QuadNum::FACTORS.tau()) as f64;
+        let ellip = ellip / (QuadNum::FACTORS.phi() as f64);
+        (hyper.ceil() as u128, ellip.ceil() as u128)
+    }
 }
 
 impl<const P: u128> From<u128> for Coord<P> {
