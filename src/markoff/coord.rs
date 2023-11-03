@@ -5,9 +5,19 @@ use crate::numbers::*;
 /// A coordinate for a Markoff triple.
 /// May represent any of $a$, $b$, or $c$ in a Markoff triple $(a, b, c)$.
 /// This is a single field struct containing only an `FpNum<P>` for prime `P`.
-// pub struct Coord<const P: u128>(FpNum<P>);
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Coord<const P: u128>(pub FpNum<P>);
+
+#[derive(PartialEq, Eq)]
+/// The three types of conic sections an orbit could lie inside.
+pub enum Conic {
+    /// An orbit of order dividing $p - 1$ (and not equal to 2).
+    HYPERBOLIC,
+    /// An orbit of order dividing $p + 1$ (and not equal to 2).
+    ELLIPTIC,
+    /// An orbit of order exactly 1 or 2.
+    PARABOLIC,
+}
 
 impl<const P: u128> Coord<P> {
     /// Returns an element $\chi$ such that, for a coordinate $a$, $a = \chi + \chi^{-1}$.
@@ -72,15 +82,21 @@ impl<const P: u128> Coord<P> {
         })
     }
 
-    /// Returns the order of the map $\text{rot}\_a$, that is, $\lvert \langle \text{rot}\_a \rangle \rvert$.
-    pub fn rot_order<S1, S2>(&self) -> u128
+    /// Returns the order of the map $\text{rot}\_a$, that is, $\lvert \langle \text{rot}\_a \rangle \rvert$, along with the type of [`Conic`] that it is.
+    pub fn rot_order<S1, S2>(&self) -> (u128, Conic)
     where
         FpNum<P>: Factor<S1>,
         QuadNum<P>: Factor<S2>,
     {
-        self.to_chi()
+        match self.to_chi()
             .as_ref()
-            .either(|l| l.order(), |r| r.order())
+            .map_either(|l| l.order(), |r| r.order())
+        {
+            Left(1) | Right(1) => (1, Conic::PARABOLIC),
+            Left(2) | Right(2) => (2, Conic::PARABOLIC),
+            Left(d) => (d, Conic::HYPERBOLIC),
+            Right(d) => (d, Conic::ELLIPTIC),
+        }
     }
 
     /// Returns an upper bound on the endgame breakpoint.
