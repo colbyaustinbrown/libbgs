@@ -77,8 +77,9 @@ impl Factorization {
     /// * there are no elements $k | n$ such that $d | k$ and $k \leq l$.
     ///
     /// The iterator cannot outlive the `Factorization`, although the vectors yielded by it may.
-    pub fn maximal_divisors<const L: usize>(&self, l: u128) -> impl Iterator<Item = [usize; L]> + '_ {
+    pub fn maximal_divisors<const L: usize>(&self, l: u128) -> impl Iterator<Item = [usize; L]> {
         FactorStream::new(&self.prime_powers, l, true)
+            .map(|v| v.try_into().unwrap())
     }
 
     /// True if there the factorization represents 1.

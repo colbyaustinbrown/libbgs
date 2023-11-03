@@ -12,19 +12,17 @@ impl_factors!(Stock, 1_000_000_000_000_000_124_399);
 
 fn main() {
     // let decomp = SylowDecomp::<Phantom, 7, FpNum<BIG_P>>::new();
-    let mut builder = SylowStreamBuilder::<Stock, 7, FpNum<BIG_P>>::new()
-        .add_flag(flags::LEQ)
-        .add_flag(flags::NO_PARABOLIC)
-        .add_flag(flags::NO_UPPER_HALF);
-
-    builder = FactorStream::<7>::new(
+    let factors = FactorStream::new(
             FpNum::<BIG_P>::FACTORS.prime_powers(),
             10_000_000,
             true
-        )
-        .into_iter()
-        .inspect(|x| println!("adding target {x:?}"))
-        .fold(builder, |b, x| b.add_target(x));
+        );
+
+    let builder = SylowStreamBuilder::<Stock, 7, FpNum<BIG_P>>::new()
+        .add_flag(flags::LEQ)
+        .add_flag(flags::NO_PARABOLIC)
+        .add_flag(flags::NO_UPPER_HALF)
+        .add_targets_from_factors(factors);
 
     let stream = builder
         .into_par_iter();

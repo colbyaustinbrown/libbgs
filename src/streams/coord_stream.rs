@@ -33,6 +33,7 @@ where
     ) -> CoordStream<'a, S, L_HYPER, L_ELLIP, P> {
         let hyper_stream = FactorStream::new(FpNum::FACTORS.prime_powers(), hyper_lim, true)
             .into_iter()
+            .map(|v| v.try_into().unwrap())
             .fold(
                 SylowStreamBuilder::<S, L_HYPER, FpNum<P>>::new()
                     .add_flag(flags::NO_PARABOLIC)
@@ -43,6 +44,7 @@ where
             .into_iter();
         let ellip_stream = FactorStream::new(QuadNum::FACTORS.prime_powers(), ellip_lim, true)
             .into_iter()
+            .map(|v| v.try_into().unwrap())
             .fold(
                 SylowStreamBuilder::<S, L_ELLIP, QuadNum<P>>::new()
                     .add_flag(flags::NO_PARABOLIC)

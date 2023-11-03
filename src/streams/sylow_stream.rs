@@ -6,6 +6,7 @@ use std::marker::{PhantomData};
 use std::sync::Arc;
 
 use crate::numbers::*;
+use crate::streams::FactorStream;
 use libbgs_util::*;
 
 const STACK_ADDITION_LIMIT: u8 = 127;
@@ -264,6 +265,12 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
         );
 
         self
+    }
+
+    /// Add all the targets yielded by this `FactorStream`.
+    pub fn add_targets_from_factors(self, stream: FactorStream) -> Self {
+        stream.map(|v| v.try_into().unwrap())
+            .fold(self, |b, x| b.add_target(x))
     }
 }
 

@@ -2,14 +2,14 @@ use libbgs_util::intpow;
 
 /// An iterator yielding all of the factors of some number beneath a limit.
 /// The type parameter `L` is the length of the factorization.
-pub struct FactorStream<'a, const L: usize> {
+pub struct FactorStream<'a> {
     source: &'a [(u128, usize)],
-    stack: Vec<(usize, [usize; L])>,
+    stack: Vec<(usize, Vec<usize>)>,
     limit: u128,
     maximal_only: bool,
 }
 
-impl<'a, const L: usize> FactorStream<'a, L> {
+impl<'a> FactorStream<'a> {
     /// Creates a new `FactorStream`, which will return all of the factors of `source` beneath
     /// `limit`.
     /// In particular, it will return all values $d$ satisfying these properties:
@@ -17,20 +17,20 @@ impl<'a, const L: usize> FactorStream<'a, L> {
     /// * $d < limit$
     /// * (if and only if `maximal_only` is True) There does not exist a $k$, $d | k | n$, with $k <
     /// limit$
-    pub fn new(source: &'a [(u128, usize)], limit: u128, maximal_only: bool) -> FactorStream<L> {
+    pub fn new(source: &'a [(u128, usize)], limit: u128, maximal_only: bool) -> FactorStream {
         FactorStream {
             source,
             limit,
-            stack: vec![(0, [0; L])],
+            stack: vec![(0, vec![0; source.len()])],
             maximal_only,
         }
     }
 }
 
-impl<'a, const L: usize> Iterator for FactorStream<'a, L> {
-    type Item = [usize; L];
+impl<'a> Iterator for FactorStream<'a> {
+    type Item = Vec<usize>;
 
-    fn next(&mut self) -> Option<[usize; L]> {
+    fn next(&mut self) -> Option<Vec<usize>> {
         let Some((i, state)) = self.stack.pop() else { return None; };
         // println!("{state:?}");
         let prod: u128 = state
@@ -48,7 +48,7 @@ impl<'a, const L: usize> Iterator for FactorStream<'a, L> {
             if prod * self.source[j].0 > self.limit {
                 break;
             }
-            let mut next = state;
+            let mut next = state.clone();
             next[j] += 1;
             self.stack.push((j, next));
             maximal = false;
@@ -76,14 +76,14 @@ mod tests {
     #[test]
     fn test_stream_max() {
         let facts = [(2, 3), (3, 2), (5, 1)];
-        let count = FactorStream::<3>::new(&facts, 25, true).count();
+        let count = FactorStream::new(&facts, 25, true).count();
         assert_eq!(count, 4);
     }
 
     #[test]
     fn test_stream_all() {
         let facts = [(2, 3), (3, 2), (5, 1)];
-        let stream = FactorStream::<3>::new(&facts, 25, false);
+        let stream = FactorStream::new(&facts, 25, false);
         let mut count = 0;
         for _ in stream {
             count += 1;
@@ -94,7 +94,7 @@ mod tests {
     #[test]
     fn test_stream_maximal_only() {
        let facts = [(2, 1), (7, 1), (13, 1)];
-       let count = FactorStream::<3>::new(&facts, 10, true).count();
+       let count = FactorStream::new(&facts, 10, true).count();
        assert_eq!(count, 2);
     }
 }
