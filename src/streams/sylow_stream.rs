@@ -91,14 +91,14 @@ where
 
     fn init_stack(&mut self, mode: u8) {
         for i in 0..L {
-            let Some(n) = self.tree().children()[i].as_ref() else {
+            let Some(n) = self.tree().child(i) else {
                 continue;
             };
 
             let seed = Seed {
                 part: SylowElem::ONE,
                 start: 0,
-                node: &**n,
+                node: &*n,
             };
 
             let (p, _) = C::FACTORS[i];
@@ -138,11 +138,11 @@ where
             let mut part = seed.part;
             part.coords[node.index()] = tmp;
 
-            if let Some(n) = node.children()[node.index()].as_ref() {
+            if let Some(n) = node.child(node.index()) {
                 self.push(Seed {
                     part,
                     start: 0,
-                    node: &**n,
+                    node: &*n,
                 });
             }
 
@@ -259,6 +259,37 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
             mode: self.mode,
             t,
             _phantom: PhantomData::<(S, C)>,
+        }.visit_mut(&mut self.tree);
+
+        self
+    }
+
+    pub fn add_quotient(mut self, q: [usize; L]) -> Self {
+        struct Quotienter<const L1: usize> {
+            lims: [u128; L1],
+        }
+
+        impl<const L1: usize> Quotienter<L1> {
+            fn visit_mut(&self, node: &mut FactorTrie<L1, GenData>) {
+                if node.data.step > self.lims[node.index()] {
+                    node.data.step = self.lims[node.index()];
+                    if let Some(ref mut child) = node.child_mut(node.index()) {
+                        self.visit_mut(child);
+                    }
+                }
+                for j in (node.index() + 1)..L1 {
+                    if let Some(ref mut child) = node.child_mut(j) {
+                        self.visit_mut(child);
+                    }
+                }
+            }
+        }
+
+        Quotienter {
+            lims: std::array::from_fn(|i| {
+                let (p, d) = C::FACTORS.prime_powers()[i];
+                intpow::<0>(p, (d - 1 - q[i]) as u128) - 1
+            })
         }.visit_mut(&mut self.tree);
 
         self

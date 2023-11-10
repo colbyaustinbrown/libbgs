@@ -161,4 +161,12 @@ impl<const L: usize, T> FactorTrie<L, T> {
     pub fn children(&self) -> &[Option<Box<FactorTrie<L, T>>>] {
         &self.children
     }
+
+    pub fn child(&self, i: usize) -> Option<&FactorTrie<L, T>> {
+        self.children[i].as_ref().map(|o| &**o)
+    }
+
+    pub fn child_mut(&mut self, i: usize) -> Option<&mut FactorTrie<L, T>> {
+        self.children[i].as_mut().map(|o| &mut **o)
+    }
 }
