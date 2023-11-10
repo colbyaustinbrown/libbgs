@@ -39,7 +39,7 @@ where
                     .add_flag(flags::NO_PARABOLIC)
                     .add_flag(flags::NO_UPPER_HALF)
                     .add_flag(flags::LEQ),
-                |b, x| b.add_target(x),
+                |b, x| b.add_target(&x),
             )
             .into_iter();
         let ellip_stream = FactorStream::new(QuadNum::FACTORS.prime_powers(), ellip_lim, true)
@@ -50,7 +50,7 @@ where
                     .add_flag(flags::NO_PARABOLIC)
                     .add_flag(flags::NO_UPPER_HALF)
                     .add_flag(flags::LEQ),
-                |b, x| b.add_target(x),
+                |b, x| b.add_target(&x),
             )
             .into_iter();
         CoordStream {

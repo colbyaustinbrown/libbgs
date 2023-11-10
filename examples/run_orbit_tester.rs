@@ -28,12 +28,12 @@ fn main() {
     println!("Adding these targets from F_p: ");
     for d in FpNum::<BIG_P>::FACTORS.maximal_divisors(LIMIT) {
         println!("\t{d:?}");
-        fp_stream_builder = fp_stream_builder.add_target(d);
+        fp_stream_builder = fp_stream_builder.add_target(&d);
     }
     println!("Adding these targets from F_p^2: ");
     for d in QuadNum::<BIG_P>::FACTORS.maximal_divisors::<{ QuadNum::<BIG_P>::LENGTH }>(LIMIT) {
         println!("\t{d:?}");
-        fp2_stream_builder = fp2_stream_builder.add_target(d);
+        fp2_stream_builder = fp2_stream_builder.add_target(&d);
     }
 
     let tester = Mutex::new(OrbitTester::<BIG_P>::new());

@@ -3,7 +3,7 @@ pub struct FactorTrie<const L: usize, T> {
     i: usize,
     ds: [usize; L],
     children: [Option<Box<FactorTrie<L, T>>>; L],
-    data: T,
+    pub data: T,
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]
@@ -27,16 +27,16 @@ pub trait FactorVisitor<const L: usize, T> {
 }
 
 pub trait MutFactorVisitor<const L: usize, T> {
-    fn visit(&mut self, node: &mut FactorTrie<L, T>) {
-        self.super_visit(node);
+    fn visit_mut(&mut self, node: &mut FactorTrie<L, T>) {
+        self.super_visit_mut(node);
     }
 
-    fn super_visit(&mut self, node: &mut FactorTrie<L, T>) {
+    fn super_visit_mut(&mut self, node: &mut FactorTrie<L, T>) {
         node.children.each_mut()
             .into_iter()
             .filter_map(|o| o.as_mut())
             .for_each(|n| {
-                self.visit(n);
+                self.visit_mut(n);
             }); 
     }
 }
@@ -156,14 +156,6 @@ impl<const L: usize, T> FactorTrie<L, T> {
 
     pub fn ds(&self) -> &[usize; L] {
         &self.ds 
-    }
-
-    pub fn data(&self) -> &T {
-        &self.data
-    }
-
-    pub fn data_mut(&mut self) -> &mut T {
-        &mut self.data
     }
 
     pub fn children(&self) -> &[Option<Box<FactorTrie<L, T>>>] {
