@@ -12,6 +12,35 @@ enum LeqMode {
     STRICT,
 }
 
+pub trait FactorVisitor<const L: usize, T> {
+    fn visit(&mut self, node: &FactorTrie<L, T>) {
+        self.super_visit(node);
+    }
+
+    fn super_visit(&mut self, node: &FactorTrie<L, T>) {
+        node.children.iter()
+            .filter_map(|o| o.as_ref())
+            .for_each(|n| {
+                self.visit(n);
+            });
+    }
+}
+
+pub trait MutFactorVisitor<const L: usize, T> {
+    fn visit(&mut self, node: &mut FactorTrie<L, T>) {
+        self.super_visit(node);
+    }
+
+    fn super_visit(&mut self, node: &mut FactorTrie<L, T>) {
+        node.children.each_mut()
+            .into_iter()
+            .filter_map(|o| o.as_mut())
+            .for_each(|n| {
+                self.visit(n);
+            }); 
+    }
+}
+
 impl<const L: usize, T> FactorTrie<L, T> {
     pub fn new(data: T) -> Self {
         FactorTrie {
@@ -20,6 +49,19 @@ impl<const L: usize, T> FactorTrie<L, T> {
             data,
             children: std::array::from_fn(|_| None),
         }
+    }
+
+    pub fn get_or_new_child(&mut self, i: usize, data: T) -> &mut FactorTrie<L, T> {
+        self.children[i].get_or_insert(Box::new(FactorTrie {
+            i,
+            ds: {
+                let mut ds = self.ds;
+                ds[i] += 1;
+                ds
+            },
+            data,
+            children: std::array::from_fn(|_| None),
+        }))
     }
 
     pub fn add<F>(&mut self, t: [usize; L], gen: F)
@@ -118,6 +160,10 @@ impl<const L: usize, T> FactorTrie<L, T> {
 
     pub fn data(&self) -> &T {
         &self.data
+    }
+
+    pub fn data_mut(&mut self) -> &mut T {
+        &mut self.data
     }
 
     pub fn children(&self) -> &[Option<Box<FactorTrie<L, T>>>] {
