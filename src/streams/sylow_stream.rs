@@ -273,12 +273,9 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
         impl<const L1: usize> Quotienter<L1> {
             fn visit_mut(&self, node: &mut FactorTrie<L1, GenData>) {
                 if node.data.step > self.lims[node.index()] {
-                    node.data.step = self.lims[node.index()];
-                    if let Some(ref mut child) = node.child_mut(node.index()) {
-                        self.visit_mut(child);
-                    }
+                    node.data.lim = self.lims[node.index()];
                 }
-                for j in (node.index() + 1)..L1 {
+                for j in node.index()..L1 {
                     if let Some(ref mut child) = node.child_mut(j) {
                         self.visit_mut(child);
                     }
@@ -289,8 +286,8 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
         Quotienter {
             lims: std::array::from_fn(|i| {
                 let (p, d) = C::FACTORS.prime_powers()[i];
-                if q[i] < d {
-                    intpow::<0>(p, (d - 1 - q[i]) as u128) - 1
+                if q[i] <= d {
+                    intpow::<0>(p, (d - q[i]) as u128) - 1
                 } else { 0 }
             })
         }.visit_mut(&mut self.tree);
