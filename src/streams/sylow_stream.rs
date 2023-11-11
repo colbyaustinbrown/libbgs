@@ -289,7 +289,9 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
         Quotienter {
             lims: std::array::from_fn(|i| {
                 let (p, d) = C::FACTORS.prime_powers()[i];
-                intpow::<0>(p, (d - 1 - q[i]) as u128) - 1
+                if q[i] < d {
+                    intpow::<0>(p, (d - 1 - q[i]) as u128) - 1
+                } else { 0 }
             })
         }.visit_mut(&mut self.tree);
 
