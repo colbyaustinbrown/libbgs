@@ -41,11 +41,11 @@ fn main() {
     println!("Loading coordinates into the Orbit Tester.");
     fp_stream_builder
         .into_iter()
-        .map(|x| Coord::from_chi_fp(&x, &fp_decomp))
+        .map(|(x,_)| Coord::from_chi_fp(&x, &fp_decomp))
         .chain(
             fp2_stream_builder
                 .into_iter()
-                .map(|x| Coord::from_chi_quad(&x, &fp2_decomp)),
+                .map(|(x,_)| Coord::from_chi_quad(&x, &fp2_decomp)),
         )
         .for_each(|x| {
             count.fetch_add(1, Ordering::Relaxed);

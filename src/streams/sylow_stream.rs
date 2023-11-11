@@ -52,7 +52,7 @@ pub struct SylowParStream<
 > {
     stack: Vec<Seed<S, L, C>>,
     splits: usize,
-    buffer: Vec<SylowElem<S, L, C>>,
+    buffer: Vec<Output<S, L, C>>,
     tree: Arc<FactorNode<L>>,
 }
 
@@ -60,7 +60,7 @@ pub struct SylowParStream<
 /// Generates the elements sequentially on a single thread.
 pub struct SylowSeqStream<S, const L: usize, C: SylowDecomposable<S>> {
     stack: Vec<Seed<S, L, C>>,
-    buffer: Vec<SylowElem<S, L, C>>,
+    buffer: Vec<Output<S, L, C>>,
     tree: Arc<FactorNode<L>>,
 }
 
@@ -79,6 +79,7 @@ struct GenData {
 }
 
 type FactorNode<const L: usize> = FactorTrie<L, GenData>;
+type Output<S, const L: usize, C> = (SylowElem<S, L, C>, [usize; L]);
 
 trait SylowStream<'a, S, const L: usize, C>
 where
@@ -113,7 +114,7 @@ where
     fn propogate<F>(&mut self, seed: Seed<S, L, C>, mut consume: F)
     where
         Self: Sized,
-        F: FnMut(&mut Self, SylowElem<S, L, C>),
+        F: FnMut(&mut Self, Output<S, L, C>),
     {
         let node = unsafe { &*seed.node };
         let (p, _) = C::FACTORS[node.index()];
@@ -152,7 +153,7 @@ where
                 continue;
             }
             if node.data.consume {
-                consume(self, part);
+                consume(self, (part, *node.ds()));
             }
 
             node.children()
@@ -318,9 +319,9 @@ impl<S, const L: usize, C: SylowDecomposable<S>> SylowSeqStream<S, L, C> {
 }
 
 impl<S, const L: usize, C: SylowDecomposable<S>> Iterator for SylowSeqStream<S, L, C> {
-    type Item = SylowElem<S, L, C>;
+    type Item = (SylowElem<S, L, C>, [usize; L]);
 
-    fn next(&mut self) -> Option<SylowElem<S, L, C>> {
+    fn next(&mut self) -> Option<(SylowElem<S, L, C>, [usize; L])> {
         if let Some(res) = self.buffer.pop() {
             Some(res)
         } else if let Some(top) = self.stack.pop() {
@@ -363,7 +364,7 @@ where
     fn work<Con>(&mut self, stolen: bool, consumer: Con) -> Con::Result
     where
         C: Send,
-        Con: UnindexedConsumer<SylowElem<S, L, C>>,
+        Con: UnindexedConsumer<Output<S, L, C>>,
     {
         let mut folder = consumer.split_off_left().into_folder();
         while let Some(buf) = self.buffer.pop() {
@@ -410,7 +411,7 @@ where
     S: Send + Sync,
     C: SylowDecomposable<S> + Send + Sync,
 {
-    type Item = SylowElem<S, L, C>;
+    type Item = Output<S, L, C>;
 
     fn drive_unindexed<Con>(mut self, consumer: Con) -> Con::Result
     where
@@ -424,7 +425,7 @@ impl<S, const L: usize, C> IntoIterator for SylowStreamBuilder<S, L, C>
 where
     C: SylowDecomposable<S>,
 {
-    type Item = SylowElem<S, L, C>;
+    type Item = Output<S, L, C>;
     type IntoIter = SylowSeqStream<S, L, C>;
 
     fn into_iter(self) -> SylowSeqStream<S, L, C> {
@@ -432,7 +433,7 @@ where
         if (self.mode & flags::INCLUDE_ONE != 0)
             || (self.mode & flags::LEQ != 0 && self.mode & flags::NO_PARABOLIC == 0)
         {
-            buffer.push(SylowElem::ONE);
+            buffer.push((SylowElem::ONE, [0; L]));
         }
         let mut stream = SylowSeqStream {
             tree: Arc::from(self.tree),
@@ -449,7 +450,7 @@ where
     S: Send + Sync,
     C: SylowDecomposable<S> + Send + Sync,
 {
-    type Item = SylowElem<S, L, C>;
+    type Item = Output<S, L, C>;
     type Iter = SylowParStream<S, L, C>;
 
     fn into_par_iter(self) -> Self::Iter {
@@ -458,7 +459,7 @@ where
             stack: Vec::new(),
             buffer: if self.mode & flags::INCLUDE_ONE != 0
                 || (self.mode & flags::LEQ != 0 && self.mode & flags::NO_PARABOLIC == 0) {
-                    vec![SylowElem::ONE]
+                    vec![(SylowElem::ONE, [0; L])]
                 } else {
                     Vec::new()
                 },
@@ -599,7 +600,7 @@ mod tests {
         let res: Vec<FpNum<7>> = SylowStreamBuilder::new()
             .add_target(&[1, 0])
             .into_iter()
-            .filter_map(|s| s.to_product(&g).into())
+            .filter_map(|(s, _)| s.to_product(&g).into())
             .collect();
         assert_eq!(res, vec![6]);
     }
@@ -607,7 +608,7 @@ mod tests {
     #[test]
     pub fn test_generates_small_seq() {
         let stream = SylowStreamBuilder::new().add_target(&[1, 0, 0]).into_iter();
-        let coords: Vec<SylowElem<Phantom, 3, FpNum<61>>> = stream.collect();
+        let coords: Vec<SylowElem<Phantom, 3, FpNum<61>>> = stream.map(|(a, _)| a).collect();
         assert_eq!(coords.len(), 1);
         let mut x = coords[0].clone();
         assert!(x != SylowElem::ONE);
@@ -618,7 +619,7 @@ mod tests {
         SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
             .add_target(&[2, 0, 0])
             .into_iter()
-            .for_each(|mut x| {
+            .for_each(|(mut x, _)| {
                 count += 1;
                 for _ in 1..3 {
                     let y = x.clone();
@@ -650,14 +651,14 @@ mod tests {
         let stream = SylowStreamBuilder::new()
             .add_target(&[0, 0, 0, 2, 0, 0, 0])
             .into_iter();
-        let coords: Vec<SylowElem<Phantom, 7, FpNum<BIG_P>>> = stream.collect();
+        let coords: Vec<SylowElem<Phantom, 7, FpNum<BIG_P>>> = stream.map(|(a, _)| a).collect();
         assert_eq!(coords.len(), 29 * 29 - 29);
 
         SylowStreamBuilder::<Phantom, 7, FpNum<BIG_P>>::new()
             .add_target(&[0, 0, 0, 0, 0, 1, 0])
             .into_iter()
             .take(2)
-            .for_each(|mut x| {
+            .for_each(|(mut x, _)| {
                 assert!(x != SylowElem::ONE);
                 x = x.pow(705737);
                 assert!(x == SylowElem::ONE);
@@ -686,26 +687,26 @@ mod tests {
             .add_target(&[1, 0, 0])
             .add_target(&[0, 1, 0])
             .into_iter();
-        let coords: Vec<SylowElem<Phantom, 3, FpNum<271>>> = stream.collect();
+        let coords = stream.collect::<Vec<_>>();
         assert_eq!(coords.len(), 3);
 
-        let stream = SylowStreamBuilder::new()
+        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
             .add_flag(flags::LEQ)
             .add_target(&[1, 1, 0])
             .add_target(&[0, 2, 0])
             .add_target(&[0, 0, 1])
             .into_iter();
-        let coords: Vec<SylowElem<Phantom, 3, FpNum<271>>> = stream.collect();
+        let coords = stream.collect::<Vec<_>>();
         assert_eq!(coords.len(), 16);
     }
 
     #[test]
     pub fn test_multiple_targets_2_seq() {
-        let coords: Vec<SylowElem<Phantom, 4, FpNum<13928643>>> = SylowStreamBuilder::new()
+        let coords = SylowStreamBuilder::<Phantom, 4, FpNum<13928643>>::new()
             .add_flag(flags::LEQ)
             .add_target(&[0, 1, 1, 0])
             .into_iter()
-            .collect();
+            .collect::<Vec<_>>();
 
         assert_eq!(coords.len(), 91);
     }
@@ -718,7 +719,7 @@ mod tests {
             .add_flag(flags::NO_PARABOLIC)
             .add_target(&[2, 0, 1])
             .into_iter()
-            .for_each(|mut x| {
+            .for_each(|(mut x, _)| {
                 assert!(x != SylowElem::ONE);
                 x = x.multiply(&x);
                 assert!(x != SylowElem::ONE);
@@ -733,19 +734,19 @@ mod tests {
         let res: Vec<FpNum<7>> = SylowStreamBuilder::new()
             .add_target(&[1, 0])
             .into_par_iter()
-            .filter_map(|s| s.to_product(&g).into())
+            .filter_map(|(s, _)| s.to_product(&g).into())
             .collect();
         assert_eq!(res, vec![6]);
     }
 
     #[test]
     pub fn test_generates_small_par() {
-        let stream = SylowStreamBuilder::new()
+        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
             .add_target(&[1, 0, 0])
             .into_par_iter();
-        let coords: Vec<SylowElem<Phantom, 3, FpNum<61>>> = stream.collect();
+        let coords = stream.collect::<Vec<_>>();
         assert_eq!(coords.len(), 1);
-        let mut x = coords[0].clone();
+        let (mut x, _) = coords[0].clone();
         assert!(x != SylowElem::ONE);
         x = x.pow(2);
         assert!(x == SylowElem::ONE);
@@ -754,7 +755,7 @@ mod tests {
         SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
             .add_target(&[2, 0, 0])
             .into_par_iter()
-            .for_each(|mut x| {
+            .for_each(|(mut x, _)| {
                 count.fetch_add(1, Ordering::Relaxed);
                 for _ in 1..3 {
                     let y = x.clone();
@@ -773,17 +774,17 @@ mod tests {
 
     #[test]
     pub fn test_generates_big_par() {
-        let stream = SylowStreamBuilder::new()
+        let stream = SylowStreamBuilder::<Phantom, 7, FpNum<BIG_P>>::new()
             .add_target(&[0, 0, 0, 2, 0, 0, 0])
             .into_par_iter();
-        let coords: Vec<SylowElem<Phantom, 7, FpNum<BIG_P>>> = stream.collect();
+        let coords = stream.collect::<Vec<_>>();
         assert_eq!(coords.len(), 29 * 29 - 29);
 
         SylowStreamBuilder::<Phantom, 7, FpNum<BIG_P>>::new()
             .add_target(&[0, 0, 0, 0, 0, 1, 0])
             .into_par_iter()
             .take_any(2)
-            .for_each(|mut x| {
+            .for_each(|(mut x, _)| {
                 assert!(x != SylowElem::ONE);
                 x = x.pow(705737);
                 assert!(x == SylowElem::ONE);
@@ -808,30 +809,30 @@ mod tests {
 
     #[test]
     pub fn test_multiple_targets_par() {
-        let stream = SylowStreamBuilder::new()
+        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
             .add_target(&[1, 0, 0])
             .add_target(&[0, 1, 0])
             .into_par_iter();
-        let coords: Vec<SylowElem<Phantom, 3, FpNum<271>>> = stream.collect();
+        let coords = stream.collect::<Vec<_>>();
         assert_eq!(coords.len(), 3);
 
-        let stream = SylowStreamBuilder::new()
+        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
             .add_flag(flags::LEQ)
             .add_target(&[1, 1, 0])
             .add_target(&[0, 2, 0])
             .add_target(&[0, 0, 1])
             .into_par_iter();
-        let coords: Vec<SylowElem<Phantom, 3, FpNum<271>>> = stream.collect();
+        let coords = stream.collect::<Vec<_>>();
         assert_eq!(coords.len(), 16);
     }
 
     #[test]
     pub fn test_multiple_targets_2_par() {
-        let coords: Vec<SylowElem<Phantom, 4, FpNum<13928643>>> = SylowStreamBuilder::new()
+        let coords = SylowStreamBuilder::<Phantom, 4, FpNum<13928643>>::new()
             .add_flag(flags::LEQ)
             .add_target(&[0, 1, 1, 0])
             .into_par_iter()
-            .collect();
+            .collect::<Vec<_>>();
 
         assert_eq!(coords.len(), 91);
     }
@@ -844,7 +845,7 @@ mod tests {
             .add_flag(flags::NO_PARABOLIC)
             .add_target(&[2, 0, 1])
             .into_par_iter()
-            .for_each(|mut x| {
+            .for_each(|(mut x, _)| {
                 assert!(x != SylowElem::ONE);
                 x = x.multiply(&x);
                 assert!(x != SylowElem::ONE);
