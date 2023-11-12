@@ -39,7 +39,7 @@ pub mod flags {
 /// A builder for a stream yielding elements of particular orders, as their Sylow decompositions.
 pub struct SylowStreamBuilder<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> {
     mode: u8,
-    tree: Box<FactorNode<L>>,
+    tree: Box<FactorTrie<L, Consume>>,
     quotient: Option<[usize; L]>,
     _phantom: PhantomData<(S, C)>,
 }
@@ -72,24 +72,21 @@ struct Seed<S, const L: usize, C: SylowDecomposable<S>> {
 
 #[derive(Clone, Debug)]
 struct GenData {
-    consume: bool,
+    consume: Consume,
     step: u128,
     lim: u128,
 }
 
 type FactorNode<const L: usize> = FactorTrie<L, GenData>;
 type Output<S, const L: usize, C> = (SylowElem<S, L, C>, [usize; L]);
+type Consume = bool;
 
 impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBuilder<S, L, C> {
     /// Returns a new `SylowStreamBuilder`.
     pub fn new() -> SylowStreamBuilder<S, L, C> {
         SylowStreamBuilder {
             mode: flags::NONE,
-            tree: Box::new(FactorNode::new(GenData {
-                step: 0,
-                lim: 0,
-                consume: false,
-            })),
+            tree: Box::new(FactorTrie::new(false)),
             quotient: None,
             _phantom: PhantomData,
         }
@@ -115,12 +112,12 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
             _phantom: PhantomData<(S1, C1)>,
         }
 
-        impl<'a, S1, const L1: usize, C1> MutFactorVisitor<L1, GenData> for Adder<'a, S1, L1, C1> 
+        impl<'a, S1, const L1: usize, C1> MutFactorVisitor<L1, Consume> for Adder<'a, S1, L1, C1> 
         where
             C1: Factor<S1>,
         {
-            fn visit_mut(&mut self, node: &mut FactorTrie<L1, GenData>) {
-                node.data.consume |= self.mode & flags::LEQ != 0
+            fn visit_mut(&mut self, node: &mut FactorTrie<L1, Consume>) {
+                node.data |= self.mode & flags::LEQ != 0
                     || (self.t[node.index()] == node.ds()[node.index()] && {
                         let mut j = node.index() + 1;
                         loop {
@@ -135,12 +132,7 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
                     });
                 for j in node.index()..L1 {
                     if self.t[j] > node.ds()[j] {
-                        let (p2, d2) = C1::FACTORS.prime_powers()[j];
-                        let child = node.get_or_new_child(j, GenData {
-                            step: intpow::<0>(p2, (d2 - 1 - node.ds()[j]) as u128),
-                            consume: false,
-                            lim: 0,
-                        });
+                        let child = node.get_or_new_child(j, false);
                         self.visit_mut(child);
                         if self.mode & flags::LEQ == 0 {
                             break;
@@ -351,7 +343,15 @@ where
     type Item = Output<S, L, C>;
     type IntoIter = SylowStream<S, L, C>;
 
-    fn into_iter(mut self) -> SylowStream<S, L, C> {
+    fn into_iter(self) -> SylowStream<S, L, C> {
+        let mut tree = self.tree.map(&mut |consume, ds: &[usize; L], i| {
+            let (p, d) = C::FACTORS.prime_powers()[i];
+            GenData {
+                consume, 
+                step: intpow::<0>(p, (d - ds[i]) as u128),
+                lim: 0,
+            }
+        });
         struct Limiter<S1, const L1: usize, C1> {
             block: bool,
             lims: [u128; L1],
@@ -362,18 +362,19 @@ where
             C1: Factor<S1>,
         {
             fn visit_mut(&mut self, node: &mut FactorTrie<L1, GenData>) {
-                node.data.lim = self.lims[node.index()];
                 let (p, _) = C1::FACTORS.prime_powers()[node.index()];
+                node.data.lim = self.lims[node.index()];
                 if self.block {
                     node.data.lim /= 2;
                 }
                 for j in node.index()..L1 {
-                    let block = ((p == 2 && node.ds()[0] <= 1) || j == node.index()) && self.block;
-                    let Some(child) = node.child_mut(j) else { continue; };
                     Limiter {
-                        block,
+                        block: ((p == 2 && node.ds()[0] <= 1) || j == node.index()) && self.block,
                         ..*self
-                    }.visit_mut(child);
+                    }.visit_mut({
+                        let Some(child) = node.child_mut(j) else { continue; };
+                        child
+                    });
                 }
             }
         }
@@ -387,9 +388,9 @@ where
                 } else { 0 }
             }),
             _phantom: PhantomData::<(S, C)>,
-        }.visit_mut(&mut self.tree);
+        }.visit_mut(&mut tree);
         let mut stream = SylowStream {
-            tree: Arc::from(self.tree),
+            tree: Arc::from(tree),
             stack: Vec::new(),
             buffer: if (self.mode & flags::INCLUDE_ONE != 0)
                 || (self.mode & flags::LEQ != 0 && self.mode & flags::NO_PARABOLIC == 0)
