@@ -12,8 +12,8 @@ where
     FpNum<P>: SylowDecomposable<S>,
     QuadNum<P>: SylowDecomposable<S>,
 {
-    hyper_stream: Option<SylowSeqStream<S, L_HYPER, FpNum<P>>>,
-    ellip_stream: Option<SylowSeqStream<S, L_ELLIP, QuadNum<P>>>,
+    hyper_stream: Option<SylowStream<S, L_HYPER, FpNum<P>>>,
+    ellip_stream: Option<SylowStream<S, L_ELLIP, QuadNum<P>>>,
     hyper_decomp: &'a SylowDecomp<S, L_HYPER, FpNum<P>>,
     ellip_decomp: &'a SylowDecomp<S, L_ELLIP, QuadNum<P>>,
 }

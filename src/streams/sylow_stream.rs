@@ -50,15 +50,13 @@ pub struct SylowParStream<
     const L: usize,
     C: SylowDecomposable<S> + std::fmt::Debug,
 > {
-    stack: Vec<Seed<S, L, C>>,
+    stream: SylowStream<S, L, C>,
     splits: usize,
-    buffer: Vec<Output<S, L, C>>,
-    tree: Arc<FactorNode<L>>,
 }
 
 /// A stream yielding elements of particular orders, as their Sylow decompositions.
 /// Generates the elements sequentially on a single thread.
-pub struct SylowSeqStream<S, const L: usize, C: SylowDecomposable<S>> {
+pub struct SylowStream<S, const L: usize, C: SylowDecomposable<S>> {
     stack: Vec<Seed<S, L, C>>,
     buffer: Vec<Output<S, L, C>>,
     tree: Arc<FactorNode<L>>,
@@ -80,96 +78,6 @@ struct GenData {
 
 type FactorNode<const L: usize> = FactorTrie<L, GenData>;
 type Output<S, const L: usize, C> = (SylowElem<S, L, C>, [usize; L]);
-
-trait SylowStream<'a, S, const L: usize, C>
-where
-    Self: Sized,
-    C: SylowDecomposable<S>,
-{
-    fn push(&mut self, e: Seed<S, L, C>);
-    fn stack(&mut self) -> &mut Vec<Seed<S, L, C>>;
-    fn tree(&self) -> &FactorNode<L>;
-
-    fn init_stack(&mut self, mode: u8) {
-        for i in 0..L {
-            let Some(n) = self.tree().child(i) else {
-                continue;
-            };
-
-            let seed = Seed {
-                part: SylowElem::ONE,
-                start: 0,
-                node: &*n,
-            };
-
-            let (p, _) = C::FACTORS[i];
-            if mode & flags::NO_PARABOLIC != 0 && p == 2 {
-                self.propogate(seed, |_, _| {});
-            } else {
-                self.push(seed);
-            }
-        }
-    }
-
-    fn propogate<F>(&mut self, seed: Seed<S, L, C>, mut consume: F)
-    where
-        Self: Sized,
-        F: FnMut(&mut Self, Output<S, L, C>),
-    {
-        let node = unsafe { &*seed.node };
-        let (p, _) = C::FACTORS[node.index()];
-
-        // First, create new seeds by incrementing
-        // the current power.
-        let mut stop = p;
-
-        if stop - seed.start > STACK_ADDITION_LIMIT as u128 {
-            self.push(Seed {
-                start: seed.start + STACK_ADDITION_LIMIT as u128,
-                ..seed
-            });
-            stop = seed.start + STACK_ADDITION_LIMIT as u128;
-        }
-
-        for j in seed.start..stop {
-            let tmp = seed.part.coords[node.index()] + j * node.data.step;
-            if tmp > node.data.lim {
-                break;
-            }
-            let mut part = seed.part;
-            part.coords[node.index()] = tmp;
-
-            if let Some(n) = node.child(node.index()) {
-                self.push(Seed {
-                    part,
-                    start: 0,
-                    node: &*n,
-                });
-            }
-
-            // Next, create new seeds by moving to the next prime power,
-            // but only if we are *done* with this prime power.
-            if j == 0 {
-                continue;
-            }
-            if node.data.consume {
-                consume(self, (part, *node.ds()));
-            }
-
-            node.children()
-                .iter()
-                .skip(node.index() + 1)
-                .filter_map(|o| o.as_ref())
-                .for_each(|n| {
-                    self.push(Seed {
-                        part,
-                        start: 0,
-                        node: &**n,
-                    });
-                });
-        }
-    }
-}
 
 impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBuilder<S, L, C> {
     /// Returns a new `SylowStreamBuilder`.
@@ -265,7 +173,9 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
         self
     }
 
-    pub fn add_quotient(mut self, q: [usize; L]) -> Self {
+    /// Guarantees that this stream will only ever yield one representative of the cosets of the
+    /// quotient.
+    pub fn set_quotient(mut self, q: [usize; L]) -> Self {
         struct Quotienter<const L1: usize> {
             lims: [u128; L1],
         }
@@ -302,22 +212,104 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S>> SylowSeqStream<S, L, C> {
+impl<S, const L: usize, C: SylowDecomposable<S>> SylowStream<S, L, C> {
     /// Converts a sequential Sylow stream into a parallel one.
     pub fn parallelize(self) -> SylowParStream<S, L, C>
     where
         S: Send + Sync,
     {
         SylowParStream {
-            stack: self.stack,
-            buffer: self.buffer,
+            stream: SylowStream {
+                stack: self.stack,
+                buffer: self.buffer,
+                tree: Arc::from(self.tree),
+            },
             splits: rayon::current_num_threads(),
-            tree: Arc::from(self.tree),
+        }
+    }
+
+    fn init_stack(&mut self, mode: u8) {
+        for i in 0..L {
+            let Some(n) = self.tree.child(i) else {
+                continue;
+            };
+
+            let seed = Seed {
+                part: SylowElem::ONE,
+                start: 0,
+                node: &*n,
+            };
+
+            let (p, _) = C::FACTORS[i];
+            if mode & flags::NO_PARABOLIC != 0 && p == 2 {
+                self.propogate(seed, |_, _| {});
+            } else {
+                self.stack.push(seed);
+            }
+        }
+    }
+
+    fn propogate<F>(&mut self, seed: Seed<S, L, C>, mut consume: F)
+    where
+        Self: Sized,
+        F: FnMut(&mut Self, Output<S, L, C>),
+    {
+        let node = unsafe { &*seed.node };
+        let (p, _) = C::FACTORS[node.index()];
+
+        // First, create new seeds by incrementing
+        // the current power.
+        let mut stop = p;
+
+        if stop - seed.start > STACK_ADDITION_LIMIT as u128 {
+            self.stack.push(Seed {
+                start: seed.start + STACK_ADDITION_LIMIT as u128,
+                ..seed
+            });
+            stop = seed.start + STACK_ADDITION_LIMIT as u128;
+        }
+
+        for j in seed.start..stop {
+            let tmp = seed.part.coords[node.index()] + j * node.data.step;
+            if tmp > node.data.lim {
+                break;
+            }
+            let mut part = seed.part;
+            part.coords[node.index()] = tmp;
+
+            if let Some(n) = node.child(node.index()) {
+                self.stack.push(Seed {
+                    part,
+                    start: 0,
+                    node: &*n,
+                });
+            }
+
+            // Next, create new seeds by moving to the next prime power,
+            // but only if we are *done* with this prime power.
+            if j == 0 {
+                continue;
+            }
+            if node.data.consume {
+                consume(self, (part, *node.ds()));
+            }
+
+            node.children()
+                .iter()
+                .skip(node.index() + 1)
+                .filter_map(|o| o.as_ref())
+                .for_each(|n| {
+                    self.stack.push(Seed {
+                        part,
+                        start: 0,
+                        node: &**n,
+                    });
+                });
         }
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S>> Iterator for SylowSeqStream<S, L, C> {
+impl<S, const L: usize, C: SylowDecomposable<S>> Iterator for SylowStream<S, L, C> {
     type Item = (SylowElem<S, L, C>, [usize; L]);
 
     fn next(&mut self) -> Option<(SylowElem<S, L, C>, [usize; L])> {
@@ -346,17 +338,19 @@ where
             return None;
         }
 
-        let len = self.stack.len();
+        let len = self.stream.stack.len();
         if len <= 1 {
             return None;
         }
-        let stack = self.stack.split_off(len / 2);
+        let stack = self.stream.stack.split_off(len / 2);
         self.splits /= 2;
         Some(SylowParStream {
-            tree: Arc::clone(&self.tree),
-            stack,
+            stream: SylowStream {
+                tree: Arc::clone(&self.stream.tree),
+                stack,
+                buffer: Vec::new(),
+            },
             splits: self.splits,
-            buffer: Vec::new(),
         })
     }
 
@@ -366,19 +360,17 @@ where
         Con: UnindexedConsumer<Output<S, L, C>>,
     {
         let mut folder = consumer.split_off_left().into_folder();
-        while let Some(buf) = self.buffer.pop() {
+        while let Some(buf) = self.stream.buffer.pop() {
             folder = folder.consume(buf);
         }
         let folder = RefCell::new(Some(folder));
 
         let mut count = 0;
         loop {
-            if let Some(top) = self.stack.pop() {
-                self.propogate(top, |_, e| {
+            if let Some(top) = self.stream.next() {
                     let mut f = folder.take().unwrap();
-                    f = f.consume(e);
+                    f = f.consume(top);
                     folder.replace(Some(f));
-                });
             } else {
                 break;
             }
@@ -425,16 +417,16 @@ where
     C: SylowDecomposable<S>,
 {
     type Item = Output<S, L, C>;
-    type IntoIter = SylowSeqStream<S, L, C>;
+    type IntoIter = SylowStream<S, L, C>;
 
-    fn into_iter(self) -> SylowSeqStream<S, L, C> {
+    fn into_iter(self) -> SylowStream<S, L, C> {
         let mut buffer = Vec::new();
         if (self.mode & flags::INCLUDE_ONE != 0)
             || (self.mode & flags::LEQ != 0 && self.mode & flags::NO_PARABOLIC == 0)
         {
             buffer.push((SylowElem::ONE, [0; L]));
         }
-        let mut stream = SylowSeqStream {
+        let mut stream = SylowStream {
             tree: Arc::from(self.tree),
             stack: Vec::new(),
             buffer,
@@ -453,54 +445,10 @@ where
     type Iter = SylowParStream<S, L, C>;
 
     fn into_par_iter(self) -> Self::Iter {
-        let mut res = SylowParStream {
+        SylowParStream {
+            stream: self.into_iter(),
             splits: rayon::current_num_threads(),
-            stack: Vec::new(),
-            buffer: if self.mode & flags::INCLUDE_ONE != 0
-                || (self.mode & flags::LEQ != 0 && self.mode & flags::NO_PARABOLIC == 0) {
-                    vec![(SylowElem::ONE, [0; L])]
-                } else {
-                    Vec::new()
-                },
-            tree: Arc::from(self.tree),
-        };
-        res.init_stack(self.mode);
-        res
-    }
-}
-
-impl<'a, S, const L: usize, C> SylowStream<'a, S, L, C> for SylowSeqStream<S, L, C>
-where
-    C: SylowDecomposable<S>,
-{
-    fn push(&mut self, e: Seed<S, L, C>) {
-        self.stack.push(e);
-    }
-
-    fn stack(&mut self) -> &mut Vec<Seed<S, L, C>> {
-        &mut self.stack
-    }
-
-    fn tree(&self) -> &FactorNode<L> {
-        &self.tree
-    }
-}
-
-impl<'a, S, const L: usize, C> SylowStream<'a, S, L, C> for SylowParStream<S, L, C>
-where
-    S: Send + Sync,
-    C: SylowDecomposable<S>,
-{
-    fn push(&mut self, e: Seed<S, L, C>) {
-        self.stack.push(e);
-    }
-
-    fn stack(&mut self) -> &mut Vec<Seed<S, L, C>> {
-        &mut self.stack
-    }
-
-    fn tree(&self) -> &FactorNode<L> {
-        &*self.tree
+        }
     }
 }
 
@@ -525,9 +473,9 @@ impl<S, const L: usize, C: SylowDecomposable<S>> Clone for SylowStreamBuilder<S,
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S>> Clone for SylowSeqStream<S, L, C> {
-    fn clone(&self) -> SylowSeqStream<S, L, C> {
-        SylowSeqStream {
+impl<S, const L: usize, C: SylowDecomposable<S>> Clone for SylowStream<S, L, C> {
+    fn clone(&self) -> SylowStream<S, L, C> {
+        SylowStream {
             stack: self.stack.clone(),
             buffer: self.buffer.clone(),
             tree: self.tree.clone(),
@@ -541,10 +489,12 @@ where
 {
     fn clone(&self) -> SylowParStream<S, L, C> {
         SylowParStream {
-            stack: self.stack.clone(),
+            stream: SylowStream {
+                stack: self.stream.stack.clone(),
+                buffer: self.stream.buffer.clone(),
+                tree: Arc::clone(&self.stream.tree),
+            },
             splits: self.splits,
-            buffer: self.buffer.clone(),
-            tree: Arc::clone(&self.tree),
         }
     }
 }
