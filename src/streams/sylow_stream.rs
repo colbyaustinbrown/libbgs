@@ -837,4 +837,40 @@ mod tests {
             .count();
         assert_eq!(count, 2);
     }
+
+    #[test]
+    pub fn test_quotient() {
+        let res = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
+            .add_flag(flags::NO_UPPER_HALF)
+            .add_target(&[0, 3, 0])
+            .set_quotient(Some([0, 2, 0]))
+            .into_iter()
+            .map(|(x, _)| x)
+            .collect::<Vec<_>>();
+        assert_eq!(res, vec![SylowElem::<Phantom, 3, FpNum<271>>::new([0, 1, 0])]);
+
+        let count = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
+            .add_target(&[0, 3, 0])
+            .set_quotient(Some([0, 2, 0]))
+            .into_iter()
+            .count();
+        assert_eq!(count, 2);
+
+        let count = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
+            .add_target(&[0, 3, 0])
+            .set_quotient(Some([0, 1, 0]))
+            .into_iter()
+            .count();
+        assert_eq!(count, 6);
+
+        let count = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
+            .add_flag(flags::LEQ)
+            .add_flag(flags::NO_PARABOLIC)
+            .add_flag(flags::NO_UPPER_HALF)
+            .add_target(&[0, 3, 0])
+            .set_quotient(Some([0, 1, 0]))
+            .into_iter()
+            .count();
+        assert_eq!(count, 4);
+    }
 }
