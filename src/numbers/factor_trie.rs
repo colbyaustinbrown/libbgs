@@ -35,7 +35,7 @@ impl<const L: usize, T> FactorTrie<L, T> {
 
     /// Returns this node's child at index `i`, or creates the child, initialized with the result
     /// of the lazily-evaluated `data`.
-    pub fn get_or_new_child<F>(&mut self, i: usize, data: F) -> &mut FactorTrie<L, T> 
+    pub fn get_or_new_child<F>(&mut self, i: usize, data: F) -> &mut FactorTrie<L, T>
     where
         F: FnOnce() -> T,
     {
@@ -91,7 +91,9 @@ impl<const L: usize, T> FactorTrie<L, T> {
                     })
                 })
                 .add_helper(t, &gen, leq);
-            if leq == LeqMode::Strict { break; }
+            if leq == LeqMode::Strict {
+                break;
+            }
         }
     }
 
@@ -141,14 +143,13 @@ impl<const L: usize, T> FactorTrie<L, T> {
     /// Runs `f` on each node, in a pre-order traversal.
     pub fn for_each<F>(&self, f: &mut F)
     where
-        F: FnMut(&T, [usize; L])
+        F: FnMut(&T, [usize; L]),
     {
         f(&self.data, self.ds);
-        self.children.iter()
-            .for_each(|o| match o {
-                None => {},
-                Some(b) => b.for_each(f),
-            });
+        self.children.iter().for_each(|o| match o {
+            None => {}
+            Some(b) => b.for_each(f),
+        });
     }
 
     /// The index of this node's word in the prime factorization array.
@@ -158,7 +159,7 @@ impl<const L: usize, T> FactorTrie<L, T> {
 
     /// The array of powers on this node's prime factoraziton.
     pub fn ds(&self) -> &[usize; L] {
-        &self.ds 
+        &self.ds
     }
 
     /// The prime factorization represented by this trie.

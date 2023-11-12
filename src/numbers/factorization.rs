@@ -16,7 +16,7 @@ macro_rules! impl_factors {
         }
     )+};
     ($mrk:ident, $start:literal..$end:literal) => {
-        primes!(impl_factors, $mrk, $start..$end); 
+        primes!(impl_factors, $mrk, $start..$end);
     }
 }
 pub use impl_factors;
@@ -78,8 +78,7 @@ impl Factorization {
     ///
     /// The iterator cannot outlive the `Factorization`, although the vectors yielded by it may.
     pub fn maximal_divisors<const L: usize>(&self, l: u128) -> impl Iterator<Item = [usize; L]> {
-        FactorStream::new(self.prime_powers, l, true)
-            .map(|v| v.try_into().unwrap())
+        FactorStream::new(self.prime_powers, l, true).map(|v| v.try_into().unwrap())
     }
 
     /// True if there the factorization represents 1.

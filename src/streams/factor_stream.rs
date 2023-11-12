@@ -31,7 +31,9 @@ impl<'a> Iterator for FactorStream<'a> {
     type Item = Vec<usize>;
 
     fn next(&mut self) -> Option<Vec<usize>> {
-        let Some((i, state)) = self.stack.pop() else { return None; };
+        let Some((i, state)) = self.stack.pop() else {
+            return None;
+        };
         // println!("{state:?}");
         let prod: u128 = state
             .iter()
@@ -53,13 +55,14 @@ impl<'a> Iterator for FactorStream<'a> {
             self.stack.push((j, next));
             maximal = false;
         }
-        let Some((nonexhausted, _)) = self.source.iter()
+        let Some((nonexhausted, _)) = self
+            .source
+            .iter()
             .enumerate()
-            .find(|(j, (_, d))| {
-                state[*j] < *d
-            }) else {
-                return Some(state);
-            };
+            .find(|(j, (_, d))| state[*j] < *d)
+        else {
+            return Some(state);
+        };
         maximal &= prod * self.source[nonexhausted].0 > self.limit;
         if self.maximal_only && !maximal {
             self.next()
@@ -93,8 +96,8 @@ mod tests {
 
     #[test]
     fn test_stream_maximal_only() {
-       let facts = [(2, 1), (7, 1), (13, 1)];
-       let count = FactorStream::new(&facts, 10, true).count();
-       assert_eq!(count, 2);
+        let facts = [(2, 1), (7, 1), (13, 1)];
+        let count = FactorStream::new(&facts, 10, true).count();
+        assert_eq!(count, 2);
     }
 }

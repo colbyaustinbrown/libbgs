@@ -28,12 +28,8 @@ impl<const P: u128> Coord<P> {
         let disc = self.0.pow(2) - FpNum::from(4);
         let two_inv = FpNum::from(2).inverse();
         QuadNum::int_sqrt_either(disc).map_either(
-            |x| {
-                (QuadNum::<P>::from(self.0) + x) * QuadNum::<P>::from(two_inv)
-            },
-            |x| {
-                (self.0 + x) * two_inv
-            },
+            |x| (QuadNum::<P>::from(self.0) + x) * QuadNum::<P>::from(two_inv),
+            |x| (self.0 + x) * two_inv,
         )
     }
 
@@ -88,7 +84,8 @@ impl<const P: u128> Coord<P> {
         FpNum<P>: Factor<S1>,
         QuadNum<P>: Factor<S2>,
     {
-        match self.to_chi()
+        match self
+            .to_chi()
             .as_ref()
             .map_either(|l| l.order(), |r| r.order())
         {
@@ -102,12 +99,12 @@ impl<const P: u128> Coord<P> {
     /// Returns an upper bound on the endgame breakpoint.
     /// That is, every triple with order larger than the value returned by this method is
     /// guarenteed to lie in the endgame.
-    pub fn endgame<S>() -> (u128, u128) 
+    pub fn endgame<S>() -> (u128, u128)
     where
-        FpNum::<P>: Factor<S>,
-        QuadNum::<P>: Factor<S>,
+        FpNum<P>: Factor<S>,
+        QuadNum<P>: Factor<S>,
     {
-        let tmp = 8.0 * (P as f64).sqrt(); 
+        let tmp = 8.0 * (P as f64).sqrt();
         let hyper = tmp * ((P - 1) * FpNum::FACTORS.tau()) as f64;
         let hyper = hyper / (FpNum::FACTORS.phi() as f64);
         let ellip = tmp * ((P + 1) * QuadNum::FACTORS.tau()) as f64;
@@ -127,4 +124,3 @@ impl<const P: u128> From<Coord<P>> for u128 {
         u128::from(src.0)
     }
 }
-

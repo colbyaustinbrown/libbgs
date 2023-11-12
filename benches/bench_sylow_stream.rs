@@ -9,12 +9,7 @@ const P: u128 = 5109751;
 struct Phantom {}
 
 impl Factor<Phantom, 4> for FpNum<P> {
-    const FACTORS: Factorization<4> = Factorization::new([
-        (2, 1),
-        (3, 3),
-        (5, 3),
-        (757, 1)
-    ]);
+    const FACTORS: Factorization<4> = Factorization::new([(2, 1), (3, 3), (5, 3), (757, 1)]);
 }
 
 fn run_stream() {

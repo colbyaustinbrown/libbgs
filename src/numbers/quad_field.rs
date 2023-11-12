@@ -23,7 +23,7 @@ pub struct QuadField<const P: u128> {
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub struct QuadNum<const P: u128>(
     /// The value $a_0$, when writing this `QuadNum` as $a_0 + a_1\sqrt{r}$.
-    pub FpNum<P>, 
+    pub FpNum<P>,
     /// The value $a_1$, when writing this `QuadNum` as $a_0 + a_1\sqrt{r}$.
     pub FpNum<P>,
 );
@@ -41,7 +41,9 @@ where
                 let p = QuadNum::steinitz(j);
                 p.pow(pow)
             })
-            .find_map(|c| <QuadNum<P> as SylowDecomposable<S>>::is_sylow_generator(&c, Self::FACTORS[i]))
+            .find_map(|c| {
+                <QuadNum<P> as SylowDecomposable<S>>::is_sylow_generator(&c, Self::FACTORS[i])
+            })
             .unwrap()
     }
 }
@@ -78,15 +80,18 @@ impl<const P: u128> QuadNum<P> {
     }
 
     /// The basis element for the numbers outside of the prime subfield.
-    pub const R: FpNum::<P> = FpNum::<P>::find_nonresidue();
+    pub const R: FpNum<P> = FpNum::<P>::find_nonresidue();
 }
 
 impl<const P: u128> GroupElem for QuadNum<P> {
-    const ONE: Self = QuadNum(FpNum(Montgomery::from_u128(1)), FpNum(Montgomery::from_u128(0)));
+    const ONE: Self = QuadNum(
+        FpNum(Montgomery::from_u128(1)),
+        FpNum(Montgomery::from_u128(0)),
+    );
     const SIZE: u128 = P + 1;
 
     fn multiply(&self, other: &QuadNum<P>) -> QuadNum<P> {
-        let a0 = self.0.multiply(&other.0) + self.1.multiply(&other.1).multiply(&QuadNum::<P>::R); 
+        let a0 = self.0.multiply(&other.0) + self.1.multiply(&other.1).multiply(&QuadNum::<P>::R);
         let a1 = self.1.multiply(&other.0) + self.0.multiply(&other.1);
 
         QuadNum(a0, a1)

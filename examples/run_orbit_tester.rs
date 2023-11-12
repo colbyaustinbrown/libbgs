@@ -41,18 +41,21 @@ fn main() {
     println!("Loading coordinates into the Orbit Tester.");
     fp_stream_builder
         .into_iter()
-        .map(|(x,_)| Coord::from_chi_fp(&x, &fp_decomp))
+        .map(|(x, _)| Coord::from_chi_fp(&x, &fp_decomp))
         .chain(
             fp2_stream_builder
                 .into_iter()
-                .map(|(x,_)| Coord::from_chi_quad(&x, &fp2_decomp)),
+                .map(|(x, _)| Coord::from_chi_quad(&x, &fp2_decomp)),
         )
         .for_each(|x| {
             count.fetch_add(1, Ordering::Relaxed);
             tester.lock().unwrap().add_target(u128::from(x));
         });
 
-    println!("Loaded {} coordinates into the Orbit Tester.", count.into_inner());
+    println!(
+        "Loaded {} coordinates into the Orbit Tester.",
+        count.into_inner()
+    );
 
     println!("Running the Orbit Tester.");
     let results = tester.into_inner().unwrap().run();

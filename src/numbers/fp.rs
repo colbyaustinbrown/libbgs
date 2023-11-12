@@ -65,7 +65,7 @@ impl<const P: u128> FpNum<P> {
     }
 
     /// Returns a quadratic nonresidue modulo `p`.
-    pub const fn find_nonresidue() -> FpNum::<P> {
+    pub const fn find_nonresidue() -> FpNum<P> {
         if P % 4 == 3 {
             FpNum(Montgomery::<P>::from_u128(P - 1))
         } else if P % 8 == 3 || P % 8 == 5 {

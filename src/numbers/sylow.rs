@@ -110,15 +110,13 @@ impl<S, const L: usize, C: SylowDecomposable<S>> SylowElem<S, L, C> {
 
     /// Returns the element of the original group with the given coordinates.
     pub fn to_product(&self, g: &SylowDecomp<S, L, C>) -> C {
-        (0..L)
-            .filter(|i| self.coords[*i] > 0)
-            .fold(C::ONE, |x, i| {
-                let mut y = g.precomputed[i][(self.coords[i] & 0xFF) as usize].clone();
-                if self.coords[i] > 0xFF {
-                    y = y.multiply(&g.generators_powered[i].pow(self.coords[i] >> 8));
-                }
-                x.multiply(&y)
-            })
+        (0..L).filter(|i| self.coords[*i] > 0).fold(C::ONE, |x, i| {
+            let mut y = g.precomputed[i][(self.coords[i] & 0xFF) as usize].clone();
+            if self.coords[i] > 0xFF {
+                y = y.multiply(&g.generators_powered[i].pow(self.coords[i] >> 8));
+            }
+            x.multiply(&y)
+        })
     }
 
     /// Returns the positive integer represented by this `Factorization`.
@@ -186,7 +184,9 @@ impl<S, const L: usize, C: SylowDecomposable<S>> PartialEq for SylowElem<S, L, C
 impl<S, const L: usize, C: SylowDecomposable<S>> Eq for SylowElem<S, L, C> {}
 
 impl<S, const L: usize, C: SylowDecomposable<S>> Clone for SylowElem<S, L, C> {
-    fn clone(&self) -> Self { *self }
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 impl<S, const L: usize, C: SylowDecomposable<S>> Copy for SylowElem<S, L, C> {}
 

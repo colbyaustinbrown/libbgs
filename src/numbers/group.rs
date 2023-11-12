@@ -1,7 +1,7 @@
 use std::fmt;
 
-use crate::numbers::{Factor, Length};
 use crate::numbers::SylowDecomposable;
+use crate::numbers::{Factor, Length};
 use libbgs_util::*;
 
 /// Types that represent the elements of a group.
@@ -14,7 +14,7 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
     const ONE: Self;
 
     ///! 256 copies of `Self::ONE` in an array.
-    #[deprecated(note="To be replaced by inline `const` expressions once stabilized.")]
+    #[deprecated(note = "To be replaced by inline `const` expressions once stabilized.")]
     const ONE_256: [Self; 256] = [Self::ONE; 256];
 
     /// Gets the size of the group this element belongs to.
@@ -78,13 +78,13 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
     where
         // note: we only use the Factor trait here, but we require SylowDecomposable because this
         // count is only valid for finite cyclic groups.
-        Self: SylowDecomposable<S>
+        Self: SylowDecomposable<S>,
     {
         let mut total = 1;
         for (d, (p, t)) in ds.iter().zip(Self::FACTORS.prime_powers()) {
             if *d > *t {
                 return 0;
-            } else if *d > 0 { 
+            } else if *d > 0 {
                 let tmp = intpow::<0>(*p, (*d - 1) as u128);
                 total *= tmp * *p - tmp;
             }

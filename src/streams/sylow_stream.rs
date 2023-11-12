@@ -2,7 +2,7 @@ use rayon::iter::plumbing::*;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use std::cell::RefCell;
-use std::marker::{PhantomData};
+use std::marker::PhantomData;
 use std::sync::Arc;
 
 use crate::numbers::*;
@@ -46,11 +46,8 @@ pub struct SylowStreamBuilder<S, const L: usize, C: SylowDecomposable<S> + std::
 
 /// A stream yielding elements of particular orders, as their Sylow decompositions.
 /// Generates the elements in parallel on multiple threads.
-pub struct SylowParStream<
-    S: Send + Sync,
-    const L: usize,
-    C: SylowDecomposable<S> + std::fmt::Debug,
-> {
+pub struct SylowParStream<S: Send + Sync, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug>
+{
     stream: SylowStream<S, L, C>,
     splits: usize,
 }
@@ -138,10 +135,7 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
             }
         }
 
-        Adder {
-            mode: self.mode,
-            t,
-        }.visit_mut(&mut self.tree);
+        Adder { mode: self.mode, t }.visit_mut(&mut self.tree);
 
         self
     }
@@ -155,7 +149,8 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
 
     /// Add all the targets yielded by this `FactorStream`.
     pub fn add_targets_from_factors(self, stream: FactorStream) -> Self {
-        stream.map(|v| v.try_into().unwrap())
+        stream
+            .map(|v| v.try_into().unwrap())
             .fold(self, |b, x| b.add_target(&x))
     }
 }
@@ -342,7 +337,7 @@ where
         let mut tree = self.tree.map(&mut |consume, ds: &[usize; L], i| {
             let (p, d) = C::FACTORS.prime_powers()[i];
             GenData {
-                consume, 
+                consume,
                 step: intpow::<0>(p, (d - ds[i]) as u128),
                 lim: 0,
             }
@@ -362,8 +357,11 @@ where
                     Limiter {
                         block: ((p == 2 && node.ds()[0] <= 1) || j == node.index()) && self.block,
                         ..*self
-                    }.visit_mut({
-                        let Some(child) = node.child_mut(j) else { continue; };
+                    }
+                    .visit_mut({
+                        let Some(child) = node.child_mut(j) else {
+                            continue;
+                        };
                         child
                     });
                 }
@@ -376,9 +374,12 @@ where
                 let (p, d) = C::FACTORS.prime_powers()[i];
                 if q[i] <= d {
                     intpow::<0>(p, (d - q[i]) as u128)
-                } else { 0 }
+                } else {
+                    0
+                }
             }),
-        }.visit_mut(&mut tree);
+        }
+        .visit_mut(&mut tree);
         let mut stream = SylowStream {
             tree: Arc::from(tree),
             stack: Vec::new(),
@@ -430,7 +431,9 @@ where
 }
 
 impl<S, const L: usize, C: SylowDecomposable<S>> Clone for Seed<S, L, C> {
-    fn clone(&self) -> Seed<S, L, C> { *self }
+    fn clone(&self) -> Seed<S, L, C> {
+        *self
+    }
 }
 impl<S, const L: usize, C: SylowDecomposable<S>> Copy for Seed<S, L, C> {}
 

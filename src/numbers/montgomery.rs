@@ -7,10 +7,11 @@ use libbgs_util::*;
 pub struct Montgomery<const N: u128>(u128);
 
 impl<const N: u128> Montgomery<N> {
-
     const R: u128 = {
         let mut n = N.next_power_of_two();
-        while n.ilog2() % 4 != 0 { n <<= 1; }
+        while n.ilog2() % 4 != 0 {
+            n <<= 1;
+        }
         n
     };
 
@@ -34,7 +35,7 @@ impl<const N: u128> Montgomery<N> {
         if t0 < 0 {
             (-t0) as u128
         } else {
-            Self::R - (t0 as u128) 
+            Self::R - (t0 as u128)
         }
     };
 
@@ -138,7 +139,7 @@ impl<const N: u128> Sub<&Montgomery<N>> for &Montgomery<N> {
     type Output = Montgomery<N>;
     fn sub(self, rhs: &Montgomery<N>) -> Montgomery<N> {
         if self.0 >= rhs.0 {
-            Montgomery(self.0 - rhs.0) 
+            Montgomery(self.0 - rhs.0)
         } else {
             Montgomery(N + self.0 - rhs.0)
         }

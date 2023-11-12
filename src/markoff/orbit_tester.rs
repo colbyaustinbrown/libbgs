@@ -80,9 +80,7 @@ impl<const P: u128> OrbitTester<P> {
 
         let results = handle.join().unwrap();
 
-        OrbitTesterResults {
-            results,
-        }
+        OrbitTesterResults { results }
     }
 
     /// Creates a new `OrbetTester` with default settings and no targets.

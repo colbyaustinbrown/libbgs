@@ -11,14 +11,13 @@ pub struct BloomFilter<T, F> {
     _phantom: PhantomData<T>,
 }
 
-impl<T, F> BloomFilter<T, F> 
+impl<T, F> BloomFilter<T, F>
 where
     F: Fn(&T) -> usize + Send + Sync,
 {
     /// Create a new Bloom filter, with the given size in bits and the given list of hashes to be
     /// applied to all members on addition and query.
-    pub fn new(bits: usize, hashes: Vec<F>) -> BloomFilter<T, F> 
-    {
+    pub fn new(bits: usize, hashes: Vec<F>) -> BloomFilter<T, F> {
         BloomFilter {
             masks: vec![0; bits >> 3],
             hashes: Arc::new(hashes),
@@ -28,27 +27,25 @@ where
 
     /// Add `elem` to the Bloom filter.
     pub fn add(&mut self, elem: &T) {
-        self.hashes.iter()
-            .for_each(|hash| {
-                let h = hash(elem);
-                self.masks[h >> 3] |= 1 << (h & 0b111);
-            });
+        self.hashes.iter().for_each(|hash| {
+            let h = hash(elem);
+            self.masks[h >> 3] |= 1 << (h & 0b111);
+        });
     }
 
     /// True if `elem` is in the set.
     /// If `elem` is not in the set, this method returns False; i.e., this method return false
     /// positives, but not false negatives.
     pub fn is_member_prob(&self, elem: &T) -> bool {
-        self.hashes.iter()
-            .all(|hash| {
-                let h = hash(elem);
-                self.masks[h >> 3] & (1 << (h & 0b111)) != 0
-            })
+        self.hashes.iter().all(|hash| {
+            let h = hash(elem);
+            self.masks[h >> 3] & (1 << (h & 0b111)) != 0
+        })
     }
 
     /// True if `elem` is in the set, lazily confirming the result with the `confirm` closure to
     /// guard against false positives.
-    pub fn is_member<G>(&self, elem: &T, confirm: G) -> bool 
+    pub fn is_member<G>(&self, elem: &T, confirm: G) -> bool
     where
         G: Fn(&T) -> bool,
     {
@@ -99,7 +96,9 @@ mod tests {
         for i in 1_501..2_000 {
             let x = intpow::<0>(i * 1000 + i * 10 + i, 2);
             all &= filter.is_member_prob(&x);
-            if !all { break; } 
+            if !all {
+                break;
+            }
         }
         assert!(!all);
     }
