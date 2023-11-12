@@ -186,12 +186,7 @@ impl<S, const L: usize, C: SylowDecomposable<S>> PartialEq for SylowElem<S, L, C
 impl<S, const L: usize, C: SylowDecomposable<S>> Eq for SylowElem<S, L, C> {}
 
 impl<S, const L: usize, C: SylowDecomposable<S>> Clone for SylowElem<S, L, C> {
-    fn clone(&self) -> Self {
-        SylowElem {
-            coords: self.coords,
-            _phantom: PhantomData,
-        }
-    }
+    fn clone(&self) -> Self { *self }
 }
 impl<S, const L: usize, C: SylowDecomposable<S>> Copy for SylowElem<S, L, C> {}
 

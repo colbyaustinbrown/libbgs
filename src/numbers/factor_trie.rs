@@ -15,8 +15,8 @@ pub struct FactorTrie<const L: usize, T> {
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum LeqMode {
-    LEQ,
-    STRICT,
+    Leq,
+    Strict,
 }
 
 impl<const L: usize, T> FactorTrie<L, T> {
@@ -58,7 +58,7 @@ impl<const L: usize, T> FactorTrie<L, T> {
     where
         F: Fn(&[usize; L], usize) -> T,
     {
-        self.add_helper(t, gen, LeqMode::STRICT);
+        self.add_helper(t, gen, LeqMode::Strict);
     }
 
     /// Add a new child and all children represented by `t` and all its divisors (subordinate
@@ -67,7 +67,7 @@ impl<const L: usize, T> FactorTrie<L, T> {
     where
         F: Fn(&[usize; L], usize) -> T,
     {
-        self.add_helper(t, gen, LeqMode::LEQ);
+        self.add_helper(t, gen, LeqMode::Leq);
     }
 
     fn add_helper<F>(&mut self, t: [usize; L], gen: F, leq: LeqMode)
@@ -91,7 +91,7 @@ impl<const L: usize, T> FactorTrie<L, T> {
                     })
                 })
                 .add_helper(t, &gen, leq);
-            if leq == LeqMode::STRICT { break; }
+            if leq == LeqMode::Strict { break; }
         }
     }
 
@@ -111,7 +111,7 @@ impl<const L: usize, T> FactorTrie<L, T> {
     }
 
     /// Returns a trie of borrowed data.
-    pub fn as_ref<'a>(&'a self) -> FactorTrie<L, &'a T> {
+    pub fn as_ref(&self) -> FactorTrie<L, &T> {
         FactorTrie {
             i: self.i,
             ds: self.ds,
@@ -125,7 +125,7 @@ impl<const L: usize, T> FactorTrie<L, T> {
     }
 
     /// Returns a trie of mutably borrowed data.
-    pub fn as_mut<'a>(&'a mut self) -> FactorTrie<L, &'a mut T> {
+    pub fn as_mut(&mut self) -> FactorTrie<L, &mut T> {
         FactorTrie {
             i: self.i,
             ds: self.ds,
@@ -163,7 +163,7 @@ impl<const L: usize, T> FactorTrie<L, T> {
 
     /// The prime factorization represented by this trie.
     pub fn fact(&self) -> &Factorization {
-        &*self.fact
+        &self.fact
     }
 
     /// This node's array of children.
@@ -173,11 +173,11 @@ impl<const L: usize, T> FactorTrie<L, T> {
 
     /// Returns a reference to the child at index `i`, if there is one.
     pub fn child(&self, i: usize) -> Option<&FactorTrie<L, T>> {
-        self.children[i].as_ref().map(|o| &**o)
+        self.children[i].as_deref()
     }
 
     /// Returns a mutable reference to the child at index `i`, if there is one.
     pub fn child_mut(&mut self, i: usize) -> Option<&mut FactorTrie<L, T>> {
-        self.children[i].as_mut().map(|o| &mut **o)
+        self.children[i].as_deref_mut()
     }
 }

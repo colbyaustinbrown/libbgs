@@ -32,7 +32,6 @@ where
         ellip_lim: u128,
     ) -> CoordStream<'a, S, L_HYPER, L_ELLIP, P> {
         let hyper_stream = FactorStream::new(FpNum::FACTORS.prime_powers(), hyper_lim, true)
-            .into_iter()
             .map(|v| v.try_into().unwrap())
             .fold(
                 SylowStreamBuilder::<S, L_HYPER, FpNum<P>>::new()
@@ -43,7 +42,6 @@ where
             )
             .into_iter();
         let ellip_stream = FactorStream::new(QuadNum::FACTORS.prime_powers(), ellip_lim, true)
-            .into_iter()
             .map(|v| v.try_into().unwrap())
             .fold(
                 SylowStreamBuilder::<S, L_ELLIP, QuadNum<P>>::new()
@@ -80,7 +78,7 @@ where
         }
         Helper(self)
             .par_bridge()
-            .flat_map(|(iter, a)| ParallelIterator::map(iter, move |b| (a.clone(), b)))
+            .flat_map(|(iter, a)| ParallelIterator::map(iter, move |b| (a, b)))
     }
 }
 

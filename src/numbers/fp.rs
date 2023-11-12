@@ -37,7 +37,7 @@ impl<const P: u128> FpNum<P> {
             }
             i += 1;
         };
-        let mut c = FpNum::from(z).pow(q);
+        let mut c = z.pow(q);
         let mut r = self.pow((q + 1) / 2);
         let mut t = self.pow(q);
         let mut m = s;

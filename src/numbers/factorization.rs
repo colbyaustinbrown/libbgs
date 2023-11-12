@@ -78,7 +78,7 @@ impl Factorization {
     ///
     /// The iterator cannot outlive the `Factorization`, although the vectors yielded by it may.
     pub fn maximal_divisors<const L: usize>(&self, l: u128) -> impl Iterator<Item = [usize; L]> {
-        FactorStream::new(&self.prime_powers, l, true)
+        FactorStream::new(self.prime_powers, l, true)
             .map(|v| v.try_into().unwrap())
     }
 

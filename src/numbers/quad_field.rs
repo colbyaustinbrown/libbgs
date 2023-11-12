@@ -66,7 +66,7 @@ impl<const P: u128> QuadNum<P> {
             return Right(y);
         }
 
-        let r = FpNum::from(Self::R).inverse();
+        let r = Self::R.inverse();
         x = x.multiply(&r);
         let a1 = x.int_sqrt().unwrap();
         Left(QuadNum(FpNum::from(0), a1))

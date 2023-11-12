@@ -66,7 +66,7 @@ impl<const P: u128> Coord<P> {
 
         // We use the non-normalized equation:
         // x^2 + y^2 + z^2 - xyz = 0
-        Coord(FpNum::from((chi + chi_inv).0))
+        Coord((chi + chi_inv).0)
     }
 
     /// Returns an iterator yielding the coordinates $(b, c)$ contained in the orbit with fixed coordinate
