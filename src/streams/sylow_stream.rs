@@ -134,7 +134,7 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
                 for j in node.index()..L1 {
                     if self.t[j] > node.ds()[j] {
                         let (p2, d2) = C1::FACTORS.prime_powers()[j];
-                        let mut rs = node.ds().clone();
+                        let mut rs = *node.ds();
                         rs[j] += 1;
                         let child = node.get_or_new_child(j, GenData {
                             step: intpow::<0>(p2, (d2 - 1 - node.ds()[j]) as u128),
@@ -207,11 +207,7 @@ impl<S, const L: usize, C: SylowDecomposable<S>> SylowStream<S, L, C> {
         S: Send + Sync,
     {
         SylowParStream {
-            stream: SylowStream {
-                stack: self.stack,
-                buffer: self.buffer,
-                tree: Arc::from(self.tree),
-            },
+            stream: self,
             splits: rayon::current_num_threads(),
         }
     }
@@ -248,7 +244,7 @@ impl<S, const L: usize, C: SylowDecomposable<S>> SylowStream<S, L, C> {
                 self.stack.push(Seed {
                     part,
                     start: 0,
-                    node: &*n,
+                    node: n,
                 });
             }
 
@@ -333,14 +329,10 @@ where
         let folder = RefCell::new(Some(folder));
 
         let mut count = 0;
-        loop {
-            if let Some(top) = self.stream.next() {
-                    let mut f = folder.take().unwrap();
-                    f = f.consume(top);
-                    folder.replace(Some(f));
-            } else {
-                break;
-            }
+        while let Some(top) = self.stream.next() {
+            let mut f = folder.take().unwrap();
+            f = f.consume(top);
+            folder.replace(Some(f));
 
             if count % 10_000 == 0 {
                 let Some(mut split) = self.maybe_split(stolen) else {
@@ -391,7 +383,7 @@ where
             block: bool,
             _phantom: PhantomData<(S1, C1)>,
         }
-        impl<'a, S1, const L1: usize, C1> MutFactorVisitor<L1, GenData> for Limiter<S1, L1, C1>
+        impl<S1, const L1: usize, C1> MutFactorVisitor<L1, GenData> for Limiter<S1, L1, C1>
         where
             C1: Factor<S1>,
         {
@@ -435,7 +427,7 @@ where
             let seed = Seed {
                 part: SylowElem::ONE,
                 start: 0,
-                node: &*n,
+                node: n,
             };
 
             let (p, _) = C::FACTORS[i];
@@ -466,13 +458,7 @@ where
 }
 
 impl<S, const L: usize, C: SylowDecomposable<S>> Clone for Seed<S, L, C> {
-    fn clone(&self) -> Seed<S, L, C> {
-        Seed {
-            part: self.part,
-            start: self.start,
-            node: self.node,
-        }
-    }
+    fn clone(&self) -> Seed<S, L, C> { *self }
 }
 impl<S, const L: usize, C: SylowDecomposable<S>> Copy for Seed<S, L, C> {}
 
