@@ -65,6 +65,38 @@ impl<const P: u128> Coord<P> {
         Coord((chi + chi_inv).0)
     }
 
+    /// Returns the coordinate $a = \chi - \chi^{-1}$, where $\chi \in \mathbb{F}_p$.
+    pub fn from_chi_conj_fp<S, const L: usize>(
+        chi: &SylowElem<S, L, FpNum<P>>,
+        decomp: &SylowDecomp<S, L, FpNum<P>>,
+    ) -> Coord<P>
+    where
+        FpNum<P>: Factor<S>,
+    {
+        let chi_inv = chi.inverse().to_product(decomp);
+        let chi = chi.to_product(decomp);
+
+        // We use the non-normalized equation:
+        // x^2 + y^2 + z^2 - xyz = 0
+        Coord(chi - chi_inv)
+    }
+
+    /// Returns the coordinate $a = \chi - \chi^{-1}$, where $\chi \in \mathbb{F}_{p^2}$.
+    pub fn from_chi_conj_quad<S, const L: usize>(
+        chi: &SylowElem<S, L, QuadNum<P>>,
+        decomp: &SylowDecomp<S, L, QuadNum<P>>,
+    ) -> Coord<P>
+    where
+        QuadNum<P>: Factor<S>,
+    {
+        let chi_inv = chi.inverse().to_product(decomp);
+        let chi = chi.to_product(decomp);
+
+        // We use the non-normalized equation:
+        // x^2 + y^2 + z^2 - xyz = 0
+        Coord((chi - chi_inv).0)
+    }
+
     /// Returns an iterator yielding the coordinates $(b, c)$ contained in the orbit with fixed coordinate
     /// $a$ (the coordinate on which `rot` is called), beginning with $(a, b, c)$.
     pub fn rot(self, b: Coord<P>, c: Coord<P>) -> impl Iterator<Item = (Coord<P>, Coord<P>)> {

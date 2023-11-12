@@ -125,6 +125,15 @@ impl<const P: u128> Add<Self> for QuadNum<P> {
     }
 }
 
+impl<const P: u128> Sub<Self> for QuadNum<P> {
+    type Output = QuadNum<P>;
+    fn sub(self, other: Self) -> QuadNum<P> {
+        let a0 = self.0 - other.0;
+        let a1 = self.1 - other.1;
+        QuadNum(a0, a1)
+    }
+}
+
 impl<const P: u128> AddAssign<Self> for QuadNum<P> {
     fn add_assign(&mut self, other: Self) {
         self.0 = self.0 + other.0;
