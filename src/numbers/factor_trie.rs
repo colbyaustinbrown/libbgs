@@ -1,12 +1,16 @@
+use crate::numbers::Factorization;
+use std::sync::Arc;
+
 #[derive(Clone, Debug)]
 pub struct FactorTrie<const L: usize, T> {
     i: usize,
     ds: [usize; L],
+    fact: Arc<Factorization>,
     children: [Option<Box<FactorTrie<L, T>>>; L],
     pub data: T,
 }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum LeqMode {
     LEQ,
     STRICT,
@@ -42,11 +46,12 @@ pub trait MutFactorVisitor<const L: usize, T> {
 }
 
 impl<const L: usize, T> FactorTrie<L, T> {
-    pub fn new(data: T) -> Self {
+    pub fn new(factorization: Factorization, data: T) -> Self {
         FactorTrie {
             i: 0,
             ds: [0; L],
             data,
+            fact: Arc::new(factorization),
             children: std::array::from_fn(|_| None),
         }
     }
@@ -60,6 +65,7 @@ impl<const L: usize, T> FactorTrie<L, T> {
                 ds
             },
             data,
+            fact: Arc::clone(&self.fact),
             children: std::array::from_fn(|_| None),
         }))
     }
@@ -94,6 +100,7 @@ impl<const L: usize, T> FactorTrie<L, T> {
                         i: j,
                         ds,
                         data: gen(&ds, j),
+                        fact: Arc::clone(&self.fact),
                         children: std::array::from_fn(|_| None),
                     })
                 })
@@ -110,6 +117,7 @@ impl<const L: usize, T> FactorTrie<L, T> {
             i: self.i,
             ds: self.ds,
             data: f(self.data, &self.ds, self.i),
+            fact: Arc::clone(&self.fact),
             children: self.children.map(|o| o.map(|n| Box::new(n.map(f)))),
         }
     }
@@ -119,6 +127,7 @@ impl<const L: usize, T> FactorTrie<L, T> {
             i: self.i,
             ds: self.ds,
             data: &self.data,
+            fact: Arc::clone(&self.fact),
             children: self.children.each_ref().map(|o| {
                 o.as_ref()
                     .map(|b| Box::new(FactorTrie::as_ref(Box::as_ref(b))))
@@ -131,6 +140,7 @@ impl<const L: usize, T> FactorTrie<L, T> {
             i: self.i,
             ds: self.ds,
             data: &mut self.data,
+            fact: Arc::clone(&self.fact),
             children: self.children.each_mut().map(|o| {
                 o.as_mut()
                     .map(|b| Box::new(FactorTrie::as_mut(Box::as_mut(b))))
@@ -156,6 +166,10 @@ impl<const L: usize, T> FactorTrie<L, T> {
 
     pub fn ds(&self) -> &[usize; L] {
         &self.ds 
+    }
+
+    pub fn fact(&self) -> &Factorization {
+        &*self.fact
     }
 
     pub fn children(&self) -> &[Option<Box<FactorTrie<L, T>>>] {

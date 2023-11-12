@@ -86,7 +86,7 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
     pub fn new() -> SylowStreamBuilder<S, L, C> {
         SylowStreamBuilder {
             mode: flags::NONE,
-            tree: Box::new(FactorTrie::new(false)),
+            tree: Box::new(FactorTrie::new(C::FACTORS, false)),
             quotient: None,
             _phantom: PhantomData,
         }
@@ -106,16 +106,12 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
             self.mode |= flags::INCLUDE_ONE;
         }
 
-        struct Adder<'a, S1, const L1: usize, C1> {
+        struct Adder<'a, const L1: usize> {
             mode: u8,
             t: &'a [usize; L1],
-            _phantom: PhantomData<(S1, C1)>,
         }
 
-        impl<'a, S1, const L1: usize, C1> MutFactorVisitor<L1, Consume> for Adder<'a, S1, L1, C1> 
-        where
-            C1: Factor<S1>,
-        {
+        impl<'a, const L1: usize> MutFactorVisitor<L1, Consume> for Adder<'a, L1> {
             fn visit_mut(&mut self, node: &mut FactorTrie<L1, Consume>) {
                 node.data |= self.mode & flags::LEQ != 0
                     || (self.t[node.index()] == node.ds()[node.index()] && {
@@ -145,7 +141,6 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
         Adder {
             mode: self.mode,
             t,
-            _phantom: PhantomData::<(S, C)>,
         }.visit_mut(&mut self.tree);
 
         self
@@ -352,17 +347,13 @@ where
                 lim: 0,
             }
         });
-        struct Limiter<S1, const L1: usize, C1> {
+        struct Limiter<const L1: usize> {
             block: bool,
             lims: [u128; L1],
-            _phantom: PhantomData<(S1, C1)>,
         }
-        impl<S1, const L1: usize, C1> MutFactorVisitor<L1, GenData> for Limiter<S1, L1, C1>
-        where
-            C1: Factor<S1>,
-        {
+        impl<const L1: usize> MutFactorVisitor<L1, GenData> for Limiter<L1> {
             fn visit_mut(&mut self, node: &mut FactorTrie<L1, GenData>) {
-                let (p, _) = C1::FACTORS.prime_powers()[node.index()];
+                let (p, _) = node.fact().prime_powers()[node.index()];
                 node.data.lim = self.lims[node.index()];
                 if self.block {
                     node.data.lim /= 2;
@@ -387,7 +378,6 @@ where
                     intpow::<0>(p, (d - q[i]) as u128)
                 } else { 0 }
             }),
-            _phantom: PhantomData::<(S, C)>,
         }.visit_mut(&mut tree);
         let mut stream = SylowStream {
             tree: Arc::from(tree),
