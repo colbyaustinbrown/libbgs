@@ -117,6 +117,11 @@ impl Factorization {
         total
     }
 
+    /// Returns the exponents on the factorization.
+    pub fn exponents(&self) -> Box<[usize]> {
+        self.prime_powers.iter().map(|(_, t)| *t).collect::<Box<[usize]>>()
+    }
+
     /// Returns the number of prime factors in the factorization.
     pub const fn len(&self) -> usize {
         self.prime_powers.len()
