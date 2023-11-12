@@ -13,7 +13,7 @@ impl_factors!(Stock, 1_000_000_000_000_000_124_399);
 
 fn main() {
     let fp_decomp = SylowDecomp::<Stock, 7, FpNum<BIG_P>>::new();
-    let fp2_decomp = SylowDecomp::new();
+    let fp2_decomp = SylowDecomp::<Stock, 11, QuadNum<BIG_P>>::new();
 
     const LIMIT: u128 = 10_000;
 
@@ -41,11 +41,11 @@ fn main() {
     println!("Loading coordinates into the Orbit Tester.");
     fp_stream_builder
         .into_iter()
-        .map(|(x, _)| Coord::from_chi_fp(&x, &fp_decomp))
+        .map(|(x, _)| Coord::from_chi(&x, &fp_decomp))
         .chain(
             fp2_stream_builder
                 .into_iter()
-                .map(|(x, _)| Coord::from_chi_quad(&x, &fp2_decomp)),
+                .map(|(x, _)| Coord::from_chi(&x, &fp2_decomp)),
         )
         .for_each(|x| {
             count.fetch_add(1, Ordering::Relaxed);

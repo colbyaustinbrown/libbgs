@@ -33,70 +33,6 @@ impl<const P: u128> Coord<P> {
         )
     }
 
-    /// Returns the coordinate $a = \chi + \chi^{-1}$, where $\chi \in \mathbb{F}_p$.
-    pub fn from_chi_fp<S, const L: usize>(
-        chi: &SylowElem<S, L, FpNum<P>>,
-        decomp: &SylowDecomp<S, L, FpNum<P>>,
-    ) -> Coord<P>
-    where
-        FpNum<P>: Factor<S>,
-    {
-        let chi_inv = chi.inverse().to_product(decomp);
-        let chi = chi.to_product(decomp);
-
-        // We use the non-normalized equation:
-        // x^2 + y^2 + z^2 - xyz = 0
-        Coord(chi + chi_inv)
-    }
-
-    /// Returns the coordinate $a = \chi + \chi^{-1}$, where $\chi \in \mathbb{F}_{p^2}$.
-    pub fn from_chi_quad<S, const L: usize>(
-        chi: &SylowElem<S, L, QuadNum<P>>,
-        decomp: &SylowDecomp<S, L, QuadNum<P>>,
-    ) -> Coord<P>
-    where
-        QuadNum<P>: Factor<S>,
-    {
-        let chi_inv = chi.inverse().to_product(decomp);
-        let chi = chi.to_product(decomp);
-
-        // We use the non-normalized equation:
-        // x^2 + y^2 + z^2 - xyz = 0
-        Coord((chi + chi_inv).0)
-    }
-
-    /// Returns the coordinate $a = \chi - \chi^{-1}$, where $\chi \in \mathbb{F}_p$.
-    pub fn from_chi_conj_fp<S, const L: usize>(
-        chi: &SylowElem<S, L, FpNum<P>>,
-        decomp: &SylowDecomp<S, L, FpNum<P>>,
-    ) -> Coord<P>
-    where
-        FpNum<P>: Factor<S>,
-    {
-        let chi_inv = chi.inverse().to_product(decomp);
-        let chi = chi.to_product(decomp);
-
-        // We use the non-normalized equation:
-        // x^2 + y^2 + z^2 - xyz = 0
-        Coord(chi - chi_inv)
-    }
-
-    /// Returns the coordinate $a = \chi - \chi^{-1}$, where $\chi \in \mathbb{F}_{p^2}$.
-    pub fn from_chi_conj_quad<S, const L: usize>(
-        chi: &SylowElem<S, L, QuadNum<P>>,
-        decomp: &SylowDecomp<S, L, QuadNum<P>>,
-    ) -> Coord<P>
-    where
-        QuadNum<P>: Factor<S>,
-    {
-        let chi_inv = chi.inverse().to_product(decomp);
-        let chi = chi.to_product(decomp);
-
-        // We use the non-normalized equation:
-        // x^2 + y^2 + z^2 - xyz = 0
-        Coord((chi - chi_inv).0)
-    }
-
     /// Returns an iterator yielding the coordinates $(b, c)$ contained in the orbit with fixed coordinate
     /// $a$ (the coordinate on which `rot` is called), beginning with $(a, b, c)$.
     pub fn rot(self, b: Coord<P>, c: Coord<P>) -> impl Iterator<Item = (Coord<P>, Coord<P>)> {
@@ -154,5 +90,70 @@ impl<const P: u128> From<u128> for Coord<P> {
 impl<const P: u128> From<Coord<P>> for u128 {
     fn from(src: Coord<P>) -> u128 {
         u128::from(src.0)
+    }
+}
+
+/// Common trait for the `from_chi` and `from_chi_conj` methods to be defined on both `FpNum` and
+/// `QuadNum`.
+pub trait FromChi<S, const P: u128, C> 
+where
+    C: SylowDecomposable<S>
+{
+    /// Returns the coordinate $a = \chi + \chi^{-1}$.
+    fn from_chi<const L: usize>(
+        chi: &SylowElem<S, L, C>,
+        decomp: &SylowDecomp<S, L, C>,
+    ) -> Self;
+
+    /// Returns the coordinate $a = \chi - \chi^{-1}$.
+    fn from_chi_conj<const L: usize>(
+        chi: &SylowElem<S, L, C>,
+        decomp: &SylowDecomp<S, L, C>,
+    ) -> Self;
+}
+
+impl<S, const P: u128> FromChi<S, P, FpNum<P>> for Coord<P>
+where
+    FpNum<P>: Factor<S>,
+{
+    fn from_chi<const L: usize>(
+        chi: &SylowElem<S, L, FpNum<P>>,
+        decomp: &SylowDecomp<S, L, FpNum<P>>,
+    ) -> Coord<P> {
+        let chi_inv = chi.inverse().to_product(decomp);
+        let chi = chi.to_product(decomp);
+        Coord(chi + chi_inv)
+    }
+
+    fn from_chi_conj<const L: usize>(
+        chi: &SylowElem<S, L, FpNum<P>>,
+        decomp: &SylowDecomp<S, L, FpNum<P>>,
+    ) -> Coord<P> {
+        let chi_inv = chi.inverse().to_product(decomp);
+        let chi = chi.to_product(decomp);
+        Coord(chi - chi_inv)
+    }
+}
+
+impl<S, const P: u128> FromChi<S, P, QuadNum<P>> for Coord<P>
+where
+    QuadNum<P>: Factor<S>,
+{
+    fn from_chi<const L: usize>(
+        chi: &SylowElem<S, L, QuadNum<P>>,
+        decomp: &SylowDecomp<S, L, QuadNum<P>>,
+    ) -> Coord<P> {
+        let chi_inv = chi.inverse().to_product(decomp);
+        let chi = chi.to_product(decomp);
+        Coord((chi + chi_inv).0)
+    }
+
+    fn from_chi_conj<const L: usize>(
+        chi: &SylowElem<S, L, QuadNum<P>>,
+        decomp: &SylowDecomp<S, L, QuadNum<P>>,
+    ) -> Coord<P> {
+        let chi_inv = chi.inverse().to_product(decomp);
+        let chi = chi.to_product(decomp);
+        Coord((chi - chi_inv).0)
     }
 }
