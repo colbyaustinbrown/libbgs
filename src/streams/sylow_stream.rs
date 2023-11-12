@@ -40,6 +40,7 @@ pub mod flags {
 pub struct SylowStreamBuilder<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> {
     mode: u8,
     tree: Box<FactorNode<L>>,
+    quotient: Option<[usize; L]>,
     _phantom: PhantomData<(S, C)>,
 }
 
@@ -89,6 +90,7 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
                 lim: 0,
                 consume: false,
             })),
+            quotient: None,
             _phantom: PhantomData,
         }
     }
@@ -134,16 +136,12 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
                 for j in node.index()..L1 {
                     if self.t[j] > node.ds()[j] {
                         let (p2, d2) = C1::FACTORS.prime_powers()[j];
-                        let mut rs = *node.ds();
-                        rs[j] += 1;
                         let child = node.get_or_new_child(j, GenData {
                             step: intpow::<0>(p2, (d2 - 1 - node.ds()[j]) as u128),
                             consume: false,
                             lim: 0,
                         });
-                        Adder {
-                            ..*self
-                        }.visit_mut(child);
+                        self.visit_mut(child);
                         if self.mode & flags::LEQ == 0 {
                             break;
                         }
@@ -163,33 +161,8 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
 
     /// Guarantees that this stream will only ever yield one representative of the cosets of the
     /// quotient.
-    pub fn set_quotient(mut self, q: [usize; L]) -> Self {
-        struct Quotienter<const L1: usize> {
-            lims: [u128; L1],
-        }
-
-        impl<const L1: usize> Quotienter<L1> {
-            fn visit_mut(&self, node: &mut FactorTrie<L1, GenData>) {
-                if node.data.step > self.lims[node.index()] {
-                    node.data.lim = self.lims[node.index()];
-                }
-                for j in node.index()..L1 {
-                    if let Some(ref mut child) = node.child_mut(j) {
-                        self.visit_mut(child);
-                    }
-                }
-            }
-        }
-
-        Quotienter {
-            lims: std::array::from_fn(|i| {
-                let (p, d) = C::FACTORS.prime_powers()[i];
-                if q[i] <= d {
-                    intpow::<0>(p, (d - q[i]) as u128) - 1
-                } else { 0 }
-            })
-        }.visit_mut(&mut self.tree);
-
+    pub fn set_quotient(mut self, q: Option<[usize; L]>) -> Self {
+        self.quotient = q;
         self
     }
 
@@ -381,6 +354,7 @@ where
     fn into_iter(mut self) -> SylowStream<S, L, C> {
         struct Limiter<S1, const L1: usize, C1> {
             block: bool,
+            lims: [u128; L1],
             _phantom: PhantomData<(S1, C1)>,
         }
         impl<S1, const L1: usize, C1> MutFactorVisitor<L1, GenData> for Limiter<S1, L1, C1>
@@ -388,7 +362,7 @@ where
             C1: Factor<S1>,
         {
             fn visit_mut(&mut self, node: &mut FactorTrie<L1, GenData>) {
-                node.data.lim = C1::FACTORS.factor(node.index());
+                node.data.lim = self.lims[node.index()];
                 let (p, _) = C1::FACTORS.prime_powers()[node.index()];
                 if self.block {
                     node.data.lim /= 2;
@@ -403,8 +377,15 @@ where
                 }
             }
         }
+        let q = self.quotient.unwrap_or([0; L]);
         Limiter {
             block: self.mode & flags::NO_UPPER_HALF != 0,
+            lims: std::array::from_fn(|i| {
+                let (p, d) = C::FACTORS.prime_powers()[i];
+                if q[i] <= d {
+                    intpow::<0>(p, (d - q[i]) as u128)
+                } else { 0 }
+            }),
             _phantom: PhantomData::<(S, C)>,
         }.visit_mut(&mut self.tree);
         let mut stream = SylowStream {
@@ -465,9 +446,8 @@ impl<S, const L: usize, C: SylowDecomposable<S>> Copy for Seed<S, L, C> {}
 impl<S, const L: usize, C: SylowDecomposable<S>> Clone for SylowStreamBuilder<S, L, C> {
     fn clone(&self) -> Self {
         SylowStreamBuilder {
-            mode: self.mode,
             tree: self.tree.clone(),
-            _phantom: PhantomData,
+            ..*self
         }
     }
 }
