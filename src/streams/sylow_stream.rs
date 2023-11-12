@@ -111,7 +111,7 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
             t: &'a [usize; L1],
         }
 
-        impl<'a, const L1: usize> MutFactorVisitor<L1, Consume> for Adder<'a, L1> {
+        impl<'a, const L1: usize> Adder<'a, L1> {
             fn visit_mut(&mut self, node: &mut FactorTrie<L1, Consume>) {
                 node.data |= self.mode & flags::LEQ != 0
                     || (self.t[node.index()] == node.ds()[node.index()] && {
@@ -128,7 +128,7 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
                     });
                 for j in node.index()..L1 {
                     if self.t[j] > node.ds()[j] {
-                        let child = node.get_or_new_child(j, false);
+                        let child = node.get_or_new_child(j, || false);
                         self.visit_mut(child);
                         if self.mode & flags::LEQ == 0 {
                             break;
@@ -351,7 +351,7 @@ where
             block: bool,
             lims: [u128; L1],
         }
-        impl<const L1: usize> MutFactorVisitor<L1, GenData> for Limiter<L1> {
+        impl<const L1: usize> Limiter<L1> {
             fn visit_mut(&mut self, node: &mut FactorTrie<L1, GenData>) {
                 let (p, _) = node.fact().prime_powers()[node.index()];
                 node.data.lim = self.lims[node.index()];
