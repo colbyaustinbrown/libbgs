@@ -873,4 +873,22 @@ mod tests {
             .count();
         assert_eq!(count, 4);
     }
+
+    #[test]
+    pub fn test_generate_everything() {
+        let count = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
+            .add_flag(flags::LEQ)
+            .add_target(&[1, 3, 1])
+            .into_iter()
+            .count();
+        assert_eq!(count, 270);
+
+        let count = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
+            .add_flag(flags::LEQ)
+            .add_flag(flags::NO_UPPER_HALF)
+            .add_target(&[1, 3, 1])
+            .into_iter()
+            .count();
+        assert_eq!(count, 136);
+    }
 }
