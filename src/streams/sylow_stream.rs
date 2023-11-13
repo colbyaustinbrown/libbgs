@@ -140,6 +140,12 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
         self
     }
 
+    /// Remove the target, so elements of that order will not be generated.
+    pub fn remove_target(mut self, t: &[usize; L]) -> Self {
+        self.tree.update(t, |_, d| *d = false);
+        self
+    }
+
     /// Guarantees that this stream will only ever yield one representative of the cosets of the
     /// quotient.
     pub fn set_quotient(mut self, q: Option<[usize; L]>) -> Self {

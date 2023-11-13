@@ -97,6 +97,21 @@ impl<const L: usize, T> FactorTrie<L, T> {
         }
     }
 
+    /// Updates a single node in the trie.
+    pub fn update<F>(&mut self, t: &[usize; L], gen: F)
+    where
+        F: Fn(&[usize; L], &mut T)
+    {
+        for j in self.i..L {
+            if t[self.i] == self.ds[self.i] { continue; }
+            if let Some(ref mut child) = self.children[j] {
+                child.update(t, gen);
+                return;
+            }
+        }
+        gen(&self.ds, &mut self.data);
+    }
+
     /// Transforms this trie into an equivalent trie with the same shape, but all data mapped via
     /// `f`.
     pub fn map<S, F>(self, f: &mut F) -> FactorTrie<L, S>
