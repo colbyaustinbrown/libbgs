@@ -77,7 +77,8 @@ impl<const P: u128> Coord<P> {
         let hyper = hyper / (FpNum::FACTORS.phi() as f64);
         let ellip = tmp * ((P + 1) * QuadNum::FACTORS.tau()) as f64;
         let ellip = ellip / (QuadNum::FACTORS.phi() as f64);
-        (hyper.ceil() as u128, ellip.ceil() as u128)
+        let res = (hyper.ceil() as u128, ellip.ceil() as u128);
+        (std::cmp::min(res.0, P - 2), std::cmp::min(res.0, P))
     }
 }
 
