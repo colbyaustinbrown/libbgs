@@ -127,7 +127,7 @@ pub fn primes(tokens: TokenStream) -> TokenStream {
     Sieve::new()
         .iter()
         .skip_while(|x| x < &(start.0 as u64))
-        .take_while(|x| x < &(end.0 as u64))
+        .take_while(|x| x <= &(end.0 as u64))
         .for_each(|x| {
             args.push(TokenTree::Literal(Literal::u128_unsuffixed(x as u128)));
             args.push(TokenTree::Punct(Punct::new(',', Spacing::Alone)));
