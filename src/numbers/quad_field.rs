@@ -194,7 +194,6 @@ mod tests {
     fn finds_sqrt() {
         for i in 3..1003 {
             let mut x = QuadNum::<BIG_P>::int_sqrt(FpNum::from(i));
-            println!("{x:?}");
             assert_ne!(x, i);
             x = x.multiply(&x);
             assert_eq!(x, i);

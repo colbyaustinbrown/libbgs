@@ -1,5 +1,7 @@
 use std::marker::PhantomData;
 
+use crate::numbers::Factor;
+
 /// A trie of prime factors in increasing order; that is, a none with word $p$ will have
 /// only children with word $q \geq p$.
 pub struct FactorTrie<S, const L: usize, C, T> {
@@ -19,18 +21,43 @@ enum LeqMode {
 
 impl<S, const L: usize, C, T> FactorTrie<S, L, C, T> 
 where
-    T: Default,
+    C: Factor<S> + std::fmt::Debug,
+    T: Default + std::fmt::Debug,
 {
     /// Creates a new trie associated to the given `factorization`.
     /// The trie begins as only a root node containing `data`; children must be explicitly added
     /// via the `[add]`, `[add_leq]`, or `[get_or_new_child]` methods.
     pub fn new() -> FactorTrie<S, L, C, T> {
-        FactorTrie {
+        let mut res = FactorTrie {
             i: 0,
             ds: [0; L],
             data: T::default(),
             children: std::array::from_fn(|_| None),
             _phantom: PhantomData,
+        };
+        res.new_helper(std::array::from_fn(|i| C::FACTORS[i].1));
+        res
+    }
+
+    fn new_helper(&mut self, t: [usize; L]) {
+        for j in self.i..L {
+            if self.ds[j] >= t[j] {
+                continue;
+            }
+            self.children[j]
+                .get_or_insert_with(|| {
+                    let mut ds = self.ds;
+                    ds[j] += 1;
+                    let mut child = FactorTrie {
+                        i: j,
+                        ds,
+                        data: T::default(),
+                        children: std::array::from_fn(|_| None),
+                        _phantom: PhantomData,
+                    };
+                    child.new_helper(t);
+                    Box::new(child)
+                });
         }
     }
 }

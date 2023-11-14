@@ -75,7 +75,16 @@ struct GenData {
 }
 
 type Output<S, const L: usize, C> = (SylowElem<S, L, C>, [usize; L]);
-type Consume = bool;
+#[derive(Clone, Debug)]
+struct Consume {
+    this: bool,
+    descendants: usize,
+}
+impl Default for Consume {
+    fn default() -> Self {
+        Consume { this: false, descendants: 0 }
+    }
+}
 
 impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBuilder<S, L, C> {
     /// Returns a new `SylowStreamBuilder`.
@@ -108,8 +117,8 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
         }
 
         impl<'a, const L1: usize> Adder<'a, L1> {
-            fn visit_mut<S1, C1>(&mut self, node: &mut FactorTrie<S1, L1, C1, Consume>) {
-                node.data |= self.mode & flags::LEQ != 0
+            fn visit_mut<S1, C1>(&mut self, node: &mut FactorTrie<S1, L1, C1, Consume>) -> usize {
+                node.data.this |= self.mode & flags::LEQ != 0
                     || (self.t[node.index()] == node.ds()[node.index()] && {
                         let mut j = node.index() + 1;
                         loop {
@@ -124,13 +133,14 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
                     });
                 for j in node.index()..L1 {
                     if self.t[j] > node.ds()[j] {
-                        let child = node.get_or_new_child(j, || false);
-                        self.visit_mut(child);
+                        let child = node.get_or_new_child(j, || Consume { this: false, descendants: 0 });
+                        node.data.descendants = self.visit_mut(child);
                         if self.mode & flags::LEQ == 0 {
                             break;
                         }
                     }
                 }
+                node.data.descendants + if node.data.this { 1 } else { 0 }
             }
         }
 
@@ -141,7 +151,30 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
 
     /// Remove the target, so elements of that order will not be generated.
     pub fn remove_target(mut self, t: &[usize; L]) -> Self {
-        self.tree.update(t, |_, d| *d = false);
+        if t.iter().all(|x| *x == 0) {
+            self.mode |= flags::INCLUDE_ONE;
+        }
+
+        struct Remover<'a, const L1: usize>(&'a [usize; L1]);
+        impl<'a, const L1: usize> Remover<'a, L1> {
+            fn visit_mut<S1, C1>(&mut self, node: &mut FactorTrie<S1, L1, C1, Consume>) -> bool {
+                for j in node.index()..L1 {
+                    if self.0[j] > node.ds()[j] {
+                        let Some(child) = node.child_mut(j) else { 
+                            panic!("Could not find child while removing target."); 
+                        };
+                        if self.visit_mut(child) {
+                            node.data.descendants -= 1;
+                            return true;
+                        }
+                        return false;
+                    }
+                }
+                node.data.this = false;
+                true
+            }
+        }
+        Remover(t).visit_mut(&mut self.tree);
         self
     }
 
@@ -213,21 +246,20 @@ impl<S, const L: usize, C: SylowDecomposable<S>> SylowStream<S, L, C> {
             if j == 0 {
                 continue;
             }
-            if node.data.consume {
+            if node.data.consume.this {
                 consume(self, (part, *node.ds()));
             }
 
-            node.children()
-                .iter()
-                .skip(node.index() + 1)
-                .filter_map(|o| o.as_ref())
-                .for_each(|n| {
+            for i in (node.index() + 1)..L {
+                let Some(n) = node.child(i) else { continue; };
+                if n.data.consume.this || n.data.consume.descendants >= 1 {
                     self.stack.push(Seed {
                         part,
                         start: 0,
-                        node: &**n,
+                        node: &*n,
                     });
-                });
+                }
+            }
         }
     }
 }
@@ -405,6 +437,10 @@ where
                 continue;
             };
 
+            if !n.data.consume.this && n.data.consume.descendants == 0 {
+                continue;
+            }
+
             let seed = Seed {
                 part: SylowElem::ONE,
                 start: 0,
@@ -489,7 +525,7 @@ mod tests {
 
     const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
-    #[derive(PartialEq, Eq)]
+    #[derive(PartialEq, Eq, Debug)]
     struct Phantom {}
 
     impl Factor<Phantom> for FpNum<7> {
@@ -578,11 +614,13 @@ mod tests {
 
     #[test]
     pub fn test_generates_big_seq() {
+        println!("A");
         let stream = SylowStreamBuilder::new()
             .add_target(&[0, 0, 0, 2, 0, 0, 0])
             .into_iter();
         let coords: Vec<SylowElem<Phantom, 7, FpNum<BIG_P>>> = stream.map(|(a, _)| a).collect();
         assert_eq!(coords.len(), 29 * 29 - 29);
+        println!("B");
 
         SylowStreamBuilder::<Phantom, 7, FpNum<BIG_P>>::new()
             .add_target(&[0, 0, 0, 0, 0, 1, 0])
@@ -632,13 +670,13 @@ mod tests {
 
     #[test]
     pub fn test_multiple_targets_2_seq() {
-        let coords = SylowStreamBuilder::<Phantom, 4, FpNum<13928643>>::new()
+        let count = SylowStreamBuilder::<Phantom, 4, FpNum<13928643>>::new()
             .add_flag(flags::LEQ)
             .add_target(&[0, 1, 1, 0])
             .into_iter()
-            .collect::<Vec<_>>();
+            .count();
 
-        assert_eq!(coords.len(), 91);
+        assert_eq!(count, 91);
     }
 
     #[test]

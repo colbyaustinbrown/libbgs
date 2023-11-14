@@ -21,6 +21,7 @@ where
 impl<'a, S, const L_HYPER: usize, const L_ELLIP: usize, const P: u128>
     CoordStream<'a, S, L_HYPER, L_ELLIP, P>
 where
+    S: std::fmt::Debug,
     FpNum<P>: SylowDecomposable<S>,
     QuadNum<P>: SylowDecomposable<S>,
 {

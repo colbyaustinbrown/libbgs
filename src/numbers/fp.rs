@@ -292,7 +292,6 @@ mod tests {
     fn powers_up_big() {
         let mut x = FpNum::<BIG_P>::from(3);
         x = x.pow(BIG_P - 1);
-        println!("x is {x:?}");
         assert!(x == FpNum::ONE);
     }
 
@@ -370,9 +369,7 @@ mod tests {
         for i in 2..13 {
             let mut x = FpNum::<13>::from(i);
             let y = x.clone();
-            println!("{x:?}");
             x = x.inverse();
-            println!("{x:?}");
             assert!(x != FpNum::ONE);
             x = x.multiply(&y);
             assert!(x == FpNum::ONE);
