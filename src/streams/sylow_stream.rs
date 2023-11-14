@@ -82,7 +82,7 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
     pub fn new() -> SylowStreamBuilder<S, L, C> {
         SylowStreamBuilder {
             mode: flags::NONE,
-            tree: Box::new(FactorTrie::new(C::FACTORS, false)),
+            tree: Box::new(FactorTrie::new()),
             quotient: None,
             _phantom: PhantomData,
         }
@@ -352,8 +352,11 @@ where
             lims: [u128; L1],
         }
         impl<const L1: usize> Limiter<L1> {
-            fn visit_mut<S1, C1>(&mut self, node: &mut FactorTrie<S1, L1, C1, GenData>) {
-                let (p, _) = node.fact().prime_powers()[node.index()];
+            fn visit_mut<S1, C1>(&mut self, node: &mut FactorTrie<S1, L1, C1, GenData>) 
+            where
+                C1: Factor<S1>,
+            {
+                let (p, _) = C1::FACTORS[node.index()];
                 node.data.lim = self.lims[node.index()];
                 if self.block {
                     node.data.lim /= 2;
