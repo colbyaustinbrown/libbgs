@@ -81,7 +81,7 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
         Self: SylowDecomposable<S>,
     {
         let mut total = 1;
-        for (d, (p, t)) in ds.iter().zip(Self::FACTORS.prime_powers()) {
+        for (d, (p, t)) in ds.iter().zip(Self::FACTORS.factors()) {
             if *d > *t {
                 return 0;
             } else if *d > 0 {

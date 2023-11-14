@@ -25,7 +25,7 @@ pub use impl_factors;
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Factorization {
     value: u128,
-    prime_powers: &'static [(u128, usize)],
+    factors: &'static [(u128, usize)],
 }
 
 /// A placeholder trait for storing the length of a prime factorization; required to be separate
@@ -56,16 +56,16 @@ impl<S, T: Factor<S>> Length<S> for T {
 
 impl Factorization {
     /// Creates a new factorization from the given prime powers.
-    pub const fn new(prime_powers: &'static [(u128, usize)]) -> Factorization {
+    pub const fn new(factors: &'static [(u128, usize)]) -> Factorization {
         let mut value = 1;
         let mut i = 0;
-        while i < prime_powers.len() {
-            value *= intpow::<0>(prime_powers[i].0, prime_powers[i].1 as u128);
+        while i < factors.len() {
+            value *= intpow::<0>(factors[i].0, factors[i].1 as u128);
             i += 1;
         }
         Factorization {
             value,
-            prime_powers,
+            factors,
         }
     }
 
@@ -78,25 +78,25 @@ impl Factorization {
     ///
     /// The iterator cannot outlive the `Factorization`, although the vectors yielded by it may.
     pub fn maximal_divisors<const L: usize>(&self, l: u128) -> impl Iterator<Item = [usize; L]> {
-        FactorStream::new(self.prime_powers, l, true).map(|v| v.try_into().unwrap())
+        FactorStream::new(self.factors, l, true).map(|v| v.try_into().unwrap())
     }
 
     /// True if there the factorization represents 1.
     /// False otherwise.
     pub const fn is_empty(&self) -> bool {
-        self.prime_powers.is_empty()
+        self.factors.is_empty()
     }
 
     /// Returns the prime power factor represented by prime number `i`, $p_i^{t_i}$.
     /// This method will `panic` if `i` is out of bounds.
     pub const fn factor(&self, i: usize) -> u128 {
-        intpow::<0>(self.prime_powers[i].0, self.prime_powers[i].1 as u128)
+        intpow::<0>(self.factors[i].0, self.factors[i].1 as u128)
     }
 
     /// Gets the prime powers as an array.
     /// The first element of each entry is the prime, and the second is the power.
-    pub const fn prime_powers(&self) -> &'static [(u128, usize)] {
-        self.prime_powers
+    pub const fn factors(&self) -> &'static [(u128, usize)] {
+        self.factors
     }
 
     /// Returns the positive integer represented by this `Factorization`.
@@ -107,7 +107,7 @@ impl Factorization {
     /// Converts an array of powers on the prime factors into an integer.
     pub fn from_powers(&self, ds: &[usize]) -> u128 {
         let mut total = 1;
-        for (d, (p, t)) in ds.iter().zip(self.prime_powers) {
+        for (d, (p, t)) in ds.iter().zip(self.factors) {
             if d > t {
                 return 0;
             } else {
@@ -119,12 +119,12 @@ impl Factorization {
 
     /// Returns the exponents on the factorization.
     pub fn exponents(&self) -> Box<[usize]> {
-        self.prime_powers.iter().map(|(_, t)| *t).collect::<Box<[usize]>>()
+        self.factors.iter().map(|(_, t)| *t).collect::<Box<[usize]>>()
     }
 
     /// Returns the number of prime factors in the factorization.
     pub const fn len(&self) -> usize {
-        self.prime_powers.len()
+        self.factors.len()
     }
 
     /// Returns $\tau$(`&self`), the number of divisors of this integer.
@@ -134,8 +134,8 @@ impl Factorization {
     pub const fn tau(&self) -> u128 {
         let mut res = 1u128;
         let mut i = 0;
-        while i < self.prime_powers.len() {
-            res *= (self.prime_powers[i].1 + 1) as u128;
+        while i < self.factors.len() {
+            res *= (self.factors[i].1 + 1) as u128;
             i += 1;
         }
         res
@@ -149,9 +149,9 @@ impl Factorization {
     pub const fn phi(&self) -> u128 {
         let mut res = 1;
         let mut i = 0;
-        while i < self.prime_powers.len() {
-            res *= intpow::<0>(self.prime_powers[i].0, (self.prime_powers[i].1 - 1) as u128);
-            res *= self.prime_powers[i].0 - 1;
+        while i < self.factors.len() {
+            res *= intpow::<0>(self.factors[i].0, (self.factors[i].1 - 1) as u128);
+            res *= self.factors[i].0 - 1;
             i += 1;
         }
         res
@@ -162,6 +162,6 @@ impl Index<usize> for Factorization {
     type Output = (u128, usize);
 
     fn index(&self, index: usize) -> &(u128, usize) {
-        &self.prime_powers[index]
+        &self.factors[index]
     }
 }

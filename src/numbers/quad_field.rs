@@ -216,7 +216,7 @@ mod tests {
         let g = SylowDecomp::<Phantom, 11, QuadNum<BIG_P>>::new();
         for i in 0..11 {
             let gen = g.generator(i);
-            let d = SylowElem::<Phantom, 11, QuadNum<BIG_P>>::FACTORS.prime_powers()[i];
+            let d = SylowElem::<Phantom, 11, QuadNum<BIG_P>>::FACTORS[i];
             test_is_generator_big::<Phantom, 11, QuadNum<BIG_P>>(gen, d);
         }
     }

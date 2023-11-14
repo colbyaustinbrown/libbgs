@@ -340,7 +340,7 @@ where
 
     fn into_iter(self) -> SylowStream<S, L, C> {
         let mut tree = self.tree.map(&mut |consume, ds: &[usize; L], i| {
-            let (p, d) = C::FACTORS.prime_powers()[i];
+            let (p, d) = C::FACTORS[i];
             GenData {
                 consume,
                 step: intpow::<0>(p, (d - ds[i]) as u128),
@@ -379,7 +379,7 @@ where
         Limiter {
             block: self.mode & flags::NO_UPPER_HALF != 0,
             lims: std::array::from_fn(|i| {
-                let (p, d) = C::FACTORS.prime_powers()[i];
+                let (p, d) = C::FACTORS[i];
                 if q[i] <= d {
                     intpow::<0>(p, (d - q[i]) as u128)
                 } else {

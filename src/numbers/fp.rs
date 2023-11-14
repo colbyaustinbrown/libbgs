@@ -317,7 +317,7 @@ mod tests {
         let g = SylowDecomp::<Phantom, 7, FpNum<BIG_P>>::new();
         for i in 0..7 {
             let gen = g.generator(i);
-            let d = SylowElem::<Phantom, 7, FpNum<BIG_P>>::FACTORS.prime_powers()[i];
+            let d = SylowElem::<Phantom, 7, FpNum<BIG_P>>::FACTORS[i];
             test_is_generator_big::<Phantom, 7, FpNum<BIG_P>>(gen, d);
         }
     }
@@ -336,7 +336,7 @@ mod tests {
         let n = 123456789;
         let mut x = SylowElem::<Phantom, 7, FpNum<BIG_P>>::new(
             SylowElem::<Phantom, 7, FpNum<BIG_P>>::FACTORS
-                .prime_powers()
+                .factors()
                 .iter()
                 .map(|(p, d)| n % intpow::<0>(*p, *d as u128))
                 .collect::<Vec<u128>>()

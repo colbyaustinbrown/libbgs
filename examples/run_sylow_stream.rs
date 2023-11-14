@@ -12,7 +12,7 @@ impl_factors!(Stock, 1_000_000_000_000_000_124_399);
 
 fn main() {
     // let decomp = SylowDecomp::<Phantom, 7, FpNum<BIG_P>>::new();
-    let factors = FactorStream::new(FpNum::<BIG_P>::FACTORS.prime_powers(), 10_000_000, true);
+    let factors = FactorStream::new(FpNum::<BIG_P>::FACTORS.factors(), 10_000_000, true);
 
     let builder = SylowStreamBuilder::<Stock, 7, FpNum<BIG_P>>::new()
         .add_flag(flags::LEQ)
