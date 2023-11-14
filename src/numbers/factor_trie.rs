@@ -1,16 +1,18 @@
-use crate::numbers::Factorization;
 use std::sync::Arc;
+use std::marker::PhantomData;
 
-#[derive(Clone, Debug)]
+use crate::numbers::Factorization;
+
 /// A trie of prime factors in increasing order; that is, a none with word $p$ will have
 /// only children with word $q \geq p$.
-pub struct FactorTrie<const L: usize, T> {
+pub struct FactorTrie<S, const L: usize, C, T> {
     i: usize,
     ds: [usize; L],
     fact: Arc<Factorization>,
-    children: [Option<Box<FactorTrie<L, T>>>; L],
+    children: [Option<Box<FactorTrie<S, L, C, T>>>; L],
     /// Data associated with the key given by the concatenation of this node's ancestors' words.
     pub data: T,
+    _phantom: PhantomData<(S, C)>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -19,7 +21,7 @@ enum LeqMode {
     Strict,
 }
 
-impl<const L: usize, T> FactorTrie<L, T> {
+impl<S, const L: usize, C, T> FactorTrie<S, L, C, T> {
     /// Creates a new trie associated to the given `factorization`.
     /// The trie begins as only a root node containing `data`; children must be explicitly added
     /// via the `[add]`, `[add_leq]`, or `[get_or_new_child]` methods.
@@ -30,12 +32,13 @@ impl<const L: usize, T> FactorTrie<L, T> {
             data,
             fact: Arc::new(factorization),
             children: std::array::from_fn(|_| None),
+            _phantom: PhantomData,
         }
     }
 
     /// Returns this node's child at index `i`, or creates the child, initialized with the result
     /// of the lazily-evaluated `data`.
-    pub fn get_or_new_child<F>(&mut self, i: usize, data: F) -> &mut FactorTrie<L, T>
+    pub fn get_or_new_child<F>(&mut self, i: usize, data: F) -> &mut FactorTrie<S, L, C, T>
     where
         F: FnOnce() -> T,
     {
@@ -49,6 +52,7 @@ impl<const L: usize, T> FactorTrie<L, T> {
             data: data(),
             fact: Arc::clone(&self.fact),
             children: std::array::from_fn(|_| None),
+            _phantom: PhantomData,
         }))
     }
 
@@ -88,6 +92,7 @@ impl<const L: usize, T> FactorTrie<L, T> {
                         data: gen(&ds, j),
                         fact: Arc::clone(&self.fact),
                         children: std::array::from_fn(|_| None),
+                        _phantom: PhantomData,
                     })
                 })
                 .add_helper(t, &gen, leq);
@@ -114,9 +119,9 @@ impl<const L: usize, T> FactorTrie<L, T> {
 
     /// Transforms this trie into an equivalent trie with the same shape, but all data mapped via
     /// `f`.
-    pub fn map<S, F>(self, f: &mut F) -> FactorTrie<L, S>
+    pub fn map<U, F>(self, f: &mut F) -> FactorTrie<S, L, C, U>
     where
-        F: FnMut(T, &[usize; L], usize) -> S,
+        F: FnMut(T, &[usize; L], usize) -> U,
     {
         FactorTrie {
             i: self.i,
@@ -124,11 +129,12 @@ impl<const L: usize, T> FactorTrie<L, T> {
             data: f(self.data, &self.ds, self.i),
             fact: Arc::clone(&self.fact),
             children: self.children.map(|o| o.map(|n| Box::new(n.map(f)))),
+            _phantom: PhantomData,
         }
     }
 
     /// Returns a trie of borrowed data.
-    pub fn as_ref(&self) -> FactorTrie<L, &T> {
+    pub fn as_ref(&self) -> FactorTrie<S, L, C, &T> {
         FactorTrie {
             i: self.i,
             ds: self.ds,
@@ -138,11 +144,12 @@ impl<const L: usize, T> FactorTrie<L, T> {
                 o.as_ref()
                     .map(|b| Box::new(FactorTrie::as_ref(Box::as_ref(b))))
             }),
+            _phantom: PhantomData,
         }
     }
 
     /// Returns a trie of mutably borrowed data.
-    pub fn as_mut(&mut self) -> FactorTrie<L, &mut T> {
+    pub fn as_mut(&mut self) -> FactorTrie<S, L, C, &mut T> {
         FactorTrie {
             i: self.i,
             ds: self.ds,
@@ -152,6 +159,7 @@ impl<const L: usize, T> FactorTrie<L, T> {
                 o.as_mut()
                     .map(|b| Box::new(FactorTrie::as_mut(Box::as_mut(b))))
             }),
+            _phantom: PhantomData,
         }
     }
 
@@ -183,17 +191,30 @@ impl<const L: usize, T> FactorTrie<L, T> {
     }
 
     /// This node's array of children.
-    pub fn children(&self) -> &[Option<Box<FactorTrie<L, T>>>] {
+    pub fn children(&self) -> &[Option<Box<FactorTrie<S, L, C, T>>>] {
         &self.children
     }
 
     /// Returns a reference to the child at index `i`, if there is one.
-    pub fn child(&self, i: usize) -> Option<&FactorTrie<L, T>> {
+    pub fn child(&self, i: usize) -> Option<&FactorTrie<S, L, C, T>> {
         self.children[i].as_deref()
     }
 
     /// Returns a mutable reference to the child at index `i`, if there is one.
-    pub fn child_mut(&mut self, i: usize) -> Option<&mut FactorTrie<L, T>> {
+    pub fn child_mut(&mut self, i: usize) -> Option<&mut FactorTrie<S, L, C, T>> {
         self.children[i].as_deref_mut()
+    }
+}
+
+impl<S, const L: usize, C, T: Clone> Clone for FactorTrie<S, L, C, T> {
+    fn clone(&self) -> Self {
+        FactorTrie {
+            i: self.i,
+            ds: self.ds,
+            data: self.data.clone(),
+            children: self.children.clone(),
+            fact: Arc::clone(&self.fact),
+            _phantom: PhantomData,
+        }
     }
 }

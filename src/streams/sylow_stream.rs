@@ -39,7 +39,7 @@ pub mod flags {
 /// A builder for a stream yielding elements of particular orders, as their Sylow decompositions.
 pub struct SylowStreamBuilder<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> {
     mode: u8,
-    tree: Box<FactorTrie<L, Consume>>,
+    tree: Box<FactorTrie<S, L, C, Consume>>,
     quotient: Option<[usize; L]>,
     _phantom: PhantomData<(S, C)>,
 }
@@ -57,14 +57,14 @@ pub struct SylowParStream<S: Send + Sync, const L: usize, C: SylowDecomposable<S
 pub struct SylowStream<S, const L: usize, C: SylowDecomposable<S>> {
     stack: Vec<Seed<S, L, C>>,
     buffer: Vec<Output<S, L, C>>,
-    tree: Arc<FactorNode<L>>,
+    tree: Arc<FactorTrie<S, L, C, GenData>>,
 }
 
 #[derive(Debug)]
 struct Seed<S, const L: usize, C: SylowDecomposable<S>> {
     part: SylowElem<S, L, C>,
     start: u128,
-    node: *const FactorNode<L>,
+    node: *const FactorTrie<S, L, C, GenData>,
 }
 
 #[derive(Clone, Debug)]
@@ -74,7 +74,6 @@ struct GenData {
     lim: u128,
 }
 
-type FactorNode<const L: usize> = FactorTrie<L, GenData>;
 type Output<S, const L: usize, C> = (SylowElem<S, L, C>, [usize; L]);
 type Consume = bool;
 
@@ -109,7 +108,7 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
         }
 
         impl<'a, const L1: usize> Adder<'a, L1> {
-            fn visit_mut(&mut self, node: &mut FactorTrie<L1, Consume>) {
+            fn visit_mut<S1, C1>(&mut self, node: &mut FactorTrie<S1, L1, C1, Consume>) {
                 node.data |= self.mode & flags::LEQ != 0
                     || (self.t[node.index()] == node.ds()[node.index()] && {
                         let mut j = node.index() + 1;
@@ -353,7 +352,7 @@ where
             lims: [u128; L1],
         }
         impl<const L1: usize> Limiter<L1> {
-            fn visit_mut(&mut self, node: &mut FactorTrie<L1, GenData>) {
+            fn visit_mut<S1, C1>(&mut self, node: &mut FactorTrie<S1, L1, C1, GenData>) {
                 let (p, _) = node.fact().prime_powers()[node.index()];
                 node.data.lim = self.lims[node.index()];
                 if self.block {
