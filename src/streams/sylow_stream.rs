@@ -205,7 +205,7 @@ impl<S, const L: usize, C: SylowDecomposable<S>> SylowStream<S, L, C> {
         }
     }
 
-    fn propogate<F>(&mut self, seed: Seed<S, L, C>, mut consume: F)
+    fn propagate<F>(&mut self, seed: Seed<S, L, C>, mut consume: F)
     where
         Self: Sized,
         F: FnMut(&mut Self, Output<S, L, C>),
@@ -271,7 +271,7 @@ impl<S, const L: usize, C: SylowDecomposable<S>> Iterator for SylowStream<S, L, 
         if let Some(res) = self.buffer.pop() {
             Some(res)
         } else if let Some(top) = self.stack.pop() {
-            self.propogate(top, |slf, e| slf.buffer.push(e));
+            self.propagate(top, |slf, e| slf.buffer.push(e));
             self.next()
         } else {
             None
@@ -449,7 +449,7 @@ where
 
             let (p, _) = C::FACTORS[i];
             if self.mode & flags::NO_PARABOLIC != 0 && p == 2 {
-                stream.propogate(seed, |_, _| {});
+                stream.propagate(seed, |_, _| {});
             } else {
                 stream.stack.push(seed);
             }
@@ -868,7 +868,7 @@ mod tests {
     }
 
     #[test]
-    pub fn test_propogates_no_upper_half() {
+    pub fn test_propagates_no_upper_half() {
         let count = SylowStreamBuilder::<Phantom, 2, FpNum<41>>::new()
             .add_flag(flags::NO_UPPER_HALF)
             .add_target(&[3, 1])
