@@ -177,6 +177,15 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug, T> SylowStrea
         self
     }
 
+    /// Adds the maximal divisors beneath `limit` to the `FactorTrie` and sets the `LEQ` flag.
+    pub fn add_targets_leq(self, limit: u128) -> Self {
+        FactorStream::new(C::FACTORS.factors(), limit, true)
+            .into_iter()
+            .map(|v| v.try_into().unwrap())
+            .fold(self, |b, x| b.add_target(&x))
+            .add_flag(flags::LEQ)
+    }
+
     /// Remove the target, so elements of that order will not be generated.
     pub fn remove_target(mut self, t: &[usize; L]) -> Self {
         if t.iter().all(|x| *x == 0) {
