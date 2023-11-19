@@ -144,9 +144,9 @@ impl<S, const L: usize, C, T> FactorTrie<S, L, C, T> {
 
     /// Transforms this trie into an equivalent trie with the same shape, but all data mapped via
     /// `f`.
-    pub fn map<U, F>(self, f: &mut F) -> FactorTrie<S, L, C, U>
+    pub fn map<U, F>(self, f: &F) -> FactorTrie<S, L, C, U>
     where
-        F: FnMut(T, &[usize; L], usize) -> U,
+        F: Fn(T, &[usize; L], usize) -> U,
     {
         FactorTrie {
             i: self.i,

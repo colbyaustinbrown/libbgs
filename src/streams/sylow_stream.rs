@@ -37,34 +37,34 @@ pub mod flags {
 }
 
 /// A builder for a stream yielding elements of particular orders, as their Sylow decompositions.
-pub struct SylowStreamBuilder<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> {
+pub struct SylowStreamBuilder<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug, T> {
     mode: u8,
-    tree: Box<FactorTrie<S, L, C, Consume>>,
+    tree: Box<FactorTrie<S, L, C, (Consume, T)>>,
     quotient: Option<[usize; L]>,
     _phantom: PhantomData<(S, C)>,
 }
 
 /// A stream yielding elements of particular orders, as their Sylow decompositions.
 /// Generates the elements in parallel on multiple threads.
-pub struct SylowParStream<S: Send + Sync, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug>
+pub struct SylowParStream<S: Send + Sync, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug, T>
 {
-    stream: SylowStream<S, L, C>,
+    stream: SylowStream<S, L, C, T>,
     splits: usize,
 }
 
 /// A stream yielding elements of particular orders, as their Sylow decompositions.
 /// Generates the elements sequentially on a single thread.
-pub struct SylowStream<S, const L: usize, C: SylowDecomposable<S>> {
-    stack: Vec<Seed<S, L, C>>,
-    buffer: Vec<Output<S, L, C>>,
-    tree: Arc<FactorTrie<S, L, C, GenData>>,
+pub struct SylowStream<S, const L: usize, C: SylowDecomposable<S>, T> {
+    stack: Vec<Seed<S, L, C, T>>,
+    buffer: Vec<Output<S, L, C, T>>,
+    tree: Arc<FactorTrie<S, L, C, (GenData, T)>>,
 }
 
 #[derive(Debug)]
-struct Seed<S, const L: usize, C: SylowDecomposable<S>> {
+struct Seed<S, const L: usize, C: SylowDecomposable<S>, T> {
     part: SylowElem<S, L, C>,
     start: u128,
-    node: *const FactorTrie<S, L, C, GenData>,
+    node: *const FactorTrie<S, L, C, (GenData, T)>,
 }
 
 #[derive(Clone, Debug)]
@@ -74,7 +74,7 @@ struct GenData {
     lim: u128,
 }
 
-type Output<S, const L: usize, C> = (SylowElem<S, L, C>, [usize; L]);
+type Output<S, const L: usize, C, T> = (SylowElem<S, L, C>, T);
 #[derive(Clone, Debug)]
 struct Consume {
     this: bool,
@@ -86,19 +86,45 @@ impl Default for Consume {
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBuilder<S, L, C> {
+impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBuilder<S, L, C, ()> {
     /// Returns a new `SylowStreamBuilder`.
-    pub fn new() -> SylowStreamBuilder<S, L, C> {
+    pub fn new() -> SylowStreamBuilder<S, L, C, ()> {
         SylowStreamBuilder {
             mode: flags::NONE,
-            tree: Box::new(FactorTrie::new()),
+            tree: Box::new(FactorTrie::new().map(&|_: (), _, _| (Consume::default(), ()))),
             quotient: None,
             _phantom: PhantomData,
         }
     }
+}
 
+impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBuilder<S, L, C, [u128; L]> {
+    /// Returns a new `SylowStreamBuilder`, which will return both elements and their orders.
+    pub fn new_with_orders() -> SylowStreamBuilder<S, L, C, [usize; L]> {
+        SylowStreamBuilder {
+            mode: flags::NONE,
+            tree: Box::new(FactorTrie::<S, L, C, ()>::new().map(&|_, ds, _| (Consume::default(), *ds))),
+            quotient: None,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<'a, S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug, T> SylowStreamBuilder<S, L, C, &'a T> {
+    /// Creates a new `SylowStreamBuilder` with a "parallel" trie to that given here.
+    pub fn new_with_trie(trie: &'a FactorTrie<S, L, C, T>) -> SylowStreamBuilder<S, L, C, &'a T> {
+        SylowStreamBuilder {
+            mode: flags::NONE,
+            tree: Box::new(trie.as_ref().map(&|t, _, _| (Consume::default(), t))),
+            quotient: None,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug, T> SylowStreamBuilder<S, L, C, T> {
     /// Adds a flag to the `SylowStreamBuilder`, modifying its yields.
-    pub fn add_flag(mut self, mode: u8) -> SylowStreamBuilder<S, L, C> {
+    pub fn add_flag(mut self, mode: u8) -> SylowStreamBuilder<S, L, C, T> {
         self.mode |= mode;
         self
     }
@@ -106,7 +132,7 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
     /// Adds a target order to this `SylowStreamBuilder`.
     /// The `SylowStream` built from this builder will only yield elements of the orders of
     /// `target`s, or elements of order dividing `target` if `target
-    pub fn add_target(mut self, t: &[usize; L]) -> SylowStreamBuilder<S, L, C> {
+    pub fn add_target(mut self, t: &[usize; L]) -> SylowStreamBuilder<S, L, C, T> {
         if t.iter().all(|x| *x == 0) {
             self.mode |= flags::INCLUDE_ONE;
         }
@@ -117,8 +143,8 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
         }
 
         impl<'a, const L1: usize> Adder<'a, L1> {
-            fn visit_mut<S1, C1>(&mut self, node: &mut FactorTrie<S1, L1, C1, Consume>) -> usize {
-                node.data.this |= self.mode & flags::LEQ != 0
+            fn visit_mut<S1, C1, T1>(&mut self, node: &mut FactorTrie<S1, L1, C1, (Consume, T1)>) -> usize {
+                node.data.0.this |= self.mode & flags::LEQ != 0
                     || (self.t[node.index()] == node.ds()[node.index()] && {
                         let mut j = node.index() + 1;
                         loop {
@@ -133,14 +159,16 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
                     });
                 for j in node.index()..L1 {
                     if self.t[j] > node.ds()[j] {
-                        let child = node.get_or_new_child(j, || Consume { this: false, descendants: 0 });
-                        node.data.descendants = self.visit_mut(child);
+                        let Some(child) = node.child_mut(j) else { 
+                            panic!("Tried to add a target which does not exist in this trie!"); 
+                        };
+                        node.data.0.descendants = self.visit_mut(child);
                         if self.mode & flags::LEQ == 0 {
                             break;
                         }
                     }
                 }
-                node.data.descendants + if node.data.this { 1 } else { 0 }
+                node.data.0.descendants + if node.data.0.this { 1 } else { 0 }
             }
         }
 
@@ -157,20 +185,20 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
 
         struct Remover<'a, const L1: usize>(&'a [usize; L1]);
         impl<'a, const L1: usize> Remover<'a, L1> {
-            fn visit_mut<S1, C1>(&mut self, node: &mut FactorTrie<S1, L1, C1, Consume>) -> bool {
+            fn visit_mut<S1, C1, T1>(&mut self, node: &mut FactorTrie<S1, L1, C1, (Consume, T1)>) -> bool {
                 for j in node.index()..L1 {
                     if self.0[j] > node.ds()[j] {
                         let Some(child) = node.child_mut(j) else { 
                             panic!("Could not find child while removing target."); 
                         };
                         if self.visit_mut(child) {
-                            node.data.descendants -= 1;
+                            node.data.0.descendants -= 1;
                             return true;
                         }
                         return false;
                     }
                 }
-                node.data.this = false;
+                node.data.0.this = false;
                 true
             }
         }
@@ -193,9 +221,9 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S>> SylowStream<S, L, C> {
+impl<S, const L: usize, C: SylowDecomposable<S>, T> SylowStream<S, L, C, T> {
     /// Converts a sequential Sylow stream into a parallel one.
-    pub fn parallelize(self) -> SylowParStream<S, L, C>
+    pub fn parallelize(self) -> SylowParStream<S, L, C, T>
     where
         S: Send + Sync,
     {
@@ -205,10 +233,11 @@ impl<S, const L: usize, C: SylowDecomposable<S>> SylowStream<S, L, C> {
         }
     }
 
-    fn propagate<F>(&mut self, seed: Seed<S, L, C>, mut consume: F)
+    fn propagate<F>(&mut self, seed: Seed<S, L, C, T>, mut consume: F)
     where
         Self: Sized,
-        F: FnMut(&mut Self, Output<S, L, C>),
+        T: Clone,
+        F: FnMut(&mut Self, Output<S, L, C, T>),
     {
         let node = unsafe { &*seed.node };
         let (p, _) = C::FACTORS[node.index()];
@@ -226,8 +255,8 @@ impl<S, const L: usize, C: SylowDecomposable<S>> SylowStream<S, L, C> {
         }
 
         for j in seed.start..stop {
-            let tmp = seed.part.coords[node.index()] + j * node.data.step;
-            if tmp > node.data.lim {
+            let tmp = seed.part.coords[node.index()] + j * node.data.0.step;
+            if tmp > node.data.0.lim {
                 break;
             }
             let mut part = seed.part;
@@ -246,13 +275,13 @@ impl<S, const L: usize, C: SylowDecomposable<S>> SylowStream<S, L, C> {
             if j == 0 {
                 continue;
             }
-            if node.data.consume.this {
-                consume(self, (part, *node.ds()));
+            if node.data.0.consume.this {
+                consume(self, (part, node.data.1.clone()));
             }
 
             for i in (node.index() + 1)..L {
                 let Some(n) = node.child(i) else { continue; };
-                if n.data.consume.this || n.data.consume.descendants >= 1 {
+                if n.data.0.consume.this || n.data.0.consume.descendants >= 1 {
                     self.stack.push(Seed {
                         part,
                         start: 0,
@@ -264,10 +293,13 @@ impl<S, const L: usize, C: SylowDecomposable<S>> SylowStream<S, L, C> {
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S>> Iterator for SylowStream<S, L, C> {
-    type Item = (SylowElem<S, L, C>, [usize; L]);
+impl<S, const L: usize, C: SylowDecomposable<S>, T> Iterator for SylowStream<S, L, C, T> 
+where
+    T: Clone,
+{
+    type Item = (SylowElem<S, L, C>, T);
 
-    fn next(&mut self) -> Option<(SylowElem<S, L, C>, [usize; L])> {
+    fn next(&mut self) -> Option<(SylowElem<S, L, C>, T)> {
         if let Some(res) = self.buffer.pop() {
             Some(res)
         } else if let Some(top) = self.stack.pop() {
@@ -279,10 +311,11 @@ impl<S, const L: usize, C: SylowDecomposable<S>> Iterator for SylowStream<S, L, 
     }
 }
 
-impl<S, const L: usize, C> SylowParStream<S, L, C>
+impl<S, const L: usize, C, T> SylowParStream<S, L, C, T>
 where
     S: Send + Sync,
     C: SylowDecomposable<S> + Send + Sync,
+    T: Clone + Send + Sync,
 {
     fn maybe_split(&mut self, stolen: bool) -> Option<Self> {
         if stolen {
@@ -311,8 +344,7 @@ where
 
     fn work<Con>(&mut self, stolen: bool, consumer: Con) -> Con::Result
     where
-        C: Send,
-        Con: UnindexedConsumer<Output<S, L, C>>,
+        Con: UnindexedConsumer<Output<S, L, C, T>>,
     {
         let mut folder = consumer.split_off_left().into_folder();
         while let Some(buf) = self.stream.buffer.pop() {
@@ -348,12 +380,13 @@ where
     }
 }
 
-impl<S, const L: usize, C> ParallelIterator for SylowParStream<S, L, C>
+impl<S, const L: usize, C, T> ParallelIterator for SylowParStream<S, L, C, T>
 where
     S: Send + Sync,
     C: SylowDecomposable<S> + Send + Sync,
+    T: Clone + Send + Sync,
 {
-    type Item = Output<S, L, C>;
+    type Item = Output<S, L, C, T>;
 
     fn drive_unindexed<Con>(mut self, consumer: Con) -> Con::Result
     where
@@ -363,35 +396,36 @@ where
     }
 }
 
-impl<S, const L: usize, C> IntoIterator for SylowStreamBuilder<S, L, C>
+impl<S, const L: usize, C, T> IntoIterator for SylowStreamBuilder<S, L, C, T>
 where
     C: SylowDecomposable<S>,
+    T: Clone,
 {
-    type Item = Output<S, L, C>;
-    type IntoIter = SylowStream<S, L, C>;
+    type Item = Output<S, L, C, T>;
+    type IntoIter = SylowStream<S, L, C, T>;
 
-    fn into_iter(self) -> SylowStream<S, L, C> {
-        let mut tree = self.tree.map(&mut |consume, ds: &[usize; L], i| {
+    fn into_iter(self) -> SylowStream<S, L, C, T> {
+        let mut tree = self.tree.map(&|consume, ds: &[usize; L], i| {
             let (p, d) = C::FACTORS[i];
-            GenData {
-                consume,
+            (GenData {
+                consume: consume.0,
                 step: intpow::<0>(p, (d - ds[i]) as u128),
                 lim: 0,
-            }
+            }, consume.1)
         });
         struct Limiter<const L1: usize> {
             block: bool,
             lims: [u128; L1],
         }
         impl<const L1: usize> Limiter<L1> {
-            fn visit_mut<S1, C1>(&mut self, node: &mut FactorTrie<S1, L1, C1, GenData>) 
+            fn visit_mut<S1, C1, T1>(&mut self, node: &mut FactorTrie<S1, L1, C1, (GenData, T1)>) 
             where
                 C1: Factor<S1>,
             {
                 let (p, _) = C1::FACTORS[node.index()];
-                node.data.lim = self.lims[node.index()];
+                node.data.0.lim = self.lims[node.index()];
                 if self.block {
-                    node.data.lim /= 2;
+                    node.data.0.lim /= 2;
                 }
                 for j in node.index()..L1 {
                     Limiter {
@@ -421,15 +455,15 @@ where
         }
         .visit_mut(&mut tree);
         let mut stream = SylowStream {
-            tree: Arc::from(tree),
             stack: Vec::new(),
             buffer: if (self.mode & flags::INCLUDE_ONE != 0)
                 || (self.mode & flags::LEQ != 0 && self.mode & flags::NO_PARABOLIC == 0)
             {
-                vec![(SylowElem::ONE, [0; L])]
+                vec![(SylowElem::ONE, tree.data.1.clone())]
             } else {
-                Vec::<(SylowElem<_, L, _>, [usize; L])>::new()
+                Vec::<(SylowElem<_, L, _>, _)>::new()
             },
+            tree: Arc::from(tree),
         };
 
         for i in 0..L {
@@ -437,7 +471,7 @@ where
                 continue;
             };
 
-            if !n.data.consume.this && n.data.consume.descendants == 0 {
+            if !n.data.0.consume.this && n.data.0.consume.descendants == 0 {
                 continue;
             }
 
@@ -458,13 +492,14 @@ where
     }
 }
 
-impl<S, const L: usize, C> IntoParallelIterator for SylowStreamBuilder<S, L, C>
+impl<'a, S, const L: usize, C, T> IntoParallelIterator for SylowStreamBuilder<S, L, C, T>
 where
     S: Send + Sync,
     C: SylowDecomposable<S> + Send + Sync,
+    T: Clone + Send + Sync,
 {
-    type Item = Output<S, L, C>;
-    type Iter = SylowParStream<S, L, C>;
+    type Item = Output<S, L, C, T>;
+    type Iter = SylowParStream<S, L, C, T>;
 
     fn into_par_iter(self) -> Self::Iter {
         SylowParStream {
@@ -474,14 +509,14 @@ where
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S>> Clone for Seed<S, L, C> {
-    fn clone(&self) -> Seed<S, L, C> {
-        *self
+impl<S, const L: usize, C: SylowDecomposable<S>, T: Clone> Clone for Seed<S, L, C, T> {
+    fn clone(&self) -> Seed<S, L, C, T> {
+        Seed { ..*self }
     }
 }
-impl<S, const L: usize, C: SylowDecomposable<S>> Copy for Seed<S, L, C> {}
+impl<S, const L: usize, C: SylowDecomposable<S>, T: Copy> Copy for Seed<S, L, C, T> {}
 
-impl<S, const L: usize, C: SylowDecomposable<S>> Clone for SylowStreamBuilder<S, L, C> {
+impl<S, const L: usize, C: SylowDecomposable<S>, T: Clone> Clone for SylowStreamBuilder<S, L, C, T> {
     fn clone(&self) -> Self {
         SylowStreamBuilder {
             tree: self.tree.clone(),
@@ -490,8 +525,8 @@ impl<S, const L: usize, C: SylowDecomposable<S>> Clone for SylowStreamBuilder<S,
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S>> Clone for SylowStream<S, L, C> {
-    fn clone(&self) -> SylowStream<S, L, C> {
+impl<S, const L: usize, C: SylowDecomposable<S>, T: Clone> Clone for SylowStream<S, L, C, T> {
+    fn clone(&self) -> SylowStream<S, L, C, T> {
         SylowStream {
             stack: self.stack.clone(),
             buffer: self.buffer.clone(),
@@ -500,11 +535,11 @@ impl<S, const L: usize, C: SylowDecomposable<S>> Clone for SylowStream<S, L, C> 
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S>> Clone for SylowParStream<S, L, C>
+impl<S, const L: usize, C: SylowDecomposable<S>, T: Clone> Clone for SylowParStream<S, L, C, T>
 where
     S: Send + Sync,
 {
-    fn clone(&self) -> SylowParStream<S, L, C> {
+    fn clone(&self) -> SylowParStream<S, L, C, T> {
         SylowParStream {
             stream: SylowStream {
                 stack: self.stream.stack.clone(),
@@ -516,7 +551,7 @@ where
     }
 }
 
-unsafe impl<S, const L: usize, C: SylowDecomposable<S>> Send for Seed<S, L, C> {}
+unsafe impl<S, const L: usize, C: SylowDecomposable<S> + Send, T: Send> Send for Seed<S, L, C, T> {}
 
 #[cfg(test)]
 mod tests {
@@ -582,7 +617,7 @@ mod tests {
         assert!(x == SylowElem::ONE);
 
         let mut count = 0;
-        SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
+        SylowStreamBuilder::<Phantom, 3, FpNum<61>, ()>::new()
             .add_target(&[2, 0, 0])
             .into_iter()
             .for_each(|(mut x, _)| {
@@ -596,7 +631,7 @@ mod tests {
             });
         assert_eq!(count, 2);
 
-        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
+        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<61>, ()>::new()
             .add_target(&[0, 1, 0])
             .into_iter();
         assert_eq!(stream.count(), 2);
@@ -604,7 +639,7 @@ mod tests {
 
     #[test]
     pub fn test_leq_seq() {
-        let count = SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
+        let count = SylowStreamBuilder::<Phantom, 3, FpNum<61>, ()>::new()
             .add_flag(flags::LEQ)
             .add_target(&[2, 1, 0])
             .into_iter()
@@ -622,7 +657,7 @@ mod tests {
         assert_eq!(coords.len(), 29 * 29 - 29);
         println!("B");
 
-        SylowStreamBuilder::<Phantom, 7, FpNum<BIG_P>>::new()
+        SylowStreamBuilder::<Phantom, 7, FpNum<BIG_P>, ()>::new()
             .add_target(&[0, 0, 0, 0, 0, 1, 0])
             .into_iter()
             .take(2)
@@ -635,14 +670,14 @@ mod tests {
 
     #[test]
     pub fn test_generates_medium_seq() {
-        let builder = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new().add_target(&[0, 2, 1]);
+        let builder = SylowStreamBuilder::<Phantom, 3, FpNum<271>, ()>::new().add_target(&[0, 2, 1]);
         let stream_all = builder.into_iter();
         assert_eq!(stream_all.count(), 24);
     }
 
     #[test]
     pub fn test_skips_upper_half_seq() {
-        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
+        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<271>, ()>::new()
             .add_flag(flags::NO_UPPER_HALF)
             .add_target(&[0, 2, 1])
             .into_iter();
@@ -651,14 +686,14 @@ mod tests {
 
     #[test]
     pub fn test_multiple_targets_seq() {
-        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
+        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<271>, ()>::new()
             .add_target(&[1, 0, 0])
             .add_target(&[0, 1, 0])
             .into_iter();
         let coords = stream.collect::<Vec<_>>();
         assert_eq!(coords.len(), 3);
 
-        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
+        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<271>, ()>::new()
             .add_flag(flags::LEQ)
             .add_target(&[1, 1, 0])
             .add_target(&[0, 2, 0])
@@ -670,7 +705,7 @@ mod tests {
 
     #[test]
     pub fn test_multiple_targets_2_seq() {
-        let count = SylowStreamBuilder::<Phantom, 4, FpNum<13928643>>::new()
+        let count = SylowStreamBuilder::<Phantom, 4, FpNum<13928643>, ()>::new()
             .add_flag(flags::LEQ)
             .add_target(&[0, 1, 1, 0])
             .into_iter()
@@ -682,7 +717,7 @@ mod tests {
     #[test]
     pub fn test_no_parabolic_seq() {
         let mut count = 0;
-        SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
+        SylowStreamBuilder::<Phantom, 3, FpNum<61>, ()>::new()
             .add_flag(flags::LEQ)
             .add_flag(flags::NO_PARABOLIC)
             .add_target(&[2, 0, 1])
@@ -709,7 +744,7 @@ mod tests {
 
     #[test]
     pub fn test_generates_small_par() {
-        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
+        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<61>, ()>::new()
             .add_target(&[1, 0, 0])
             .into_par_iter();
         let coords = stream.collect::<Vec<_>>();
@@ -720,7 +755,7 @@ mod tests {
         assert!(x == SylowElem::ONE);
 
         let count = AtomicUsize::new(0);
-        SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
+        SylowStreamBuilder::<Phantom, 3, FpNum<61>, ()>::new()
             .add_target(&[2, 0, 0])
             .into_par_iter()
             .for_each(|(mut x, _)| {
@@ -734,7 +769,7 @@ mod tests {
             });
         assert_eq!(count.into_inner(), 2);
 
-        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
+        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<61>, ()>::new()
             .add_target(&[0, 1, 0])
             .into_par_iter();
         assert_eq!(stream.count(), 2);
@@ -742,13 +777,13 @@ mod tests {
 
     #[test]
     pub fn test_generates_big_par() {
-        let stream = SylowStreamBuilder::<Phantom, 7, FpNum<BIG_P>>::new()
+        let stream = SylowStreamBuilder::<Phantom, 7, FpNum<BIG_P>, ()>::new()
             .add_target(&[0, 0, 0, 2, 0, 0, 0])
             .into_par_iter();
         let coords = stream.collect::<Vec<_>>();
         assert_eq!(coords.len(), 29 * 29 - 29);
 
-        SylowStreamBuilder::<Phantom, 7, FpNum<BIG_P>>::new()
+        SylowStreamBuilder::<Phantom, 7, FpNum<BIG_P>, ()>::new()
             .add_target(&[0, 0, 0, 0, 0, 1, 0])
             .into_par_iter()
             .take_any(2)
@@ -761,14 +796,14 @@ mod tests {
 
     #[test]
     pub fn test_generates_medium_par() {
-        let builder = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new().add_target(&[0, 2, 1]);
+        let builder = SylowStreamBuilder::<Phantom, 3, FpNum<271>, ()>::new().add_target(&[0, 2, 1]);
         let stream_all = builder.into_par_iter();
         assert_eq!(stream_all.count(), 24);
     }
 
     #[test]
     pub fn test_skips_upper_half_par() {
-        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
+        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<271>, ()>::new()
             .add_flag(flags::NO_UPPER_HALF)
             .add_target(&[0, 2, 1])
             .into_par_iter();
@@ -777,14 +812,14 @@ mod tests {
 
     #[test]
     pub fn test_multiple_targets_par() {
-        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
+        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<271>, ()>::new()
             .add_target(&[1, 0, 0])
             .add_target(&[0, 1, 0])
             .into_par_iter();
         let coords = stream.collect::<Vec<_>>();
         assert_eq!(coords.len(), 3);
 
-        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
+        let stream = SylowStreamBuilder::<Phantom, 3, FpNum<271>, ()>::new()
             .add_flag(flags::LEQ)
             .add_target(&[1, 1, 0])
             .add_target(&[0, 2, 0])
@@ -796,7 +831,7 @@ mod tests {
 
     #[test]
     pub fn test_multiple_targets_2_par() {
-        let coords = SylowStreamBuilder::<Phantom, 4, FpNum<13928643>>::new()
+        let coords = SylowStreamBuilder::<Phantom, 4, FpNum<13928643>, ()>::new()
             .add_flag(flags::LEQ)
             .add_target(&[0, 1, 1, 0])
             .into_par_iter()
@@ -808,7 +843,7 @@ mod tests {
     #[test]
     pub fn test_no_parabolic_par() {
         let count = AtomicUsize::new(0);
-        SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
+        SylowStreamBuilder::<Phantom, 3, FpNum<61>, ()>::new()
             .add_flag(flags::LEQ)
             .add_flag(flags::NO_PARABOLIC)
             .add_target(&[2, 0, 1])
@@ -824,7 +859,7 @@ mod tests {
 
     #[test]
     pub fn test_no_parabolic_no_upper_half_seq() {
-        let count = SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
+        let count = SylowStreamBuilder::<Phantom, 3, FpNum<61>, ()>::new()
             .add_flag(flags::LEQ)
             .add_flag(flags::NO_PARABOLIC)
             .add_flag(flags::NO_UPPER_HALF)
@@ -837,7 +872,7 @@ mod tests {
 
     #[test]
     pub fn test_no_parabolic_no_upper_half_par() {
-        let count = SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
+        let count = SylowStreamBuilder::<Phantom, 3, FpNum<61>, ()>::new()
             .add_flag(flags::LEQ)
             .add_flag(flags::NO_PARABOLIC)
             .add_flag(flags::NO_UPPER_HALF)
@@ -849,7 +884,7 @@ mod tests {
 
     #[test]
     pub fn test_subordinate_target() {
-        let count = SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
+        let count = SylowStreamBuilder::<Phantom, 3, FpNum<61>, ()>::new()
             .add_target(&[0, 1, 0])
             .add_target(&[0, 1, 1])
             .into_iter()
@@ -859,7 +894,7 @@ mod tests {
 
     #[test]
     pub fn test_no_upper_half() {
-        let count = SylowStreamBuilder::<Phantom, 3, FpNum<61>>::new()
+        let count = SylowStreamBuilder::<Phantom, 3, FpNum<61>, ()>::new()
             .add_flag(flags::NO_UPPER_HALF)
             .add_target(&[0, 1, 1])
             .into_iter()
@@ -869,14 +904,14 @@ mod tests {
 
     #[test]
     pub fn test_propagates_no_upper_half() {
-        let count = SylowStreamBuilder::<Phantom, 2, FpNum<41>>::new()
+        let count = SylowStreamBuilder::<Phantom, 2, FpNum<41>, ()>::new()
             .add_flag(flags::NO_UPPER_HALF)
             .add_target(&[3, 1])
             .into_iter()
             .count();
         assert_eq!(count, 8);
 
-        let count = SylowStreamBuilder::<Phantom, 2, FpNum<41>>::new()
+        let count = SylowStreamBuilder::<Phantom, 2, FpNum<41>, ()>::new()
             .add_flag(flags::NO_UPPER_HALF)
             .add_target(&[1, 1])
             .into_iter()
@@ -886,7 +921,7 @@ mod tests {
 
     #[test]
     pub fn test_quotient() {
-        let res = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
+        let res = SylowStreamBuilder::<Phantom, 3, FpNum<271>, ()>::new()
             .add_flag(flags::NO_UPPER_HALF)
             .add_target(&[0, 3, 0])
             .set_quotient(Some([0, 2, 0]))
@@ -895,21 +930,21 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(res, vec![SylowElem::<Phantom, 3, FpNum<271>>::new([0, 1, 0])]);
 
-        let count = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
+        let count = SylowStreamBuilder::<Phantom, 3, FpNum<271>, ()>::new()
             .add_target(&[0, 3, 0])
             .set_quotient(Some([0, 2, 0]))
             .into_iter()
             .count();
         assert_eq!(count, 2);
 
-        let count = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
+        let count = SylowStreamBuilder::<Phantom, 3, FpNum<271>, ()>::new()
             .add_target(&[0, 3, 0])
             .set_quotient(Some([0, 1, 0]))
             .into_iter()
             .count();
         assert_eq!(count, 6);
 
-        let count = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
+        let count = SylowStreamBuilder::<Phantom, 3, FpNum<271>, ()>::new()
             .add_flag(flags::LEQ)
             .add_flag(flags::NO_PARABOLIC)
             .add_flag(flags::NO_UPPER_HALF)
@@ -922,14 +957,14 @@ mod tests {
 
     #[test]
     pub fn test_generate_everything() {
-        let count = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
+        let count = SylowStreamBuilder::<Phantom, 3, FpNum<271>, ()>::new()
             .add_flag(flags::LEQ)
             .add_target(&[1, 3, 1])
             .into_iter()
             .count();
         assert_eq!(count, 270);
 
-        let count = SylowStreamBuilder::<Phantom, 3, FpNum<271>>::new()
+        let count = SylowStreamBuilder::<Phantom, 3, FpNum<271>, ()>::new()
             .add_flag(flags::LEQ)
             .add_flag(flags::NO_UPPER_HALF)
             .add_target(&[1, 3, 1])

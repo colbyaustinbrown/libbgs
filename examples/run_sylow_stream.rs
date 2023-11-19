@@ -14,7 +14,7 @@ fn main() {
     // let decomp = SylowDecomp::<Phantom, 7, FpNum<BIG_P>>::new();
     let factors = FactorStream::new(FpNum::<BIG_P>::FACTORS.factors(), 10_000_000, true);
 
-    let builder = SylowStreamBuilder::<Stock, 7, FpNum<BIG_P>>::new()
+    let builder = SylowStreamBuilder::<Stock, 7, FpNum<BIG_P>, ()>::new()
         .add_flag(flags::LEQ)
         .add_flag(flags::NO_PARABOLIC)
         .add_flag(flags::NO_UPPER_HALF)

@@ -12,8 +12,8 @@ where
     FpNum<P>: SylowDecomposable<S>,
     QuadNum<P>: SylowDecomposable<S>,
 {
-    hyper_stream: Option<SylowStream<S, L_HYPER, FpNum<P>>>,
-    ellip_stream: Option<SylowStream<S, L_ELLIP, QuadNum<P>>>,
+    hyper_stream: Option<SylowStream<S, L_HYPER, FpNum<P>, ()>>,
+    ellip_stream: Option<SylowStream<S, L_ELLIP, QuadNum<P>, ()>>,
     hyper_decomp: &'a SylowDecomp<S, L_HYPER, FpNum<P>>,
     ellip_decomp: &'a SylowDecomp<S, L_ELLIP, QuadNum<P>>,
 }
@@ -35,7 +35,7 @@ where
         let hyper_stream = FactorStream::new(FpNum::FACTORS.factors(), hyper_lim, true)
             .map(|v| v.try_into().unwrap())
             .fold(
-                SylowStreamBuilder::<S, L_HYPER, FpNum<P>>::new()
+                SylowStreamBuilder::<S, L_HYPER, FpNum<P>, ()>::new()
                     .add_flag(flags::NO_PARABOLIC)
                     .add_flag(flags::NO_UPPER_HALF)
                     .add_flag(flags::LEQ),
@@ -45,7 +45,7 @@ where
         let ellip_stream = FactorStream::new(QuadNum::FACTORS.factors(), ellip_lim, true)
             .map(|v| v.try_into().unwrap())
             .fold(
-                SylowStreamBuilder::<S, L_ELLIP, QuadNum<P>>::new()
+                SylowStreamBuilder::<S, L_ELLIP, QuadNum<P>, ()>::new()
                     .add_flag(flags::NO_PARABOLIC)
                     .add_flag(flags::NO_UPPER_HALF)
                     .add_flag(flags::LEQ),
