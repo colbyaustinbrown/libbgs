@@ -12,11 +12,11 @@ pub struct Coord<const P: u128>(pub FpNum<P>);
 /// The three types of conic sections an orbit could lie inside.
 pub enum Conic {
     /// An orbit of order dividing $p - 1$ (and not equal to 2).
-    Hyperbolic,
+    Hyperbola,
     /// An orbit of order dividing $p + 1$ (and not equal to 2).
-    Elliptic,
+    Ellipse,
     /// An orbit of order exactly 1 or 2.
-    Parabolic,
+    Parabola,
 }
 
 impl<const P: u128> Coord<P> {
@@ -57,10 +57,10 @@ impl<const P: u128> Coord<P> {
             .as_ref()
             .map_either(|l| l.order(), |r| r.order())
         {
-            Left(1) | Right(1) => (1, Conic::Parabolic),
-            Left(2) | Right(2) => (2, Conic::Parabolic),
-            Left(d) => (d, Conic::Hyperbolic),
-            Right(d) => (d, Conic::Elliptic),
+            Left(1) | Right(1) => (1, Conic::Parabola),
+            Left(2) | Right(2) => (2, Conic::Parabola),
+            Left(d) => (d, Conic::Hyperbola),
+            Right(d) => (d, Conic::Ellipse),
         }
     }
 
