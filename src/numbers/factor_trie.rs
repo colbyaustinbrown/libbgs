@@ -25,8 +25,8 @@ where
     T: Default + std::fmt::Debug,
 {
     /// Creates a new trie associated to the given `factorization`.
-    /// The trie begins as only a root node containing `data`; children must be explicitly added
-    /// via the [`Self::add`], [`Self::add_leq`], or [`Self::get_or_new_child`] methods.
+    /// The trie contains the divisors of `C::FACTORS`.
+    /// The words of a divisor are its prime factors, with multiplicities, in ascending order.
     pub fn new() -> FactorTrie<S, L, C, T> {
         let mut res = FactorTrie {
             i: 0,
