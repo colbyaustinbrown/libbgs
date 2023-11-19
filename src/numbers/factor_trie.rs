@@ -26,7 +26,7 @@ where
 {
     /// Creates a new trie associated to the given `factorization`.
     /// The trie begins as only a root node containing `data`; children must be explicitly added
-    /// via the `[add]`, `[add_leq]`, or `[get_or_new_child]` methods.
+    /// via the [`Self::add`], [`Self::add_leq`], or [`Self::get_or_new_child`] methods.
     pub fn new() -> FactorTrie<S, L, C, T> {
         let mut res = FactorTrie {
             i: 0,
