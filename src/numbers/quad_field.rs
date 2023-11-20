@@ -20,7 +20,7 @@ pub struct QuadField<const P: u128> {
 /// `r`), is implicit.
 /// You must ensure that operations on `QuadNum` instances are associated to the same choice of
 /// `r`.
-#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub struct QuadNum<const P: u128>(
     /// The value $a_0$, when writing this `QuadNum` as $a_0 + a_1\sqrt{r}$.
     pub FpNum<P>,

@@ -4,7 +4,7 @@ use crate::numbers::*;
 use libbgs_util::*;
 
 /// An integer modulo `P`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FpNum<const P: u128>(pub Montgomery<P>);
 
 impl<const P: u128> FpNum<P> {

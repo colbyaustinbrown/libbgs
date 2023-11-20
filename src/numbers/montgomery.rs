@@ -3,7 +3,7 @@ use std::ops::*;
 use libbgs_util::*;
 
 /// A number in the Montgomery modular arithmetic system, modulo N.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Montgomery<const N: u128>(u128);
 
 impl<const N: u128> Montgomery<N> {
