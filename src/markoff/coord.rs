@@ -46,6 +46,17 @@ impl<const P: u128> Coord<P> {
         })
     }
 
+    /// Returns an iterator yielding the values $b$ such that $(a, b, c)$ is a Markoff triple for
+    /// some value $c$.
+    pub fn part(self, b: Coord<P>) -> Box<dyn Iterator<Item = Coord<P>>> {
+        let a = self.0;
+        let Some(disc) = (a * a * b.0 * b.0 - 4 * (a * a + b.0 * b.0)).int_sqrt() else {
+            return Box::new(std::iter::empty());
+        };
+        let c = (a * b.0 + disc) * FpNum::from(2).inverse();
+        Box::new(self.rot(b, Coord(c)).map(|x| x.1))
+    }
+
     /// Returns the order of the map $\text{rot}\_a$, that is, $\lvert \langle \text{rot}\_a \rangle \rvert$, along with the type of [`Conic`] that it is.
     pub fn rot_order<S1, S2>(&self) -> (u128, Conic)
     where
