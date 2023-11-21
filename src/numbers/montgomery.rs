@@ -106,6 +106,7 @@ impl<const N: u128> Montgomery<N> {
     /// Returns the Montgomery representation of this number.
     ///
     /// This value is dependent on `Montgomery::<N>::R`, which is subject to change.
+    #[inline(always)]
     pub fn raw(&self) -> u128 {
         self.0
     }
