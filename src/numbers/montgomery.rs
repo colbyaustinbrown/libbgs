@@ -75,19 +75,19 @@ impl<const N: u128> Montgomery<N> {
         }
     }
 
-    const fn const_mul(&self, rhs: &Montgomery<N>) -> Montgomery<N> {
+    pub(crate) const fn const_mul(&self, rhs: &Montgomery<N>) -> Montgomery<N> {
         let (hi, lo) = carrying_mul(self.0, rhs.0);
         Montgomery::<N>::const_redc2((hi, lo))
     }
 
     /// Converts a `u128` into its Montgomery representation.
     /// This operation is expensive.
-    pub const fn from_u128(src: u128) -> Montgomery<N> {
+    pub(crate) const fn from_u128(src: u128) -> Montgomery<N> {
         let r2 = long_multiply::<N>(Self::R, Self::R);
         Montgomery::<N>::const_redc2(carrying_mul(src, r2))
     }
 
-    const fn const_pow(self, mut n: u128) -> Montgomery<N> {
+    pub(crate) const fn const_pow(self, mut n: u128) -> Montgomery<N> {
         let mut x = self;
         let mut y = Montgomery::<N>::from_u128(1);
         if n == 0 {

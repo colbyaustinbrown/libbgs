@@ -25,6 +25,8 @@ pub trait GroupElem: Clone + PartialEq + Eq + fmt::Debug {
     /// `a.multiply(b.multiply(c, &g), &g) == a.multiply(b, &g).multiply(c, &g)`.
     fn multiply(&self, other: &Self) -> Self;
 
+    // Note: this code is copy + pasted into FpNum::TWO_INV, since that constant can not use this
+    // method, at least not until const trait impls are stabalized.
     /// Raises this element to the power of `n`.
     fn pow(&self, mut n: u128) -> Self {
         let mut y = Self::ONE;

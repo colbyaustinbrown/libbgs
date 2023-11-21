@@ -8,6 +8,15 @@ use libbgs_util::*;
 pub struct FpNum<const P: u128>(pub Montgomery<P>);
 
 impl<const P: u128> FpNum<P> {
+    /// The constant 0.
+    pub const ZERO: FpNum<P> = FpNum(Montgomery::from_u128(0));
+    
+    // Once const trait impls are stabalized, this can be replaced with a call to the pow method
+    // from the GroupElem trait.
+    // Until then, we copy + paste the code from there... not very DRY of me.
+    /// The constant $2^{-1}$.
+    pub const TWO_INV: FpNum<P> = FpNum(Montgomery::from_u128(2).const_pow(P - 2));
+
     /// Returns the Legendre symbol of `a` modulo `P`, i.e.,
     /// $$\left(\frac{a}{p}\right)_L = a^{\frac{p - 1}{2}} \mod p$$.
     pub fn legendre(&self) -> FpNum<P> {
