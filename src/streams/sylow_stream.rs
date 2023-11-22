@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use crate::numbers::*;
-use crate::streams::FactorStream;
+use crate::streams::DivisorStream;
 use libbgs_util::*;
 
 const STACK_ADDITION_LIMIT: u8 = 127;
@@ -179,7 +179,7 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug, T> SylowStrea
 
     /// Adds the maximal divisors beneath `limit` to the `FactorTrie` and sets the `LEQ` flag.
     pub fn add_targets_leq(self, limit: u128) -> Self {
-        FactorStream::new(C::FACTORS.factors(), limit, true)
+        DivisorStream::new(C::FACTORS.factors(), limit, true)
             .into_iter()
             .map(|v| v.try_into().unwrap())
             .fold(self, |b, x| b.add_target(&x))
@@ -222,8 +222,8 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug, T> SylowStrea
         self
     }
 
-    /// Add all the targets yielded by this `FactorStream`.
-    pub fn add_targets_from_factors(self, stream: FactorStream) -> Self {
+    /// Add all the targets yielded by this `DivisorStream`.
+    pub fn add_targets_from_factors(self, stream: DivisorStream) -> Self {
         stream
             .map(|v| v.try_into().unwrap())
             .fold(self, |b, x| b.add_target(&x))

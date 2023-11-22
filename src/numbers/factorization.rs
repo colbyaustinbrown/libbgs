@@ -1,6 +1,6 @@
 use std::ops::Index;
 
-use crate::streams::FactorStream;
+use crate::streams::DivisorStream;
 use libbgs_util::intpow;
 
 /// When called with phantom type marker `Ph` and a list of integers, each integer `P` is turned
@@ -78,7 +78,7 @@ impl Factorization {
     ///
     /// The iterator cannot outlive the `Factorization`, although the vectors yielded by it may.
     pub fn maximal_divisors<const L: usize>(&self, l: u128) -> impl Iterator<Item = [usize; L]> {
-        FactorStream::new(self.factors, l, true).map(|v| v.try_into().unwrap())
+        DivisorStream::new(self.factors, l, true).map(|v| v.try_into().unwrap())
     }
 
     /// True if there the factorization represents 1.
