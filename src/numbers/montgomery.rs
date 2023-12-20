@@ -2,11 +2,30 @@ use std::ops::*;
 
 use libbgs_util::*;
 
-/// A number in the Montgomery modular arithmetic system, modulo N.
+/// A number in the Montgomery modular arithmetic system, modulo `N`.
+/// For more informtion, see: Montgomery, Peter (April 1985). "Modular Multiplication Without Trial
+/// Division". Mathematics of Computation. 44 (170): 519-521.
+///
+/// # Example
+/// ```
+/// use libbgs::numbers::Montgomery;
+/// let x = Montgomery::<7>::from(6);
+/// let y = Montgomery::<7>::from(8);
+/// let z = x * y;
+/// assert_eq!(u128::from(z), 48 % 7);
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Montgomery<const N: u128>(u128);
 
 impl<const N: u128> Montgomery<N> {
+    /// Returns the Montgomery representation of this number.
+    #[inline(always)]
+    pub fn raw(&self) -> u128 {
+        self.0
+    }
+
+    // Elements are represented as aR + N in this system.
+    // Chosen to be a power of two to turn multiplication / division into shift operations.
     const R: u128 = {
         let mut n = N.next_power_of_two();
         while n.ilog2() % 4 != 0 {
@@ -15,10 +34,14 @@ impl<const N: u128> Montgomery<N> {
         n
     };
 
+    // Mask used for taking elements modulo R. Since R is a power of 2,
+    // x % R == x & MASK
     const MASK: u128 = Self::R - 1;
 
+    // The length of R
     const SHIFT: u32 = Self::R.ilog2();
 
+    // "Magic" number R' such that RR' is congruent to 1 mod N
     const MAGIC: u128 = {
         let mut r0 = Self::R;
         let mut r1 = N;
@@ -49,7 +72,7 @@ impl<const N: u128> Montgomery<N> {
         }
     }
 
-    fn redc2((hi, lo): (u128, u128)) -> Montgomery<N> {
+    const fn redc2((hi, lo): (u128, u128)) -> Montgomery<N> {
         let (_, m) = carrying_mul(lo & Self::MASK, Self::MAGIC);
         let m = m & Self::MASK;
         let (c1, t) = carrying_mul(m, N);
@@ -62,29 +85,19 @@ impl<const N: u128> Montgomery<N> {
         }
     }
 
-    const fn const_redc2((hi, lo): (u128, u128)) -> Montgomery<N> {
-        let (_, m) = carrying_mul(lo & Self::MASK, Self::MAGIC);
-        let m = m & Self::MASK;
-        let (c1, t) = carrying_mul(m, N);
-        let (c2, t) = carrying_add(t, lo);
-        let t = shrd(t, c1 + c2 + hi, Self::SHIFT as usize);
-        if t >= N {
-            Montgomery(t - N)
-        } else {
-            Montgomery(t)
-        }
-    }
-
+    // These next several methods are constant implementations of the usual std::ops methods.
+    // Once const impls lands in Rust, they will be removed, and the impl std::ops will be made
+    // const.
     pub(crate) const fn const_mul(&self, rhs: &Montgomery<N>) -> Montgomery<N> {
         let (hi, lo) = carrying_mul(self.0, rhs.0);
-        Montgomery::<N>::const_redc2((hi, lo))
+        Montgomery::<N>::redc2((hi, lo))
     }
 
     /// Converts a `u128` into its Montgomery representation.
     /// This operation is expensive.
     pub(crate) const fn from_u128(src: u128) -> Montgomery<N> {
         let r2 = long_multiply::<N>(Self::R, Self::R);
-        Montgomery::<N>::const_redc2(carrying_mul(src, r2))
+        Montgomery::<N>::redc2(carrying_mul(src, r2))
     }
 
     pub(crate) const fn const_pow(self, mut n: u128) -> Montgomery<N> {
@@ -101,14 +114,6 @@ impl<const N: u128> Montgomery<N> {
             n >>= 1;
         }
         x.const_mul(&y)
-    }
-
-    /// Returns the Montgomery representation of this number.
-    ///
-    /// This value is dependent on `Montgomery::<N>::R`, which is subject to change.
-    #[inline(always)]
-    pub fn raw(&self) -> u128 {
-        self.0
     }
 }
 
