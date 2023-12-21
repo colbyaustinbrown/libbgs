@@ -5,21 +5,10 @@ use either::*;
 use crate::numbers::*;
 use libbgs_util::*;
 
-/// The finite field of size `P^2`. Isomorphic to $\mathbb{Z} / P^2\mathbb{Z}$.
-/// Each `QuadField` has a fixed quadratic nonresidue `r` used as a basis element for the numbers
-/// outside of the prime subfield.
-#[derive(PartialEq, Eq, Debug)]
-pub struct QuadField<const P: u128> {
-    r: u128,
-}
-
 /// An integer modulo `P^2`. An element $x$ is represented as $x = a_0 + a_1\sqrt{r}$, where $r$ is
 /// the fixed basis element.
-///
-/// The association between a `QuadNum` instance and a `QuadField` (hence, the fixed basis element
-/// `r`), is implicit.
-/// You must ensure that operations on `QuadNum` instances are associated to the same choice of
-/// `r`.
+/// See Lubeck, Frank. (2003). "Standard generators of finite fields and their cyclic subgroups."
+/// Journal of Symbolic Computation (117) 51-67.
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub struct QuadNum<const P: u128>(
     /// The value $a_0$, when writing this `QuadNum` as $a_0 + a_1\sqrt{r}$.
@@ -28,27 +17,10 @@ pub struct QuadNum<const P: u128>(
     pub FpNum<P>,
 );
 
-impl<S, const P: u128> SylowDecomposable<S> for QuadNum<P>
-where
-    QuadNum<P>: Factor<S>,
-{
-    fn find_sylow_generator(i: usize) -> QuadNum<P> {
-        let pow = P - 1;
-        // should be self.p * self.p, but maybe this works?
-        (1..P * 2)
-            .map(|i| {
-                let j = standard_affine_shift(P * 2, i);
-                let p = QuadNum::steinitz(j);
-                p.pow(pow)
-            })
-            .find_map(|c| {
-                <QuadNum<P> as SylowDecomposable<S>>::is_sylow_generator(&c, Self::FACTORS[i])
-            })
-            .unwrap()
-    }
-}
-
 impl<const P: u128> QuadNum<P> {
+    /// The basis element for the numbers outside of the prime subfield.
+    pub const R: FpNum<P> = FpNum::<P>::find_nonresidue();
+
     /// True if this number is zero; false otherwise.
     pub fn is_zero(&self) -> bool {
         self.0 == 0 && self.1 == 0
@@ -78,9 +50,6 @@ impl<const P: u128> QuadNum<P> {
     pub fn int_sqrt(x: FpNum<P>) -> QuadNum<P> {
         Self::int_sqrt_either(x).left_or_else(|n| QuadNum::from((n.into(), 0)))
     }
-
-    /// The basis element for the numbers outside of the prime subfield.
-    pub const R: FpNum<P> = FpNum::<P>::find_nonresidue();
 }
 
 impl<const P: u128> GroupElem for QuadNum<P> {
@@ -95,6 +64,24 @@ impl<const P: u128> GroupElem for QuadNum<P> {
         let a1 = self.1.multiply(&other.0) + self.0.multiply(&other.1);
 
         QuadNum(a0, a1)
+    }
+}
+
+impl<S, const P: u128> SylowDecomposable<S> for QuadNum<P>
+where
+    QuadNum<P>: Factor<S>,
+{
+    fn find_sylow_generator(i: usize) -> QuadNum<P> {
+        (1..P * 2)
+            .map(|i| {
+                let j = standard_affine_shift(P * 2, i);
+                let p = QuadNum::steinitz(j);
+                p.pow(P - 1)
+            })
+            .find_map(|c| {
+                QuadNum::is_sylow_generator(&c, Self::FACTORS[i])
+            })
+            .unwrap()
     }
 }
 

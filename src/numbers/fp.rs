@@ -4,13 +4,22 @@ use crate::numbers::*;
 use libbgs_util::*;
 
 /// An integer modulo `P`.
+///
+/// # Example
+/// ```
+/// use libbgs::numbers::FpNum;
+/// let x = FpNum::<7>::from(5);
+/// let y = FpNum::<7>::from(6);
+/// let z = x * y;
+/// assert_eq!(z, 30 % 7);
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FpNum<const P: u128>(pub Montgomery<P>);
 
 impl<const P: u128> FpNum<P> {
     /// The constant 0.
     pub const ZERO: FpNum<P> = FpNum(Montgomery::from_u128(0));
-    
+
     // Once const trait impls are stabalized, this can be replaced with a call to the pow method
     // from the GroupElem trait.
     // Until then, we copy + paste the code from there... not very DRY of me.
@@ -51,10 +60,7 @@ impl<const P: u128> FpNum<P> {
         let mut t = self.pow(q);
         let mut m = s;
 
-        loop {
-            if t == 1 {
-                return Some(r);
-            }
+        while t != 1 {
             let mut temp = t;
             let mut i = 0;
             while temp != 1 {
@@ -71,6 +77,7 @@ impl<const P: u128> FpNum<P> {
             t *= c;
             m = i;
         }
+        Some(r)
     }
 
     /// Returns a quadratic nonresidue modulo `p`.
@@ -80,16 +87,14 @@ impl<const P: u128> FpNum<P> {
         } else if P % 8 == 3 || P % 8 == 5 {
             FpNum(Montgomery::<P>::from_u128(2))
         } else {
-            let mut res = 0;
             let mut i = 0;
-            while i < P {
+            let res = loop {
                 let a = standard_affine_shift(P, i);
                 if intpow::<P>(a, (P - 1) / 2) == P - 1 {
-                    res = a;
-                    break;
+                    break a;
                 }
                 i += 1;
-            }
+            };
             FpNum(Montgomery::<P>::from_u128(res))
         }
     }
@@ -129,11 +134,13 @@ impl<const P: u128> From<u128> for FpNum<P> {
         FpNum(Montgomery::<P>::from(value))
     }
 }
+
 impl<const P: u128> From<FpNum<P>> for u128 {
     fn from(value: FpNum<P>) -> u128 {
         u128::from(value.0)
     }
 }
+
 impl<const P: u128> From<&FpNum<P>> for u128 {
     fn from(value: &FpNum<P>) -> u128 {
         u128::from(value.0)
@@ -150,38 +157,46 @@ impl<const P: u128> Neg for FpNum<P> {
 impl<const P: u128> Add<Self> for FpNum<P> {
     type Output = FpNum<P>;
     fn add(self, other: Self) -> FpNum<P> {
-        FpNum(&self.0 + &other.0)
+        FpNum(self.0 + other.0)
     }
 }
 
 impl<const P: u128> AddAssign<Self> for FpNum<P> {
     fn add_assign(&mut self, other: Self) {
-        *self = FpNum(&self.0 + &other.0)
+        *self = FpNum(self.0 + other.0)
     }
 }
 
 impl<const P: u128> AddAssign<&Self> for FpNum<P> {
     fn add_assign(&mut self, other: &Self) {
-        *self = FpNum(&self.0 + &other.0)
+        *self = FpNum(self.0 + other.0)
     }
 }
 
 impl<const P: u128> Sub<Self> for FpNum<P> {
     type Output = FpNum<P>;
     fn sub(self, other: Self) -> FpNum<P> {
-        FpNum(&self.0 - &other.0)
+        FpNum(self.0 - other.0)
     }
 }
 
 impl<const P: u128> SubAssign<&Self> for FpNum<P> {
     fn sub_assign(&mut self, other: &Self) {
-        *self = FpNum(&self.0 - &other.0)
+        *self = FpNum(self.0 - other.0)
     }
 }
 
 impl<const P: u128> SubAssign<Self> for FpNum<P> {
     fn sub_assign(&mut self, other: Self) {
-        *self = FpNum(&self.0 - &other.0)
+        *self = FpNum(self.0 - other.0)
+    }
+}
+
+impl<const P: u128> Mul<Self> for FpNum<P> {
+    type Output = FpNum<P>;
+
+    fn mul(self, other: FpNum<P>) -> FpNum<P> {
+        self.multiply(&other)
     }
 }
 
@@ -192,11 +207,10 @@ impl<const P: u128> Mul<&Self> for FpNum<P> {
     }
 }
 
-impl<const P: u128> Mul<Self> for FpNum<P> {
+impl<const P: u128> Mul<FpNum<P>> for u128 {
     type Output = FpNum<P>;
-
     fn mul(self, other: FpNum<P>) -> FpNum<P> {
-        self.multiply(&other)
+        FpNum::from(self).multiply(&other)
     }
 }
 
@@ -209,13 +223,6 @@ impl<const P: u128> MulAssign<&Self> for FpNum<P> {
 impl<const P: u128> MulAssign<Self> for FpNum<P> {
     fn mul_assign(&mut self, other: Self) {
         *self = self.multiply(&other);
-    }
-}
-
-impl<const P: u128> Mul<FpNum<P>> for u128 {
-    type Output = FpNum<P>;
-    fn mul(self, other: FpNum<P>) -> FpNum<P> {
-        FpNum::from(self).multiply(&other)
     }
 }
 
