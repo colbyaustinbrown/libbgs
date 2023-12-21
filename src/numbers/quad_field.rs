@@ -9,6 +9,10 @@ use libbgs_util::*;
 /// the fixed basis element.
 /// See Lubeck, Frank. (2003). "Standard generators of finite fields and their cyclic subgroups."
 /// Journal of Symbolic Computation (117) 51-67.
+/// Note that the `SylowDecomposable` implementation for a `QuadNum` returns the decomposition for
+/// $\mathbb{F}_{p^2}^\times / \mathbb{F}_p^\times$, the quotient of the field with $p^2$
+/// elements with the subgroup containing $p$ elements.
+/// Also, `<QuadNum<P> as GroupElem>::SIZE == P + 1`, again refering to the quotient group.
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub struct QuadNum<const P: u128>(
     /// The value $a_0$, when writing this `QuadNum` as $a_0 + a_1\sqrt{r}$.
