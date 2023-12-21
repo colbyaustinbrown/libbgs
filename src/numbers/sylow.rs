@@ -44,6 +44,21 @@ pub trait SylowDecomposable<S>: Factor<S> + GroupElem + Eq {
             Some(res)
         }
     }
+
+    /// Returns the number of elements of a particular order.
+    /// The argument is the powers of the prime factors of the group's order.
+    fn count_elements_of_order(ds: &[usize]) -> u128 {
+        let mut total = 1;
+        for (d, (p, t)) in ds.iter().zip(Self::FACTORS.factors()) {
+            if *d > *t {
+                return 0;
+            } else if *d > 0 {
+                let tmp = intpow::<0>(*p, (*d - 1) as u128);
+                total *= tmp * *p - tmp;
+            }
+        }
+        total
+    }
 }
 
 impl<S, const L: usize, C: SylowDecomposable<S>> SylowDecomp<S, L, C> {
