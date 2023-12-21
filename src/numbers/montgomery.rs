@@ -129,6 +129,42 @@ impl<const N: u128> From<Montgomery<N>> for u128 {
     }
 }
 
+impl<const N: u128> Add<Montgomery<N>> for Montgomery<N> {
+    type Output = Montgomery<N>;
+    fn add(self, rhs: Montgomery<N>) -> Montgomery<N> {
+        let sum = self.0 + rhs.0;
+        if sum >= N {
+            Montgomery(sum - N)
+        } else {
+            Montgomery(sum)
+        }
+    }
+}
+
+impl<const N: u128> Add<Montgomery<N>> for &Montgomery<N> {
+    type Output = Montgomery<N>;
+    fn add(self, rhs: Montgomery<N>) -> Montgomery<N> {
+        let sum = self.0 + rhs.0;
+        if sum >= N {
+            Montgomery(sum - N)
+        } else {
+            Montgomery(sum)
+        }
+    }
+}
+
+impl<const N: u128> Add<&Montgomery<N>> for Montgomery<N> {
+    type Output = Montgomery<N>;
+    fn add(self, rhs: &Montgomery<N>) -> Montgomery<N> {
+        let sum = self.0 + rhs.0;
+        if sum >= N {
+            Montgomery(sum - N)
+        } else {
+            Montgomery(sum)
+        }
+    }
+}
+
 impl<const N: u128> Add<&Montgomery<N>> for &Montgomery<N> {
     type Output = Montgomery<N>;
     fn add(self, rhs: &Montgomery<N>) -> Montgomery<N> {
@@ -137,6 +173,39 @@ impl<const N: u128> Add<&Montgomery<N>> for &Montgomery<N> {
             Montgomery(sum - N)
         } else {
             Montgomery(sum)
+        }
+    }
+}
+
+impl<const N: u128> Sub<Montgomery<N>> for Montgomery<N> {
+    type Output = Montgomery<N>;
+    fn sub(self, rhs: Montgomery<N>) -> Montgomery<N> {
+        if self.0 >= rhs.0 {
+            Montgomery(self.0 - rhs.0)
+        } else {
+            Montgomery(N + self.0 - rhs.0)
+        }
+    }
+}
+
+impl<const N: u128> Sub<Montgomery<N>> for &Montgomery<N> {
+    type Output = Montgomery<N>;
+    fn sub(self, rhs: Montgomery<N>) -> Montgomery<N> {
+        if self.0 >= rhs.0 {
+            Montgomery(self.0 - rhs.0)
+        } else {
+            Montgomery(N + self.0 - rhs.0)
+        }
+    }
+}
+
+impl<const N: u128> Sub<&Montgomery<N>> for Montgomery<N> {
+    type Output = Montgomery<N>;
+    fn sub(self, rhs: &Montgomery<N>) -> Montgomery<N> {
+        if self.0 >= rhs.0 {
+            Montgomery(self.0 - rhs.0)
+        } else {
+            Montgomery(N + self.0 - rhs.0)
         }
     }
 }
@@ -152,6 +221,34 @@ impl<const N: u128> Sub<&Montgomery<N>> for &Montgomery<N> {
     }
 }
 
+impl<const N: u128> Mul<Montgomery<N>> for Montgomery<N> {
+    type Output = Montgomery<N>;
+    fn mul(self, rhs: Montgomery<N>) -> Montgomery<N> {
+        self.const_mul(&rhs)
+    }
+}
+
+impl<const N: u128> Mul<Montgomery<N>> for &Montgomery<N> {
+    type Output = Montgomery<N>;
+    fn mul(self, rhs: Montgomery<N>) -> Montgomery<N> {
+        self.const_mul(&rhs)
+    }
+}
+
+impl<const N: u128> Mul<&Montgomery<N>> for Montgomery<N> {
+    type Output = Montgomery<N>;
+    fn mul(self, rhs: &Montgomery<N>) -> Montgomery<N> {
+        self.const_mul(rhs)
+    }
+}
+
+impl<const N: u128> Mul<&Montgomery<N>> for &Montgomery<N> {
+    type Output = Montgomery<N>;
+    fn mul(self, rhs: &Montgomery<N>) -> Montgomery<N> {
+        self.const_mul(rhs)
+    }
+}
+
 impl<const N: u128> Neg for Montgomery<N> {
     type Output = Montgomery<N>;
     fn neg(self) -> Montgomery<N> {
@@ -163,23 +260,14 @@ impl<const N: u128> Neg for Montgomery<N> {
     }
 }
 
-impl<const N: u128> Mul<&Montgomery<N>> for &Montgomery<N> {
+impl<const N: u128> Neg for &Montgomery<N> {
     type Output = Montgomery<N>;
-    fn mul(self, rhs: &Montgomery<N>) -> Montgomery<N> {
-        self.const_mul(rhs)
-    }
-}
-
-impl<const N: u128> From<&u128> for Montgomery<N> {
-    fn from(src: &u128) -> Montgomery<N> {
-        Montgomery::from(*src)
-    }
-}
-
-impl<const N: u128> Mul<Self> for Montgomery<N> {
-    type Output = Self;
-    fn mul(self, rhs: Self) -> Self {
-        Self::redc2(carrying_mul(self.0, rhs.0))
+    fn neg(self) -> Montgomery<N> {
+        if self.0 == 0 {
+            Montgomery(0)
+        } else {
+            Montgomery(N - self.0)
+        }
     }
 }
 
