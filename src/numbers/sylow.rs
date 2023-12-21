@@ -1,4 +1,3 @@
-use std::fmt;
 use std::marker::PhantomData;
 
 use crate::numbers::*;
@@ -205,8 +204,8 @@ impl<S, const L: usize, C: SylowDecomposable<S>> Clone for SylowElem<S, L, C> {
 }
 impl<S, const L: usize, C: SylowDecomposable<S>> Copy for SylowElem<S, L, C> {}
 
-impl<S, const L: usize, C: SylowDecomposable<S>> fmt::Debug for SylowElem<S, L, C> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl<S, const L: usize, C: SylowDecomposable<S>> std::fmt::Debug for SylowElem<S, L, C> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.coords.fmt(f)
     }
 }
