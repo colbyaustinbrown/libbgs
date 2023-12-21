@@ -2,12 +2,14 @@ use std::marker::PhantomData;
 
 use crate::numbers::Factor;
 
+type Child<S, const L: usize, C, T> = Box<FactorTrie<S, L, C, T>>;
+
 /// A trie of prime factors in increasing order; that is, a none with word $p$ will have
 /// only children with word $q \geq p$.
 pub struct FactorTrie<S, const L: usize, C, T> {
     i: usize,
     ds: [usize; L],
-    children: [Option<Box<FactorTrie<S, L, C, T>>>; L],
+    children: [Option<Child<S, L, C, T>>; L],
     /// Data associated with the key given by the concatenation of this node's ancestors' words.
     pub data: T,
     _phantom: PhantomData<(S, C)>,
@@ -176,7 +178,7 @@ impl<S, const L: usize, C, T> FactorTrie<S, L, C, T> {
     }
 
     /// This node's array of children.
-    pub fn children(&self) -> &[Option<Box<FactorTrie<S, L, C, T>>>] {
+    pub fn children(&self) -> &[Option<Child<S, L, C, T>>] {
         &self.children
     }
 

@@ -75,15 +75,10 @@ struct GenData {
 }
 
 type Output<S, const L: usize, C, T> = (SylowElem<S, L, C>, T);
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 struct Consume {
     this: bool,
     descendants: usize,
-}
-impl Default for Consume {
-    fn default() -> Self {
-        Consume { this: false, descendants: 0 }
-    }
 }
 
 impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBuilder<S, L, C, ()> {
@@ -180,7 +175,6 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug, T> SylowStrea
     /// Adds the maximal divisors beneath `limit` to the `FactorTrie` and sets the `LEQ` flag.
     pub fn add_targets_leq(self, limit: u128) -> Self {
         DivisorStream::new(C::FACTORS.factors(), limit, true)
-            .into_iter()
             .map(|v| v.try_into().unwrap())
             .fold(self, |b, x| b.add_target(&x))
             .add_flag(flags::LEQ)
@@ -294,7 +288,7 @@ impl<S, const L: usize, C: SylowDecomposable<S>, T> SylowStream<S, L, C, T> {
                     self.stack.push(Seed {
                         part,
                         start: 0,
-                        node: &*n,
+                        node: n,
                     });
                 }
             }
