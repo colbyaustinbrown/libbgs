@@ -37,7 +37,7 @@ pub mod flags {
 }
 
 /// A builder for a stream yielding elements of particular orders, as their Sylow decompositions.
-pub struct SylowStreamBuilder<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug, T> {
+pub struct SylowStreamBuilder<S, const L: usize, C: SylowDecomposable<S>, T> {
     mode: u8,
     tree: Box<FactorTrie<S, L, C, (Consume, T)>>,
     quotient: Option<[usize; L]>,
@@ -46,7 +46,7 @@ pub struct SylowStreamBuilder<S, const L: usize, C: SylowDecomposable<S> + std::
 
 /// A stream yielding elements of particular orders, as their Sylow decompositions.
 /// Generates the elements in parallel on multiple threads.
-pub struct SylowParStream<S: Send + Sync, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug, T>
+pub struct SylowParStream<S: Send + Sync, const L: usize, C: SylowDecomposable<S>, T>
 {
     stream: SylowStream<S, L, C, T>,
     splits: usize,

@@ -1,5 +1,3 @@
-use std::fmt;
-
 use crate::numbers::{Factor, Length};
 use libbgs_util::*;
 
@@ -8,7 +6,7 @@ use libbgs_util::*;
 /// * The type has a binary operator (`multiply`).
 /// * The type must have a `const ONE`
 /// * Every element of the type must have element given by `inverse()`.
-pub trait GroupElem: Clone + Eq + fmt::Debug {
+pub trait GroupElem: Clone + Eq {
     /// The unique identity element of this group.
     const ONE: Self;
 
