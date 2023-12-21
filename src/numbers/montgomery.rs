@@ -62,6 +62,7 @@ impl<const N: u128> Montgomery<N> {
         }
     };
 
+    #[allow(dead_code)]
     const fn redc(x: u128) -> Montgomery<N> {
         let m = ((x & Self::MASK) * Self::MAGIC) & Self::MASK;
         let t = (x + m * N) >> Self::SHIFT;

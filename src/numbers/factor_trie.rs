@@ -13,12 +13,6 @@ pub struct FactorTrie<S, const L: usize, C, T> {
     _phantom: PhantomData<(S, C)>,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum LeqMode {
-    Leq,
-    Strict,
-}
-
 impl<S, const L: usize, C> FactorTrie<S, L, C, ()>
 where
     C: Factor<S> + std::fmt::Debug,

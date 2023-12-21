@@ -501,7 +501,7 @@ where
     }
 }
 
-impl<'a, S, const L: usize, C, T> IntoParallelIterator for SylowStreamBuilder<S, L, C, T>
+impl<S, const L: usize, C, T> IntoParallelIterator for SylowStreamBuilder<S, L, C, T>
 where
     S: Send + Sync,
     C: SylowDecomposable<S> + Send + Sync,
