@@ -6,7 +6,7 @@ const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
 fn find_sqrt() {
     for i in 3..103 {
-        let mut x = QuadNum::<BIG_P>::int_sqrt(i);
+        let mut x = QuadNum::<BIG_P>::int_sqrt(FpNum::from(i));
         let y = x.clone();
         assert_ne!(x, i);
         x = x.multiply(&y);
