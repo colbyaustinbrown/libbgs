@@ -27,7 +27,7 @@ impl<const P: u128> QuadNum<P> {
 
     /// True if this number is zero; false otherwise.
     pub fn is_zero(&self) -> bool {
-        self.0 == 0 && self.1 == 0
+        self.0 == FpNum::ZERO && self.1 == FpNum::ZERO
     }
 
     /// Returns the Steinitz element of $\mathbb{F}\_{p^2}$ with index `i`.
@@ -58,8 +58,8 @@ impl<const P: u128> QuadNum<P> {
 
 impl<const P: u128> GroupElem for QuadNum<P> {
     const ONE: Self = QuadNum(
-        FpNum(Montgomery::from_u128(1)),
-        FpNum(Montgomery::from_u128(0)),
+        FpNum::ONE,
+        FpNum::ZERO,
     );
     const SIZE: u128 = P + 1;
 
@@ -91,7 +91,7 @@ where
 
 impl<const P: u128> PartialEq<u128> for QuadNum<P> {
     fn eq(&self, other: &u128) -> bool {
-        self.0 == *other && self.1 == 0
+        self.0 == FpNum::from(*other) && self.1 == FpNum::ZERO 
     }
 }
 

@@ -8,7 +8,6 @@ mod factor_trie;
 mod factorization;
 mod fp;
 mod group;
-mod montgomery;
 mod quad_field;
 mod sylow;
 
@@ -17,6 +16,5 @@ pub use factorization::*;
 pub use fp::*;
 pub use group::*;
 pub use libbgs_macros::*;
-pub use montgomery::*;
 pub use quad_field::*;
 pub use sylow::*;

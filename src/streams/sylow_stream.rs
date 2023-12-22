@@ -606,7 +606,7 @@ mod tests {
             .into_iter()
             .filter_map(|(s, _)| s.to_product(&g).into())
             .collect();
-        assert_eq!(res, vec![6]);
+        assert_eq!(res, vec![FpNum::from_u128(6)]);
     }
 
     #[test]
@@ -742,7 +742,7 @@ mod tests {
             .into_par_iter()
             .filter_map(|(s, _)| s.to_product(&g).into())
             .collect();
-        assert_eq!(res, vec![6]);
+        assert_eq!(res, vec![FpNum::from_u128(6)]);
     }
 
     #[test]

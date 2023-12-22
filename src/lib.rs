@@ -1,5 +1,5 @@
 #![feature(array_methods)]
-#![warn(missing_docs, unused_crate_dependencies, unused_lifetimes, unused_tuple_struct_fields, variant_size_differences, clippy::all)]
+#![warn(missing_docs, unused_lifetimes, unused_tuple_struct_fields, variant_size_differences, clippy::all)]
 #![allow(clippy::new_without_default, clippy::needless_range_loop)]
 
 //! A library for the manipulation and investigation of Markoff numbers and Markoff graphs modulo
