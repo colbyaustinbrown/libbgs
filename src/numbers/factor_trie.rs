@@ -17,7 +17,7 @@ pub struct FactorTrie<S, const L: usize, C, T> {
 
 impl<S, const L: usize, C> FactorTrie<S, L, C, ()>
 where
-    C: Factor<S> + std::fmt::Debug,
+    C: Factor<S>,
 {
     /// Creates a new trie associated to the given `factorization`.
     /// The trie contains the divisors of `C::FACTORS`.
@@ -29,8 +29,7 @@ where
 
 impl<S, const L: usize, C, T> FactorTrie<S, L, C, T> 
 where
-    C: Factor<S> + std::fmt::Debug,
-    T: std::fmt::Debug,
+    C: Factor<S>,
 {
     /// Creates a new trie associated to the given `factorization`.
     /// The trie contains the divisors of `C::FACTORS`.

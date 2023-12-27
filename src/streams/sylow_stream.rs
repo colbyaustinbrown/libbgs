@@ -81,7 +81,7 @@ struct Consume {
     descendants: usize,
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBuilder<S, L, C, ()> {
+impl<S, const L: usize, C: SylowDecomposable<S>> SylowStreamBuilder<S, L, C, ()> {
     /// Returns a new `SylowStreamBuilder`.
     pub fn new() -> SylowStreamBuilder<S, L, C, ()> {
         SylowStreamBuilder {
@@ -93,7 +93,7 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBuilder<S, L, C, [u128; L]> {
+impl<S, const L: usize, C: SylowDecomposable<S>> SylowStreamBuilder<S, L, C, [u128; L]> {
     /// Returns a new `SylowStreamBuilder`, which will return both elements and their orders.
     pub fn new_with_orders() -> SylowStreamBuilder<S, L, C, [usize; L]> {
         SylowStreamBuilder {
@@ -105,7 +105,7 @@ impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug> SylowStreamBu
     }
 }
 
-impl<'a, S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug, T> SylowStreamBuilder<S, L, C, &'a T> {
+impl<'a, S, const L: usize, C: SylowDecomposable<S>, T> SylowStreamBuilder<S, L, C, &'a T> {
     /// Creates a new `SylowStreamBuilder` with a "parallel" trie to that given here.
     pub fn new_with_trie(trie: &'a FactorTrie<S, L, C, T>) -> SylowStreamBuilder<S, L, C, &'a T> {
         SylowStreamBuilder {
@@ -117,7 +117,7 @@ impl<'a, S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug, T> SylowS
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S> + std::fmt::Debug, T> SylowStreamBuilder<S, L, C, T> {
+impl<S, const L: usize, C: SylowDecomposable<S>, T> SylowStreamBuilder<S, L, C, T> {
     /// Adds a flag to the `SylowStreamBuilder`, modifying its yields.
     pub fn add_flag(mut self, mode: u8) -> SylowStreamBuilder<S, L, C, T> {
         self.mode |= mode;
