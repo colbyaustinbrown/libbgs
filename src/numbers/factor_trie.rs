@@ -9,7 +9,7 @@ type Child<S, const L: usize, C, T> = Box<FactorTrie<S, L, C, T>>;
 pub struct FactorTrie<S, const L: usize, C, T> {
     i: usize,
     ds: [usize; L],
-    children: [Option<Child<S, L, C, T>>; L],
+    children: Vec<Option<Child<S, L, C, T>>>,
     /// Data associated with the key given by the concatenation of this node's ancestors' words.
     pub data: T,
     _phantom: PhantomData<(S, C)>,
@@ -43,7 +43,7 @@ where
             i: 0,
             ds: [0; L],
             data: f(&[0; L], 0),
-            children: std::array::from_fn(|_| None),
+            children: (0..L).map(|_| None).collect(),
             _phantom: PhantomData,
         };
         res.new_helper(std::array::from_fn(|i| C::FACTORS[i].1), &f);
@@ -66,7 +66,7 @@ where
                         i: j,
                         ds,
                         data: f(&ds, j),
-                        children: std::array::from_fn(|_| None),
+                        children: (0..L).map(|_| None).collect(),
                         _phantom: PhantomData,
                     };
                     child.new_helper(t, f);
@@ -91,7 +91,7 @@ impl<S, const L: usize, C, T> FactorTrie<S, L, C, T> {
                 ds
             },
             data: data(),
-            children: std::array::from_fn(|_| None),
+            children: (0..L).map(|_| None).collect(),
             _phantom: PhantomData,
         }))
     }
@@ -121,7 +121,10 @@ impl<S, const L: usize, C, T> FactorTrie<S, L, C, T> {
             i: self.i,
             ds: self.ds,
             data: f(self.data, &self.ds, self.i),
-            children: self.children.map(|o| o.map(|n| Box::new(n.map(f)))),
+            children: self.children
+                .into_iter()
+                .map(|o| o.map(|n| Box::new(n.map(f))))
+                .collect(),
             _phantom: PhantomData,
         }
     }
@@ -132,10 +135,10 @@ impl<S, const L: usize, C, T> FactorTrie<S, L, C, T> {
             i: self.i,
             ds: self.ds,
             data: &self.data,
-            children: self.children.each_ref().map(|o| {
+            children: self.children.iter().map(|o| {
                 o.as_ref()
                     .map(|b| Box::new(FactorTrie::as_ref(Box::as_ref(b))))
-            }),
+            }).collect(),
             _phantom: PhantomData,
         }
     }
@@ -146,10 +149,10 @@ impl<S, const L: usize, C, T> FactorTrie<S, L, C, T> {
             i: self.i,
             ds: self.ds,
             data: &mut self.data,
-            children: self.children.each_mut().map(|o| {
+            children: self.children.iter_mut().map(|o| {
                 o.as_mut()
                     .map(|b| Box::new(FactorTrie::as_mut(Box::as_mut(b))))
-            }),
+            }).collect(),
             _phantom: PhantomData,
         }
     }

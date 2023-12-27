@@ -1,4 +1,4 @@
-#![feature(array_methods)]
+// #![feature(array_methods)]
 #![warn(missing_docs, unused_lifetimes, unused_tuple_struct_fields, variant_size_differences, clippy::all)]
 #![allow(clippy::new_without_default, clippy::needless_range_loop)]
 
