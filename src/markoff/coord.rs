@@ -70,8 +70,8 @@ impl<const P: u128> Coord<P> {
         {
             Left(1) | Right(1) => (1, Conic::Parabola),
             Left(2) | Right(2) => (2, Conic::Parabola),
-            Left(d) => (d, Conic::Hyperbola),
-            Right(d) => (d, Conic::Ellipse),
+            Left(d) => (d, Conic::Ellipse),
+            Right(d) => (d, Conic::Hyperbola),
         }
     }
 
