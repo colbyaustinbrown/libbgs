@@ -9,12 +9,12 @@ use crate::numbers::*;
 pub struct Coord<const P: u128>(pub FpNum<P>);
 
 #[derive(PartialEq, Eq)]
-/// The three types of conic sections an orbit could lie inside.
-pub enum Conic {
+/// The order of a rotation map, along with which type of conic it is.
+pub enum RotOrder {
     /// An orbit of order dividing $p - 1$ (and not equal to 2).
-    Hyperbola,
+    Hyperbola(u128),
     /// An orbit of order dividing $p + 1$ (and not equal to 2).
-    Ellipse,
+    Ellipse(u128),
     /// An orbit of order exactly 1 or 2.
     Parabola,
 }
@@ -58,7 +58,7 @@ impl<const P: u128> Coord<P> {
     }
 
     /// Returns the order of the map $\text{rot}\_a$, that is, $\lvert \langle \text{rot}\_a \rangle \rvert$, along with the type of [`Conic`] that it is.
-    pub fn rot_order<S1, S2>(&self) -> (u128, Conic)
+    pub fn rot_order<S1, S2>(&self) -> RotOrder
     where
         FpNum<P>: Factor<S1>,
         QuadNum<P>: Factor<S2>,
@@ -68,10 +68,10 @@ impl<const P: u128> Coord<P> {
             .as_ref()
             .map_either(|l| l.order(), |r| r.order())
         {
-            Left(1) | Right(1) => (1, Conic::Parabola),
-            Left(2) | Right(2) => (2, Conic::Parabola),
-            Left(d) => (d, Conic::Ellipse),
-            Right(d) => (d, Conic::Hyperbola),
+            Left(1) | Right(1) => RotOrder::Parabola,
+            Left(2) | Right(2) => RotOrder::Parabola,
+            Left(d) => RotOrder::Ellipse(d),
+            Right(d) => RotOrder::Hyperbola(d),
         }
     }
 
@@ -168,4 +168,55 @@ where
         let chi = chi.to_product(decomp);
         Coord((chi - chi_inv).0)
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(PartialEq, Eq)]
+    struct Ph {}
+
+    impl_factors!(Ph, 3001);
+
+    #[test]
+    fn from_chi() {
+        for i in 0..3000 {
+            let a = FpNum::<3001>::from(i);
+            match Coord(a).to_chi() {
+                Left(chi) => {
+                    let test = chi + chi.inverse();
+                    assert_eq!(test.1, FpNum::from(0));
+                    assert_eq!(a, test.0);
+                }
+                Right(chi) => {
+                    assert_eq!(a, chi + chi.inverse());
+                }
+            }
+        }
+    }
+
+    /*
+    #[test]
+    fn to_chi_orders() {
+        for i in 1..3000 {
+            let a = Coord(FpNum::<3001>::from(i));
+            match a.to_chi() {
+                Left(chi) => {
+                    // println!("a {:?}", a.0);
+
+                    assert_eq!(a.rot_order().0, chi.order());
+                    assert_eq!(a.0.order(), chi.order());
+                    // println!("done {:?}", a.0);
+                },
+                Right(chi) => {
+                    // println!("a {:?}", a.0);
+                    assert_eq!(a.rot_order().0, chi.order());
+                    assert_eq!(a.0.order(), chi.order());
+                    // println!("done {:?}", a.0);
+                },
+            }
+        }
+    }
+    */
 }
