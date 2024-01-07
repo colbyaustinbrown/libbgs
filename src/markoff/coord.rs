@@ -57,7 +57,7 @@ impl<const P: u128> Coord<P> {
         Some(Box::new(self.rot(b, Coord(c)).map(|x| x.1)))
     }
 
-    /// Returns the order of the map $\text{rot}\_a$, that is, $\lvert \langle \text{rot}\_a \rangle \rvert$, along with the type of [`Conic`] that it is.
+    /// Returns the order of the map $\text{rot}\_a$, that is, $\lvert \langle \text{rot}\_a \rangle \rvert$, along with the type of [`RotOrder`] that it is.
     pub fn rot_order<S1, S2>(&self) -> RotOrder
     where
         FpNum<P>: Factor<S1>,
