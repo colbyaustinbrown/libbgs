@@ -16,7 +16,7 @@ use libbgs_util::*;
 ///
 /// For more informtion on the internal representation, see: Montgomery, Peter (April 1985). "Modular Multiplication Without Trial
 /// Division". Mathematics of Computation. 44 (170): 519-521.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FpNum<const P: u128>(u128);
 
 impl<const P: u128> FpNum<P> {
@@ -236,6 +236,14 @@ impl<const P: u128> From<u128> for FpNum<P> {
 impl<const P: u128> From<FpNum<P>> for u128 {
     fn from(src: FpNum<P>) -> u128 {
         FpNum::<P>::redc2((0, src.0)).0
+    }
+}
+
+impl<const P: u128> std::fmt::Debug for FpNum<P> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("FpNum")
+            .field(&u128::from(*self))
+            .finish()
     }
 }
 
