@@ -225,6 +225,13 @@ impl<const P: u128> GroupElem for FpNum<P> {
     fn multiply(&self, other: &FpNum<P>) -> FpNum<P> {
         *self * *other
     }
+
+    fn inverse(&self) -> FpNum<P> {
+        if *self == Self::ZERO {
+            panic!("Attempted to invert the zero element.");
+        }
+        self.pow(Self::SIZE - 1)
+    }
 }
 
 impl<const P: u128> From<u128> for FpNum<P> {
