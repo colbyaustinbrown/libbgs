@@ -107,66 +107,64 @@ impl<const P: u128> From<Coord<P>> for u128 {
 
 /// Common trait for the `from_chi` and `from_chi_conj` methods to be defined on both `FpNum` and
 /// `QuadNum`.
-pub trait FromChi<S, const P: u128, C> 
-where
-    C: SylowDecomposable<S>
+pub trait FromChi<S>: SylowDecomposable<S>
 {
-    /// Returns the coordinate $a = \chi + \chi^{-1}$.
+    /// Returns $\chi + \chi^{-1}$.
     fn from_chi<const L: usize>(
-        chi: &SylowElem<S, L, C>,
-        decomp: &SylowDecomp<S, L, C>,
+        chi: &SylowElem<S, L, Self>,
+        decomp: &SylowDecomp<S, L, Self>,
     ) -> Self;
 
-    /// Returns the coordinate $a = \chi - \chi^{-1}$.
+    /// Returns $\chi - \chi^{-1}$.
     fn from_chi_conj<const L: usize>(
-        chi: &SylowElem<S, L, C>,
-        decomp: &SylowDecomp<S, L, C>,
+        chi: &SylowElem<S, L, Self>,
+        decomp: &SylowDecomp<S, L, Self>,
     ) -> Self;
 }
 
-impl<S, const P: u128> FromChi<S, P, FpNum<P>> for Coord<P>
+impl<S, const P: u128> FromChi<S> for FpNum<P>
 where
     FpNum<P>: Factor<S>,
 {
     fn from_chi<const L: usize>(
         chi: &SylowElem<S, L, FpNum<P>>,
         decomp: &SylowDecomp<S, L, FpNum<P>>,
-    ) -> Coord<P> {
+    ) -> FpNum<P> {
         let chi_inv = chi.inverse().to_product(decomp);
         let chi = chi.to_product(decomp);
-        Coord(chi + chi_inv)
+        chi + chi_inv
     }
 
     fn from_chi_conj<const L: usize>(
         chi: &SylowElem<S, L, FpNum<P>>,
         decomp: &SylowDecomp<S, L, FpNum<P>>,
-    ) -> Coord<P> {
+    ) -> FpNum<P> {
         let chi_inv = chi.inverse().to_product(decomp);
         let chi = chi.to_product(decomp);
-        Coord(chi - chi_inv)
+        chi - chi_inv
     }
 }
 
-impl<S, const P: u128> FromChi<S, P, QuadNum<P>> for Coord<P>
+impl<S, const P: u128> FromChi<S> for QuadNum<P>
 where
     QuadNum<P>: Factor<S>,
 {
     fn from_chi<const L: usize>(
         chi: &SylowElem<S, L, QuadNum<P>>,
         decomp: &SylowDecomp<S, L, QuadNum<P>>,
-    ) -> Coord<P> {
+    ) -> QuadNum<P> {
         let chi_inv = chi.inverse().to_product(decomp);
         let chi = chi.to_product(decomp);
-        Coord((chi + chi_inv).0)
+        chi + chi_inv
     }
 
     fn from_chi_conj<const L: usize>(
         chi: &SylowElem<S, L, QuadNum<P>>,
         decomp: &SylowDecomp<S, L, QuadNum<P>>,
-    ) -> Coord<P> {
+    ) -> QuadNum<P> {
         let chi_inv = chi.inverse().to_product(decomp);
         let chi = chi.to_product(decomp);
-        Coord((chi - chi_inv).0)
+        chi - chi_inv
     }
 }
 

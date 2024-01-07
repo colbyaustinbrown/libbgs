@@ -93,13 +93,13 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(stream) = self.hyper_stream.as_mut() {
             if let Some((a, _)) = stream.next() {
-                return Some(Coord::from_chi(&a, self.hyper_decomp));
+                return Some(Coord(FpNum::from_chi(&a, self.hyper_decomp)));
             }
             self.hyper_stream = None;
         }
         if let Some(stream) = self.ellip_stream.as_mut() {
             if let Some((a, _)) = stream.next() {
-                return Some(Coord::from_chi(&a, self.ellip_decomp));
+                return Some(Coord(QuadNum::from_chi(&a, self.ellip_decomp).0));
             }
             self.ellip_stream = None;
         }
@@ -123,13 +123,13 @@ where
         let left = self.hyper_stream.map(|stream| {
             stream
                 .parallelize()
-                .map(|(x, _)| Coord::from_chi(&x, self.hyper_decomp))
+                .map(|(x, _)| Coord(FpNum::from_chi(&x, self.hyper_decomp)))
                 .drive_unindexed(consumer.split_off_left())
         });
         let right = self.ellip_stream.map(|stream| {
             stream
                 .parallelize()
-                .map(|(x, _)| Coord::from_chi(&x, self.ellip_decomp))
+                .map(|(x, _)| Coord(QuadNum::from_chi(&x, self.ellip_decomp).0))
                 .drive_unindexed(consumer.split_off_left())
         });
         match (left, right) {
