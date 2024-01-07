@@ -8,7 +8,7 @@ use crate::numbers::*;
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Coord<const P: u128>(pub FpNum<P>);
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 /// The order of a rotation map, along with which type of conic it is.
 pub enum RotOrder {
     /// An orbit of order dividing $p - 1$ (and not equal to 2).
@@ -195,28 +195,4 @@ mod tests {
             }
         }
     }
-
-    /*
-    #[test]
-    fn to_chi_orders() {
-        for i in 1..3000 {
-            let a = Coord(FpNum::<3001>::from(i));
-            match a.to_chi() {
-                Left(chi) => {
-                    // println!("a {:?}", a.0);
-
-                    assert_eq!(a.rot_order().0, chi.order());
-                    assert_eq!(a.0.order(), chi.order());
-                    // println!("done {:?}", a.0);
-                },
-                Right(chi) => {
-                    // println!("a {:?}", a.0);
-                    assert_eq!(a.rot_order().0, chi.order());
-                    assert_eq!(a.0.order(), chi.order());
-                    // println!("done {:?}", a.0);
-                },
-            }
-        }
-    }
-    */
 }

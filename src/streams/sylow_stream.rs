@@ -445,18 +445,24 @@ where
             }
         }
         let q = self.quotient.unwrap_or([0; L]);
-        Limiter {
+        let mut limiter = Limiter {
             block: self.mode & flags::NO_UPPER_HALF != 0,
-            lims: std::array::from_fn(|i| {
-                let (p, d) = C::FACTORS[i];
-                if q[i] <= d {
+            lims: match self.quotient {
+                Some(q) => std::array::from_fn(|i| {
+                        let (p, d) = C::FACTORS[i];
+                        if q[i] <= d {
+                            intpow::<0>(p, (d - q[i]) as u128) - 1
+                        } else {
+                            0
+                        }
+                    }),
+                None => std::array::from_fn(|i| {
+                    let (p,d) = C::FACTORS[i];
                     intpow::<0>(p, (d - q[i]) as u128)
-                } else {
-                    0
-                }
-            }),
-        }
-        .visit_mut(&mut tree);
+                })
+            },
+        };
+        limiter.visit_mut(&mut tree);
         let mut stream = SylowStream {
             stack: Vec::new(),
             buffer: if (self.mode & flags::INCLUDE_ONE != 0)
@@ -598,6 +604,8 @@ mod tests {
         const FACTORS: Factorization = Factorization::new(&[(2, 3), (5, 1)]);
     }
 
+    impl_factors!(Phantom, 3001);
+
     #[test]
     pub fn test_make_stream_seq() {
         let g = SylowDecomp::<Phantom, 2, FpNum<7>>::new();
@@ -652,13 +660,11 @@ mod tests {
 
     #[test]
     pub fn test_generates_big_seq() {
-        println!("A");
         let stream = SylowStreamBuilder::new()
             .add_target(&[0, 0, 0, 2, 0, 0, 0])
             .into_iter();
         let coords: Vec<SylowElem<Phantom, 7, FpNum<BIG_P>>> = stream.map(|(a, _)| a).collect();
         assert_eq!(coords.len(), 29 * 29 - 29);
-        println!("B");
 
         SylowStreamBuilder::<Phantom, 7, FpNum<BIG_P>, ()>::new()
             .add_target(&[0, 0, 0, 0, 0, 1, 0])
@@ -920,6 +926,18 @@ mod tests {
             .into_iter()
             .count();
         assert_eq!(count, 2);
+    }
+
+    #[test]
+    pub fn test_more_quotients() {
+        // factorization is 2 * 19 * 79
+        let res = SylowStreamBuilder::<Phantom, 3, QuadNum<3001>, ()>::new()
+            .add_flag(flags::LEQ)
+            .add_targets_leq(3002)
+            .set_quotient(Some([0, 0, 1]))
+            .into_iter()
+            .count();
+        assert_eq!(res, 38);
     }
 
     #[test]
