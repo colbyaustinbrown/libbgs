@@ -99,7 +99,7 @@ where
         }
         if let Some(stream) = self.ellip_stream.as_mut() {
             if let Some((a, _)) = stream.next() {
-                return Some(Coord(QuadNum::from_chi(&a, self.ellip_decomp).0));
+                return Some(Coord(QuadNum::from_chi(&a, self.ellip_decomp)));
             }
             self.ellip_stream = None;
         }
@@ -129,7 +129,7 @@ where
         let right = self.ellip_stream.map(|stream| {
             stream
                 .parallelize()
-                .map(|(x, _)| Coord(QuadNum::from_chi(&x, self.ellip_decomp).0))
+                .map(|(x, _)| Coord(QuadNum::from_chi(&x, self.ellip_decomp)))
                 .drive_unindexed(consumer.split_off_left())
         });
         match (left, right) {

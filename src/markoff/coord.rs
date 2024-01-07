@@ -107,22 +107,22 @@ impl<const P: u128> From<Coord<P>> for u128 {
 
 /// Common trait for the `from_chi` and `from_chi_conj` methods to be defined on both `FpNum` and
 /// `QuadNum`.
-pub trait FromChi<S>: SylowDecomposable<S>
+pub trait FromChi<S, const P: u128>: SylowDecomposable<S>
 {
     /// Returns $\chi + \chi^{-1}$.
     fn from_chi<const L: usize>(
         chi: &SylowElem<S, L, Self>,
         decomp: &SylowDecomp<S, L, Self>,
-    ) -> Self;
+    ) -> FpNum<P>;
 
     /// Returns $\chi - \chi^{-1}$.
     fn from_chi_conj<const L: usize>(
         chi: &SylowElem<S, L, Self>,
         decomp: &SylowDecomp<S, L, Self>,
-    ) -> Self;
+    ) -> FpNum<P>;
 }
 
-impl<S, const P: u128> FromChi<S> for FpNum<P>
+impl<S, const P: u128> FromChi<S, P> for FpNum<P>
 where
     FpNum<P>: Factor<S>,
 {
@@ -145,26 +145,30 @@ where
     }
 }
 
-impl<S, const P: u128> FromChi<S> for QuadNum<P>
+impl<S, const P: u128> FromChi<S, P> for QuadNum<P>
 where
     QuadNum<P>: Factor<S>,
 {
     fn from_chi<const L: usize>(
         chi: &SylowElem<S, L, QuadNum<P>>,
         decomp: &SylowDecomp<S, L, QuadNum<P>>,
-    ) -> QuadNum<P> {
+    ) -> FpNum<P> {
         let chi_inv = chi.inverse().to_product(decomp);
         let chi = chi.to_product(decomp);
-        chi + chi_inv
+        let res = chi + chi_inv;
+        assert_eq!(res.1, FpNum::<P>::ZERO);
+        res.0
     }
 
     fn from_chi_conj<const L: usize>(
         chi: &SylowElem<S, L, QuadNum<P>>,
         decomp: &SylowDecomp<S, L, QuadNum<P>>,
-    ) -> QuadNum<P> {
+    ) -> FpNum<P> {
         let chi_inv = chi.inverse().to_product(decomp);
         let chi = chi.to_product(decomp);
-        chi - chi_inv
+        let res = chi - chi_inv;
+        assert_eq!(res.0, FpNum::<P>::ZERO);
+        res.1
     }
 }
 
