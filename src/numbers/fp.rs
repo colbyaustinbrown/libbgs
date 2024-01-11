@@ -212,6 +212,7 @@ where
             (2, 1) => FpNum::from(FpNum::<P>::SIZE),
             (p, t) => (1..FpNum::<P>::SIZE)
                 .map(|j| FpNum::from(standard_affine_shift(P, j)))
+                .filter(|c| *c != FpNum::ZERO)
                 .find_map(|c| <FpNum<P> as SylowDecomposable<S>>::is_sylow_generator(&c, (p, t)))
                 .unwrap(),
         }

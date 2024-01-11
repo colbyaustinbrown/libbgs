@@ -25,6 +25,9 @@ impl<const P: u128> QuadNum<P> {
     /// The basis element for the numbers outside of the prime subfield.
     pub const R: FpNum<P> = FpNum::<P>::find_nonresidue();
 
+    /// The constant zero.
+    pub const ZERO: QuadNum<P> = QuadNum(FpNum::from_u128(0), FpNum::from_u128(0));
+
     /// True if this number is zero; false otherwise.
     pub fn is_zero(&self) -> bool {
         self.0 == FpNum::ZERO && self.1 == FpNum::ZERO
@@ -82,9 +85,8 @@ where
                 let p = QuadNum::steinitz(j);
                 p.pow(P - 1)
             })
-            .find_map(|c| {
-                QuadNum::is_sylow_generator(&c, Self::FACTORS[i])
-            })
+            .filter(|c| *c != QuadNum::ZERO)
+            .find_map(|c| QuadNum::is_sylow_generator(&c, Self::FACTORS[i]))
             .unwrap()
     }
 }
@@ -159,6 +161,8 @@ mod tests {
         const FACTORS: Factorization = Factorization::new(&[(2, 1), (3, 2)]);
     }
 
+    impl_factors!(Phantom, 41);
+
     #[test]
     fn calculates_r_as_nonresidue() {
         for i in 2..7 {
@@ -198,6 +202,17 @@ mod tests {
             let gen = &g.generator(i);
             let d = SylowElem::<Phantom, 2, QuadNum<17>>::FACTORS.factor(i);
             test_is_generator_small::<Phantom, 2, QuadNum<17>>(*gen, d as usize);
+        }
+    }
+
+    #[test]
+    fn sylow_finds_generators_2() {
+        let g = SylowDecomp::<Phantom, 3, QuadNum<41>>::new();
+        for i in 0..3 {
+            let gen = g.generator(i);
+            assert!(*gen != QuadNum(FpNum::from(0), FpNum::from(0)));
+            let d = SylowElem::<Phantom, 3, QuadNum<41>>::FACTORS.factor(i);
+            test_is_generator_small::<Phantom, 2, QuadNum<41>>(gen, d as usize);
         }
     }
 
