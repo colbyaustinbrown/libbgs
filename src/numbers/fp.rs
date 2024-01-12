@@ -229,7 +229,7 @@ impl<const P: u128> GroupElem for FpNum<P> {
 
     fn inverse(&self) -> FpNum<P> {
         if *self == Self::ZERO {
-            panic!("Attempted to invert the zero element.");
+            panic!("Attempted to take the multiplicative inverse of zero.");
         }
         self.pow(Self::SIZE - 1)
     }

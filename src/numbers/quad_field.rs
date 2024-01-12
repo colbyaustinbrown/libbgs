@@ -72,6 +72,13 @@ impl<const P: u128> GroupElem for QuadNum<P> {
 
         QuadNum(a0, a1)
     }
+
+    fn inverse(&self) -> QuadNum<P> {
+        if *self == QuadNum::ZERO {
+            panic!("Attempted to take the multiplicative inverse of zero."); 
+        }
+        self.pow(P * P - 2)
+    }
 }
 
 impl<S, const P: u128> SylowDecomposable<S> for QuadNum<P>
