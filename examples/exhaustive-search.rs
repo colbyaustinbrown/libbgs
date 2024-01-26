@@ -1,4 +1,3 @@
-// Requires nightly!
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 use std::collections::HashMap;
@@ -10,6 +9,7 @@ use rayon::iter::*;
 use libbgs::markoff::*;
 use libbgs::numbers::*;
 use libbgs::streams::*;
+use libbgs::util::*;
 
 #[derive(Debug)]
 struct Ph {}
@@ -25,7 +25,7 @@ where
     ellip_lim: u128,
     hyper_decomp: SylowDecomp<Ph, { FpNum::<P>::LENGTH }, FpNum<P>>,
     ellip_decomp: SylowDecomp<Ph, { QuadNum::<P>::LENGTH }, QuadNum<P>>,
-    coset_searches: AtomicUsize,
+    coset_max: AtomicUsize,
 }
 
 impl<const P: u128> Context<P>
@@ -37,9 +37,9 @@ where
 {
     fn is_small(&self, c: &Coord<P>) -> bool {
         match c.rot_order() {
-            (_, Conic::Parabola) => false,
-            (ord, Conic::Hyperbola) => ord < self.hyper_lim,
-            (ord, Conic::Ellipse) => ord < self.ellip_lim,
+            RotOrder::Parabola => false,
+            RotOrder::Hyperbola(ord) => ord <= self.hyper_lim,
+            RotOrder::Ellipse(ord) => ord <= self.ellip_lim,
         }
     }
 }
@@ -48,7 +48,7 @@ where
 enum Check<const L: usize> {
     Cosets([usize; L]),
     SmallOrders(u128),
-    Skip,
+    // Skip,
 }
 
 fn process<const P: u128>()
@@ -122,12 +122,42 @@ where
         ellip_decomp,
         hyper_lim,
         ellip_lim,
-        coset_searches: AtomicUsize::new(0),
+        coset_max: AtomicUsize::new(0),
+    };
+
+    // Magic number used to permute cosets of <chi> to ensure all (s*chi + (s*chi)^-1) have order
+    // dividing 2(p - 1) and not dividing (p - 1)
+    let magic = (1..P*P)
+        .map(|i| {
+            let j = standard_affine_shift(P * 2, i);
+            QuadNum::<P>::steinitz(j)
+        })
+        .filter(|c| *c != QuadNum::ZERO)
+        .find_map(|c| {
+            let twos = (QuadNum::<P>::FACTORS[0].1 + 1) as u128;
+            let pow = (P*P - 1) / intpow::<0>(2, twos);
+            let res = c.pow(pow);
+            if res.pow(intpow::<0>(2, twos - 1)) == QuadNum::ONE {
+                None 
+            } else {
+                Some(res)
+            }
+        })
+        .unwrap();
+    let magic = if QuadNum::<P>::FACTORS[0].1 == 1 {
+        magic * QuadNum::find_sylow_generator(1)
+    } else {
+        magic
     };
 
     let (a, b) = rayon::join(
-        || process_trie(&elements_count, hyper_lim, &ctx.hyper_decomp, &ctx),
-        || process_trie(&elements_count, ellip_lim, &ctx.ellip_decomp, &ctx),
+        || process_trie(&elements_count, hyper_lim, &ctx.hyper_decomp, &ctx, |k, s| { k * (s + s.inverse())}),
+        || process_trie(&elements_count, ellip_lim, &ctx.ellip_decomp, &ctx, |k, s| { 
+                let fix = s * magic;
+                let b = fix + fix.inverse();
+                assert_eq!(b.0, FpNum::ZERO);
+                k * b.1
+            }),
     );
     let dur = now.elapsed();
     println!(
@@ -137,7 +167,7 @@ where
         hyper_endgame,
         ellip_endgame,
         middle_game,
-        ctx.coset_searches.into_inner(),
+        ctx.coset_max.into_inner(),
         a,
         b
     );
@@ -148,12 +178,12 @@ fn process_trie<const P: u128, C>(
     limit: u128,
     decomp: &SylowDecomp<Ph, { C::LENGTH }, C>,
     ctx: &Context<P>,
+    get_coset_repr: impl Fn(FpNum<P>, C) -> FpNum<P> + Send + Sync,
 ) -> u128
 where
-    C: SylowDecomposable<Ph> + Send + Sync,
+    C: SylowDecomposable<Ph> + FromChi<Ph, P> + Send + Sync + Copy + std::fmt::Debug,
     FpNum<P>: Factor<Ph>,
     QuadNum<P>: Factor<Ph>,
-    Coord<P>: FromChi<Ph, P, C>,
     [(); C::LENGTH]:,
     [(); FpNum::<P>::LENGTH]:,
     [(); QuadNum::<P>::LENGTH]:,
@@ -164,16 +194,17 @@ where
         match counts.get(&ord) {
             Some(count) if limit == C::SIZE - 1 || *count > cosets => Check::Cosets(*ds),
             Some(_) => Check::SmallOrders(ord),
-            None => Check::Skip,
+            None => Check::Cosets(*ds),
         }
     });
     SylowStreamBuilder::new_with_trie(&trie)
         .add_flag(flags::NO_PARABOLIC)
         .add_flag(flags::NO_UPPER_HALF)
+        .add_flag(flags::LEQ)
         .add_targets_leq(limit)
         .into_par_iter()
         .map(|(chi, check)| {
-            let a = Coord::from_chi(&chi, &decomp).0;
+            let a = C::from_chi(&chi, &decomp);
             match check {
                 Check::SmallOrders(ord) => {
                     let it = CoordStream::new(&ctx.hyper_decomp, &ctx.ellip_decomp, *ord, *ord)
@@ -194,41 +225,54 @@ where
                     .count() as u128
                 }
                 Check::Cosets(gen) => {
-                    let k = a * Coord::from_chi_conj(&chi, &decomp).0.inverse();
+                    let chi_conj = C::from_chi_conj(&chi, &decomp).inverse();
+
                     SylowStreamBuilder::new_with_trie(&trie)
                     .add_flag(flags::NO_UPPER_HALF)
                     .add_targets_leq(P + 1)
                     .set_quotient(Some(*gen))
                     .into_par_iter()
-                    .map(|x| {
-                        ctx.coset_searches.fetch_add(1, Ordering::Relaxed);
-                        let b = Coord(k * Coord::from_chi(&x.0, &decomp).0);
-                        if b.rot_order().0 < limit {
+                    .map(|(x, _)| {
+                        let b = a * get_coset_repr(chi_conj, x.to_product(decomp));
+
+                        if a == FpNum::from(0) && b == FpNum::from(0) {
                             return 0;
                         }
-                        let Some(mut it) = Coord(a).part(b) else {
-                            panic!("Attempted to look at coset solutions that don't exist: {} {} {}.", P, u128::from(a), u128::from(b));
+                        if !ctx.is_small(&Coord(b)) {
+                            return 0;
+                        }
+                        let Some(mut it) = Coord(a).part(Coord(b)) else {
+                            panic!("Attempted to look at coset solutions that don't exist: P={} a={} b={}.", P, u128::from(a), u128::from(b));
                         };
-                        if it.all(|c| ctx.is_small(&c)) {
-                            x.0.order()
+                        let mut count = 0;
+                        let res = if it
+                            .take(50)
+                            .all(|c| {
+                                count += 1;
+                                ctx.is_small(&c)
+                            })
+                        {
+                            chi.order()
                         } else {
                             0
-                        }
+                        };
+                        ctx.coset_max.fetch_max(count, Ordering::Relaxed);
+                        res
                     })
                     .sum()
                 },
-                Check::Skip => 0,
+                // Check::Skip => 0,
             }
         })
         .sum()
 }
 
-impl_factors!(Ph, 1000..2000);
+impl_factors!(Ph, 4000..5000);
 
 macro_rules! go {
     ($($P:literal),+$(,)?) => {$(process::<$P>();)+};
 }
 
 fn main() {
-    primes!(go, 1000..2000);
+    primes!(go, 4000..5000);
 }
