@@ -90,9 +90,9 @@ impl<S, const L: usize, C: SylowDecomposable<S>> SylowDecomp<S, L, C> {
 
     /// Get the generators for decomposition.
     /// The index of each generator corresponds to the index of the prime power in the
-    /// factorization. That is, if the prime power at index `i` of the factorization is $$(p, t)$$,
+    /// factorization. That is, if the prime power at index `i` of the factorization is $(p, t)$,
     /// then the generator at index `i` of the array returned by the `generators` method is a
-    /// generator of the Sylow subgroup of order $$p^t$$.
+    /// generator of the Sylow subgroup of order $p^t$.
     pub fn generator(&self, i: usize) -> &C {
         &self.precomputed[i][1]
     }
