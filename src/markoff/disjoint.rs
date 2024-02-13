@@ -22,8 +22,8 @@ impl<K: Eq + Clone + std::hash::Hash> Disjoint<K> {
     pub fn get_sets(&self) -> impl Iterator<Item = (&K, u128)> {
         self.orbits
             .iter()
-            .filter_map(|key| self.disjoint.get(key).map(|e| (key, e)))
-            .filter_map(|(k, e)| e.as_ref().right().map(|d| (k, *d)))
+            .map(|key| self.disjoint.get(key).map(|e| (key, e)).unwrap())
+            .map(|(k, e)| e.as_ref().right().map(|d| (k, *d)).unwrap())
     }
 
     /// Merge two disjoint sets; specifically, if `one` is in $S$ and `two` is in $T$, then
@@ -33,37 +33,40 @@ impl<K: Eq + Clone + std::hash::Hash> Disjoint<K> {
     pub fn associate(&mut self, one: K, two: K) {
         match (self.root(&one), self.root(&two)) {
             (None, None) => {
+                let count = if one == two { 1 } else { 2 };
+
                 self.orbits.insert(one.clone());
                 self.disjoint.insert(two, Left(one.clone()));
-                self.disjoint.insert(one, Right(2));
+                self.disjoint.insert(one, Right(count));
             }
             (Some((k, d)), None) => {
                 self.disjoint.insert(two, Left(k.clone()));
-                self.disjoint.insert(one.clone(), Right(d + 1));
+                self.disjoint.insert(k, Right(d + 1));
             }
             (None, Some((k, d))) => {
                 self.disjoint.insert(one, Left(k.clone()));
-                self.disjoint.insert(two.clone(), Right(d + 1));
+                self.disjoint.insert(k, Right(d + 1));
             }
-            (Some((k1, d1)), Some((k2, d2))) => {
+            (Some((k1, d1)), Some((k2, d2))) if k1 != k2 => {
                 if d1 >= d2 {
-                    let k1_ = k1.clone();
                     self.disjoint.insert(k2.clone(), Left(k1.clone()));
-                    self.disjoint.insert(k1_, Right(d1 + d2));
+                    self.disjoint.insert(k1, Right(d1 + d2));
+                    self.orbits.remove(&k2);
                 } else {
-                    let k2_ = k2.clone();
                     self.disjoint.insert(k1.clone(), Left(k2.clone()));
-                    self.disjoint.insert(k2_, Right(d1 + d2));
+                    self.disjoint.insert(k2, Right(d1 + d2));
+                    self.orbits.remove(&k1);
                 }
-            }
+            },
+            _ => {}
         }
     }
 
-    fn root<'a>(&'a self, key: &'a K) -> Option<(&'a K, u128)> {
+    fn root(&self, key: &K) -> Option<(K, u128)> {
         match self.disjoint.get(key) {
             None => None,
             Some(Left(k2)) => self.root(k2),
-            Some(Right(d)) => Some((key, *d)),
+            Some(Right(d)) => Some((key.clone(), *d)),
         }
     }
 }
