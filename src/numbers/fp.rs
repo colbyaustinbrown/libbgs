@@ -111,7 +111,7 @@ impl<const P: u128> FpNum<P> {
 
     /// Converts a `u128` into its Montgomery representation.
     /// This operation is expensive.
-    pub(crate) const fn from_u128(src: u128) -> FpNum<P> {
+    pub const fn from_u128(src: u128) -> FpNum<P> {
         let r2 = long_multiply::<P>(Self::R, Self::R);
         FpNum::<P>::redc2(carrying_mul(src, r2))
     }
