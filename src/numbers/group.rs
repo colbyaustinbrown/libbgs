@@ -26,6 +26,9 @@ pub trait GroupElem: Clone + Eq {
     // method, at least not until const trait impls are stabalized.
     /// Raises this element to the power of `n`.
     fn pow(&self, mut n: u128) -> Self {
+        if n == 0 {
+            return Self::ONE;
+        }
         let mut y = Self::ONE;
         let mut res = self.clone();
         while n > 1 {

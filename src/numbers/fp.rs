@@ -461,6 +461,14 @@ mod tests {
     }
 
     #[test]
+    fn power_zero() {
+        for i in 1..7 {
+            let x = FpNum::<7>::from(i);
+            assert_eq!(x.pow(0), FpNum::ONE);
+        }
+    }
+
+    #[test]
     fn powers_up() {
         let mut x = FpNum::<7>::from(2);
         x = x.pow(5);
