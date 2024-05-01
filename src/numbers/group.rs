@@ -10,10 +10,6 @@ pub trait GroupElem: Clone + Eq {
     /// The unique identity element of this group.
     const ONE: Self;
 
-    ///! 256 copies of `Self::ONE` in an array.
-    #[deprecated(note = "To be replaced by inline `const` expressions once stabilized.")]
-    const ONE_256: [Self; 256] = [Self::ONE; 256];
-
     /// The size of the group this element belongs to.
     const SIZE: u128;
 

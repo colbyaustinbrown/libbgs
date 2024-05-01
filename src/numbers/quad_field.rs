@@ -48,8 +48,9 @@ impl<const P: u128> QuadNum<P> {
             return Right(y);
         }
 
-        let r = Self::R.inverse();
-        x = x.multiply(&r);
+        // Replace this with the following line once const impls land
+        // x = x.multiply(Self::R.inverse());
+        x = x.multiply(&const { Self::R.const_pow(FpNum::<P>::SIZE - 1) });
         let a1 = x.int_sqrt().unwrap();
         Left(QuadNum(FpNum::from(0), a1))
     }
