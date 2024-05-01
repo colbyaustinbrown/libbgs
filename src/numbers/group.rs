@@ -1,4 +1,4 @@
-use crate::numbers::{Factor, Length};
+use crate::numbers::Factor;
 use libbgs_util::*;
 
 /// Types that represent the elements of a group.
@@ -55,9 +55,9 @@ pub trait GroupElem: Clone + Eq {
         Self: Factor<S>,
     {
         let mut res = 1;
-        for i in 0..Self::LENGTH {
+        for i in 0..Self::FACTORS.len() {
             let mut x = self.clone();
-            for j in 0..Self::LENGTH {
+            for j in 0..Self::FACTORS.len() {
                 if j == i {
                     continue;
                 }
