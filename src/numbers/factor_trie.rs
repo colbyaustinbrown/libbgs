@@ -43,7 +43,7 @@ where
             i: 0,
             ds: [0; L],
             data: f(&[0; L], 0),
-            children: std::array::from_fn(|_| None),
+            children: [const { None }; L],
             _phantom: PhantomData,
         };
         res.new_helper(std::array::from_fn(|i| C::FACTORS[i].1), &f);
@@ -66,7 +66,7 @@ where
                         i: j,
                         ds,
                         data: f(&ds, j),
-                        children: std::array::from_fn(|_| None),
+                        children: [const { None }; L],
                         _phantom: PhantomData,
                     };
                     child.new_helper(t, f);
@@ -91,7 +91,7 @@ impl<S, const L: usize, C, T> FactorTrie<S, L, C, T> {
                 ds
             },
             data: data(),
-            children: std::array::from_fn(|_| None),
+            children: [const { None }; L],
             _phantom: PhantomData,
         }))
     }
