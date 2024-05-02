@@ -132,43 +132,34 @@ impl<S, const L: usize, C: SylowDecomposable<S>, T> SylowStreamBuilder<S, L, C, 
             self.mode |= flags::INCLUDE_ONE;
         }
 
-        struct Adder<'a, const L1: usize> {
-            mode: u8,
-            t: &'a [usize; L1],
-        }
-
-        impl<'a, const L1: usize> Adder<'a, L1> {
-            fn visit_mut<S1, C1, T1>(&mut self, node: &mut FactorTrie<S1, L1, C1, (Consume, T1)>) -> usize {
-                node.data.0.this |= self.mode & flags::LEQ != 0
-                    || (self.t[node.index()] == node.ds()[node.index()] && {
-                        let mut j = node.index() + 1;
-                        loop {
-                            if j == L1 {
-                                break true;
-                            }
-                            if self.t[j] != 0 {
-                                break false;
-                            }
-                            j += 1;
+        fn help<const L: usize, S, C, T>(mode: u8, t: &[usize; L], node: &mut FactorTrie<S, L, C, (Consume, T)>) -> usize {
+            node.data.0.this |= mode & flags::LEQ != 0
+                || (t[node.index()] == node.ds()[node.index()] && {
+                    let mut j = node.index() + 1;
+                    loop {
+                        if j == L { 
+                            break true; 
                         }
-                    });
-                for j in node.index()..L1 {
-                    if self.t[j] > node.ds()[j] {
-                        let Some(child) = node.child_mut(j) else { 
-                            panic!("Tried to add a target which does not exist in this trie!"); 
-                        };
-                        node.data.0.descendants = self.visit_mut(child);
-                        if self.mode & flags::LEQ == 0 {
-                            break;
+                        if t[j] != 0 {
+                            break false;
                         }
+                        j += 1;
+                    }
+                });
+            for j in node.index()..L {
+                if t[j] > node.ds()[j] {
+                    let Some(child) = node.child_mut(j) else {
+                        panic!("Tried to add a target which does not exist in this trie!");
+                    };
+                    node.data.0.descendants = help(mode, t, child);
+                    if mode & flags::LEQ == 0 {
+                        break;
                     }
                 }
-                node.data.0.descendants + if node.data.0.this { 1 } else { 0 }
             }
+            node.data.0.descendants + if node.data.0.this { 1 } else { 0 }
         }
-
-        Adder { mode: self.mode, t }.visit_mut(&mut self.tree);
-
+        help(self.mode, t, &mut self.tree);
         self
     }
 
@@ -186,26 +177,23 @@ impl<S, const L: usize, C: SylowDecomposable<S>, T> SylowStreamBuilder<S, L, C, 
             self.mode |= flags::INCLUDE_ONE;
         }
 
-        struct Remover<'a, const L1: usize>(&'a [usize; L1]);
-        impl<'a, const L1: usize> Remover<'a, L1> {
-            fn visit_mut<S1, C1, T1>(&mut self, node: &mut FactorTrie<S1, L1, C1, (Consume, T1)>) -> bool {
-                for j in node.index()..L1 {
-                    if self.0[j] > node.ds()[j] {
-                        let Some(child) = node.child_mut(j) else { 
-                            panic!("Could not find child while removing target."); 
-                        };
-                        if self.visit_mut(child) {
-                            node.data.0.descendants -= 1;
-                            return true;
-                        }
-                        return false;
+        fn help<const L: usize, S, C, T>(target: &[usize; L], node: &mut FactorTrie<S, L, C, (Consume, T)>) -> bool {
+            for j in node.index()..L {
+                if target[j] > node.ds()[j] {
+                    let Some(child) = node.child_mut(j) else {
+                        panic!("Could not find child while removing target.");
+                    };
+                    if help(target, child) {
+                        node.data.0.descendants -= 1;
+                        return true;
                     }
+                    return false;
                 }
-                node.data.0.this = false;
-                true
             }
+            node.data.0.this = false;
+            true
         }
-        Remover(t).visit_mut(&mut self.tree);
+        help(t, &mut self.tree);
         self
     }
 
@@ -416,53 +404,41 @@ where
                 lim: 0,
             }, consume.1)
         });
-        struct Limiter<const L1: usize> {
-            block: bool,
-            lims: [u128; L1],
-        }
-        impl<const L1: usize> Limiter<L1> {
-            fn visit_mut<S1, C1, T1>(&mut self, node: &mut FactorTrie<S1, L1, C1, (GenData, T1)>) 
-            where
-                C1: Factor<S1>,
-            {
-                let (p, _) = C1::FACTORS[node.index()];
-                node.data.0.lim = self.lims[node.index()];
-                if self.block {
-                    node.data.0.lim /= 2;
-                }
-                for j in node.index()..L1 {
-                    Limiter {
-                        block: ((p == 2 && node.ds()[0] <= 1) || j == node.index()) && self.block,
-                        ..*self
-                    }
-                    .visit_mut({
-                        let Some(child) = node.child_mut(j) else {
-                            continue;
-                        };
-                        child
-                    });
-                }
+
+        fn help<S, const L: usize, C, T>(block: bool, lims: [u128; L], node: &mut FactorTrie<S, L, C, (GenData, T)>) 
+        where
+            C: Factor<S>,
+        {
+            let (p, _) = C::FACTORS[node.index()];
+            node.data.0.lim = lims[node.index()];
+            if block {
+                node.data.0.lim /= 2;
+            }
+            for j in node.index()..L {
+                let block = ((p == 2 && node.ds()[0] <= 1) || j == node.index()) && block;
+                let Some(child) = node.child_mut(j) else { continue; };
+                help(block, lims, child);
             }
         }
+
         let q = self.quotient.unwrap_or([0; L]);
-        let mut limiter = Limiter {
-            block: self.mode & flags::NO_UPPER_HALF != 0,
-            lims: match self.quotient {
-                Some(q) => std::array::from_fn(|i| {
-                        let (p, d) = C::FACTORS[i];
-                        if q[i] <= d {
-                            intpow::<0>(p, (d - q[i]) as u128) - 1
-                        } else {
-                            0
-                        }
-                    }),
-                None => std::array::from_fn(|i| {
-                    let (p,d) = C::FACTORS[i];
-                    intpow::<0>(p, (d - q[i]) as u128)
-                })
-            },
+        let block = self.mode & flags::NO_UPPER_HALF != 0;
+        let lims = match self.quotient {
+            Some(q) => std::array::from_fn(|i| {
+                let (p, d) = C::FACTORS[i];
+                if q[i] <= d {
+                    intpow::<0>(p, (d - q[i]) as u128) - 1
+                } else {
+                    0
+                }
+            }),
+            None => std::array::from_fn(|i| {
+                let (p,d) = C::FACTORS[i];
+                intpow::<0>(p, (d - q[i]) as u128)
+            })
         };
-        limiter.visit_mut(&mut tree);
+        help(block, lims, &mut tree);
+
         let mut stream = SylowStream {
             stack: Vec::new(),
             buffer: if (self.mode & flags::INCLUDE_ONE != 0)
