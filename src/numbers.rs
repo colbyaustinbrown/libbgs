@@ -8,13 +8,15 @@ mod factor_trie;
 mod factorization;
 mod fp;
 mod group;
-mod quad_field;
+mod quad_num;
 mod sylow;
+mod norm1;
 
 pub use factor_trie::*;
 pub use factorization::*;
 pub use fp::*;
 pub use group::*;
 pub use libbgs_macros::*;
-pub use quad_field::*;
+pub use quad_num::*;
 pub use sylow::*;
+pub use norm1::*;

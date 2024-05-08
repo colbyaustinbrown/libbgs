@@ -21,6 +21,7 @@ pub struct QuadNum<const P: u128>(
     pub(crate) FpNum<P>,
 );
 
+
 impl<const P: u128> QuadNum<P> {
     /// The basis element for the numbers outside of the prime subfield.
     pub const R: FpNum<P> = FpNum::<P>::find_nonresidue();
