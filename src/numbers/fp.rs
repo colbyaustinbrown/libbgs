@@ -1,4 +1,5 @@
 use std::ops::*;
+use either::{Either, Left, Right};
 
 use crate::numbers::*;
 use libbgs_util::*;
@@ -47,10 +48,10 @@ impl<const P: u128> FpNum<P> {
     /// # use libbgs::numbers::FpNum;
     /// let x = FpNum::<7>::from(6);
     /// let y = FpNum::<7>::from(4);
-    /// assert!(x.int_sqrt().is_none());
-    /// assert_eq!(y.int_sqrt(), Some(FpNum::from(2)));
+    /// assert!(x.sqrt().is_none());
+    /// assert_eq!(y.sqrt(), Some(FpNum::from(2)));
     /// ```
-    pub const fn int_sqrt(&self) -> Option<FpNum<P>> {
+    pub const fn sqrt(&self) -> Option<FpNum<P>> {
         if self.0 == FpNum::<P>::from_u128(0).0 {
             return Some(FpNum::ZERO);
         }
@@ -94,6 +95,33 @@ impl<const P: u128> FpNum<P> {
             m = i;
         }
         Some(r)
+    }
+
+    /// Calculates the square root of an integer modulo `P`.
+    /// Returns a `Left` `QuadNum<P>` if `x` is a quadratic nonresidue, or a `Right` `FpNum<P>` if
+    /// `x` is a quadratic residue (including 0).
+    /// ```
+    /// # use libbgs::numbers::{FpNum, QuadNum};
+    /// # use either::{Right};
+    /// let x = FpNum::<7>::from(4);
+    /// let y = FpNum::<7>::from(6);
+    /// assert_eq!(x.sqrt_either(), Right(FpNum::from(2)));
+    /// assert!(y.sqrt_either().is_left());
+    /// ```
+    pub fn sqrt_either(&self) -> Either<QuadNum<P>, FpNum<P>> {
+        if let Some(y) = self.sqrt() {
+            return Right(y);
+        }
+
+        let r = QuadNum::R.inverse();
+        let x = self.multiply(&r);
+        let a1 = x.sqrt().unwrap();
+        Left(QuadNum(FpNum::from(0), a1))
+    }
+
+    /// Returns the square root of an integer modulo `P` as a `QuadNum`.
+    pub fn sqrt_quad(&self) -> QuadNum<P> {
+        self.sqrt_either().either(|o| o, |x| QuadNum::from(x))
     }
 
     /// Returns a quadratic nonresidue modulo `p`.
@@ -560,7 +588,7 @@ mod tests {
     fn calculates_square_roots() {
         let mut nonresidues = 0;
         for x in (1..13).map(|i| FpNum::<13>::from(i)) {
-            match x.int_sqrt() {
+            match x.sqrt() {
                 None => {
                     nonresidues += 1;
                 }
@@ -571,6 +599,16 @@ mod tests {
             }
         }
         assert_eq!(nonresidues, 6);
+    }
+
+    #[test]
+    fn finds_sqrt() {
+        for i in 3..1003 {
+            let mut x = FpNum::<BIG_P>::from(i).sqrt_quad();
+            assert_ne!(x, i);
+            x = x.multiply(&x);
+            assert_eq!(x, i);
+        }
     }
 
     #[test]

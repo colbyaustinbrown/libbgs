@@ -27,7 +27,7 @@ impl<const P: u128> Coord<P> {
     pub fn to_chi(&self) -> Either<QuadNum<P>, FpNum<P>> {
         let disc = self.0.pow(2) - FpNum::from(4);
         let two_inv = FpNum::from(2).inverse();
-        QuadNum::int_sqrt_either(disc).map_either(
+        FpNum::sqrt_either(&disc).map_either(
             |x| (QuadNum::<P>::from(self.0) + x) * QuadNum::<P>::from(two_inv),
             |x| (self.0 + x) * two_inv,
         )
@@ -50,7 +50,7 @@ impl<const P: u128> Coord<P> {
     /// some value $c$.
     pub fn part(self, b: Coord<P>) -> Option<Box<dyn Iterator<Item = Coord<P>>>> {
         let a = self.0;
-        let Some(disc) = (a * a * b.0 * b.0 - 4 * (a * a + b.0 * b.0)).int_sqrt() else {
+        let Some(disc) = (a * a * b.0 * b.0 - 4 * (a * a + b.0 * b.0)).sqrt() else {
             return None;
         };
         let c = (a * b.0 + disc) * FpNum::from(2).inverse();

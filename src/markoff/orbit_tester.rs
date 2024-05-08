@@ -62,7 +62,7 @@ impl<const P: u128> OrbitTester<P> {
                 let disc = x * y - 4 * (x * x + y * y);
                 let neg_b = x * y;
 
-                match disc.int_sqrt().map(u128::from) {
+                match disc.sqrt().map(u128::from) {
                     Some(0) => {
                         let z = neg_b * inv2;
                         _ = tx.send((u128::from(x), u128::from(y), u128::from(z)));

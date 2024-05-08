@@ -1,7 +1,5 @@
 use std::ops::*;
 
-use either::*;
-
 use crate::numbers::*;
 use libbgs_util::*;
 
@@ -38,26 +36,6 @@ impl<const P: u128> QuadNum<P> {
     /// Returns the Steinitz element of $\mathbb{F}\_{p^2}$ with index `i`.
     pub fn steinitz(i: u128) -> QuadNum<P> {
         QuadNum::from((i % P, i / P))
-    }
-
-    /// Calculates the square root of an integer modulo `P`, casting to an `FpNum<P>` if `x` is a
-    /// quadratic residue.
-    /// Returns a `Left` `QuadNum<P>` if `x` is a quadratic nonresidue, or a `Right` `FpNum<P>` if
-    /// `x` is a quadratic residue (including 0).
-    pub fn int_sqrt_either(mut x: FpNum<P>) -> Either<QuadNum<P>, FpNum<P>> {
-        if let Some(y) = x.int_sqrt() {
-            return Right(y);
-        }
-
-        let r = Self::R.inverse();
-        x = x.multiply(&r);
-        let a1 = x.int_sqrt().unwrap();
-        Left(QuadNum(FpNum::from(0), a1))
-    }
-
-    /// Calculates the square root af in integer modulo `P`.
-    pub fn int_sqrt(x: FpNum<P>) -> QuadNum<P> {
-        Self::int_sqrt_either(x).left_or_else(|n| QuadNum::from((n.into(), 0)))
     }
 }
 
@@ -192,16 +170,6 @@ mod tests {
         x = x.pow(BIG_P - 1);
         x = x.pow(BIG_P + 1);
         assert!(x == QuadNum::ONE);
-    }
-
-    #[test]
-    fn finds_sqrt() {
-        for i in 3..1003 {
-            let mut x = QuadNum::<BIG_P>::int_sqrt(FpNum::from(i));
-            assert_ne!(x, i);
-            x = x.multiply(&x);
-            assert_eq!(x, i);
-        }
     }
 
     #[test]
