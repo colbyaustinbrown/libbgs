@@ -3,7 +3,7 @@ use std::ops::*;
 use crate::numbers::*;
 use libbgs_util::*;
 
-/// An element of the finite field $\mathbb{F}_{p^2}$.
+/// An element of the finite field $\mathbb{F}\_{p^2}$.
 /// The number $x$ is represented as $x = a_0 + a_1\sqrt{r}$, where $r$ is
 /// a basis element fixed at compile time.
 /// See Lubeck, Frank. (2003). "Standard generators of finite fields and their cyclic subgroups."
@@ -16,9 +16,9 @@ use libbgs_util::*;
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub struct QuadNum<const P: u128>(
     /// The value $a_0$, when writing this `QuadNum` as $a_0 + a_1\sqrt{r}$.
-    pub FpNum<P>,
+    pub(crate) FpNum<P>,
     /// The value $a_1$, when writing this `QuadNum` as $a_0 + a_1\sqrt{r}$.
-    pub FpNum<P>,
+    pub(crate) FpNum<P>,
 );
 
 impl<const P: u128> QuadNum<P> {
@@ -29,13 +29,19 @@ impl<const P: u128> QuadNum<P> {
     pub const ZERO: QuadNum<P> = QuadNum(FpNum::from_u128(0), FpNum::from_u128(0));
 
     /// True if this number is zero; false otherwise.
-    pub fn is_zero(&self) -> bool {
-        self.0 == FpNum::ZERO && self.1 == FpNum::ZERO
+    pub const fn is_zero(&self) -> bool {
+        self.0.raw() == FpNum::<P>::ZERO.raw() && self.1.raw() == FpNum::<P>::ZERO.raw()
     }
 
     /// Returns the Steinitz element of $\mathbb{F}\_{p^2}$ with index `i`.
     pub fn steinitz(i: u128) -> QuadNum<P> {
-        QuadNum::from((i % P, i / P))
+        QuadNum(FpNum::from(i % P), FpNum::from(i / P))
+    }
+
+    /// Returns the Steinitz element of $\mathbb{F}\_{p^2}$ with index `i`.
+    /// This method is more expensive than `steinitz`, but can be used in `const` contexts.
+    pub const fn steinitz_const(i: u128) -> QuadNum<P> {
+        QuadNum(FpNum::from_u128(i % P), FpNum::from_u128(i / P))
     }
 }
 
@@ -87,12 +93,6 @@ impl<const P: u128> PartialEq<u128> for QuadNum<P> {
 impl<const P: u128> From<FpNum<P>> for QuadNum<P> {
     fn from(value: FpNum<P>) -> QuadNum<P> {
         QuadNum(value, FpNum::from(0))
-    }
-}
-
-impl<const P: u128> From<(u128, u128)> for QuadNum<P> {
-    fn from(value: (u128, u128)) -> QuadNum<P> {
-        QuadNum(FpNum::from(value.0), FpNum::from(value.1))
     }
 }
 
@@ -159,14 +159,14 @@ mod tests {
 
     #[test]
     fn powers_up() {
-        let mut x = QuadNum::<7>::from((3, 4));
+        let mut x = QuadNum::<7>(FpNum::from(3), FpNum::from(4));
         x = x.pow(48);
         assert!(x == QuadNum::ONE);
     }
 
     #[test]
     fn powers_up_big() {
-        let mut x = QuadNum::<BIG_P>::from((3, 5));
+        let mut x = QuadNum::<BIG_P>(FpNum::from(3), FpNum::from(5));
         x = x.pow(BIG_P - 1);
         x = x.pow(BIG_P + 1);
         assert!(x == QuadNum::ONE);

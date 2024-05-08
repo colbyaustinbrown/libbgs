@@ -289,6 +289,17 @@ impl<const P: u128> From<FpNum<P>> for u128 {
     }
 }
 
+impl<const P: u128> TryFrom<QuadNum<P>> for FpNum<P> {
+    type Error = &'static str;
+    fn try_from(src: QuadNum<P>) -> Result<Self, Self::Error> {
+        if src.1 == FpNum::<P>::ZERO {
+            Err("Cannot convert a QuadNum into FpNum if it has non-zero quadratic part.")
+        } else {
+            Ok(src.0)
+        }
+    }
+}
+
 impl<const P: u128> std::fmt::Debug for FpNum<P> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("FpNum")
