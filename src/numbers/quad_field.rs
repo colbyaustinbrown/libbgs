@@ -5,8 +5,9 @@ use either::*;
 use crate::numbers::*;
 use libbgs_util::*;
 
-/// An integer modulo `P^2`. An element $x$ is represented as $x = a_0 + a_1\sqrt{r}$, where $r$ is
-/// the fixed basis element.
+/// An element of the finite field $\mathbb{F}_{p^2}$.
+/// The number $x$ is represented as $x = a_0 + a_1\sqrt{r}$, where $r$ is
+/// a basis element fixed at compile time.
 /// See Lubeck, Frank. (2003). "Standard generators of finite fields and their cyclic subgroups."
 /// Journal of Symbolic Computation (117) 51-67.
 /// Note that the `SylowDecomposable` implementation for a `QuadNum` returns the decomposition for

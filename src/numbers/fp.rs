@@ -25,18 +25,31 @@ impl<const P: u128> FpNum<P> {
 
     // Once const trait impls are stabalized, this can be replaced with a call to the pow method
     // from the GroupElem trait.
-    // Until then, we copy + paste the code from there... not very DRY of me.
     /// The constant $2^{-1}$.
     pub const TWO_INV: FpNum<P> = FpNum::from_u128(2).const_pow(P - 2);
 
     /// Returns the Legendre symbol of `a` modulo `P`, i.e.,
-    /// $$\left(\frac{a}{p}\right)_L = a^{\frac{p - 1}{2}} \mod p$$.
+    /// $$\left(\frac{a}{p}\right)_L = a^{\frac{p - 1}{2}} \mod p.$$
+    /// ```
+    /// # use libbgs::numbers::FpNum;
+    /// let x = FpNum::<7>::from(6);
+    /// let y = FpNum::<7>::from(4);
+    /// assert_eq!(x.legendre(), FpNum::from(6));
+    /// assert_eq!(y.legendre(), FpNum::from(1));
+    /// ```
     pub const fn legendre(&self) -> FpNum<P> {
         self.const_pow((P - 1) / 2)
     }
 
     /// Calculates this number's square root, if it is a quadratic residue; otherwise, returns
     /// `None`.
+    /// ```
+    /// # use libbgs::numbers::FpNum;
+    /// let x = FpNum::<7>::from(6);
+    /// let y = FpNum::<7>::from(4);
+    /// assert!(x.int_sqrt().is_none());
+    /// assert_eq!(y.int_sqrt(), Some(FpNum::from(2)));
+    /// ```
     pub const fn int_sqrt(&self) -> Option<FpNum<P>> {
         if self.0 == FpNum::<P>::from_u128(0).0 {
             return Some(FpNum::ZERO);
@@ -110,7 +123,8 @@ impl<const P: u128> FpNum<P> {
 
 
     /// Converts a `u128` into its Montgomery representation.
-    /// This operation is expensive.
+    /// This operation is expensive, but can be used in `const` contexts.
+    /// If you are not in a `const` context, it is better to use `FpNum::from(src: u128)`.
     pub const fn from_u128(src: u128) -> FpNum<P> {
         let r2 = long_multiply::<P>(Self::R, Self::R);
         FpNum::<P>::redc2(carrying_mul(src, r2))
