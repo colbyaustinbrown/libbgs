@@ -188,6 +188,17 @@ where
             _phantom: PhantomData,
         }
     }
+
+    fn pow(&self, n: u128) -> SylowElem<S, L, C> {
+        let mut coords = self.coords;
+        for i in 0..L {
+            coords[i] = (coords[i] * n) % C::FACTORS.factor(i);
+        }
+        SylowElem {
+            coords,
+            _phantom: PhantomData,
+        }
+    }
 }
 
 impl<S, const L: usize, C: SylowDecomposable<S>> PartialEq for SylowElem<S, L, C> {
