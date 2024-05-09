@@ -226,7 +226,6 @@ impl<S, const L: usize, C: SylowDecomposable<S>, T> SylowStream<S, L, C, T> {
 
     fn propagate<F>(&mut self, seed: Seed<S, L, C, T>, mut consume: F)
     where
-        Self: Sized,
         T: Clone,
         F: FnMut(&mut Self, Output<S, L, C, T>),
     {
@@ -349,7 +348,7 @@ where
             f = f.consume(top);
             folder.replace(Some(f));
 
-            if count % 10_000 == 0 {
+            if count % 0x2000 == 0 {
                 let Some(mut split) = self.maybe_split(stolen) else {
                     continue;
                 };
