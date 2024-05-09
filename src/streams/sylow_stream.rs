@@ -407,7 +407,7 @@ where
 
         fn help<S, const L: usize, C, T>(block: bool, lims: [u128; L], node: &mut FactorTrie<S, L, C, (GenData, T)>) 
         where
-            C: Factor<S>,
+            C: FactoredSize<S>,
         {
             let (p, _) = C::FACTORS[node.index()];
             node.data.0.lim = lims[node.index()];
@@ -548,15 +548,15 @@ mod tests {
     #[derive(PartialEq, Eq, Debug)]
     struct Phantom {}
 
-    impl Factor<Phantom> for FpNum<7> {
+    impl FactoredSize<Phantom> for FpNum<7> {
         const FACTORS: Factorization = Factorization::new(&[(2, 1), (3, 1)]);
     }
 
-    impl Factor<Phantom> for FpNum<61> {
+    impl FactoredSize<Phantom> for FpNum<61> {
         const FACTORS: Factorization = Factorization::new(&[(2, 2), (3, 1), (5, 1)]);
     }
 
-    impl Factor<Phantom> for FpNum<BIG_P> {
+    impl FactoredSize<Phantom> for FpNum<BIG_P> {
         const FACTORS: Factorization = Factorization::new(&[
             (2, 1),
             (7, 1),
@@ -568,15 +568,15 @@ mod tests {
         ]);
     }
 
-    impl Factor<Phantom> for FpNum<271> {
+    impl FactoredSize<Phantom> for FpNum<271> {
         const FACTORS: Factorization = Factorization::new(&[(2, 1), (3, 3), (5, 1)]);
     }
 
-    impl Factor<Phantom> for FpNum<13928643> {
+    impl FactoredSize<Phantom> for FpNum<13928643> {
         const FACTORS: Factorization = Factorization::new(&[(2, 1), (7, 2), (13, 2), (29, 2)]);
     }
 
-    impl Factor<Phantom> for FpNum<41> {
+    impl FactoredSize<Phantom> for FpNum<41> {
         const FACTORS: Factorization = Factorization::new(&[(2, 3), (5, 1)]);
     }
 

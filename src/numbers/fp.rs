@@ -247,7 +247,7 @@ impl<const P: u128> FpNum<P> {
 
 impl<S, const P: u128> SylowDecomposable<S> for FpNum<P>
 where
-    FpNum<P>: Factor<S>,
+    FpNum<P>: FactoredSize<S>,
 {
     fn find_sylow_generator(i: usize) -> FpNum<P> {
         match Self::FACTORS[i] {
@@ -464,15 +464,15 @@ mod tests {
 
     const BIG_P: u128 = 1_000_000_000_000_000_124_399;
 
-    impl Factor<Phantom> for FpNum<13> {
+    impl FactoredSize<Phantom> for FpNum<13> {
         const FACTORS: Factorization = Factorization::new(&[(2, 2), (3, 1)]);
     }
 
-    impl Factor<Phantom> for FpNum<29> {
+    impl FactoredSize<Phantom> for FpNum<29> {
         const FACTORS: Factorization = Factorization::new(&[(2, 2), (7, 1)]);
     }
 
-    impl Factor<Phantom> for FpNum<BIG_P> {
+    impl FactoredSize<Phantom> for FpNum<BIG_P> {
         const FACTORS: Factorization = Factorization::new(&[
             (2, 1),
             (7, 1),

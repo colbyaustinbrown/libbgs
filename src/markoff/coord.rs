@@ -60,8 +60,8 @@ impl<const P: u128> Coord<P> {
     /// Returns the order of the map $\text{rot}\_a$, that is, $\lvert \langle \text{rot}\_a \rangle \rvert$, along with the type of [`RotOrder`] that it is.
     pub fn rot_order<S1, S2>(&self) -> RotOrder
     where
-        FpNum<P>: Factor<S1>,
-        QuadNum<P>: Factor<S2>,
+        FpNum<P>: FactoredSize<S1>,
+        QuadNum<P>: FactoredSize<S2>,
     {
         match self
             .to_chi()
@@ -80,8 +80,8 @@ impl<const P: u128> Coord<P> {
     /// guarenteed to lie in the endgame.
     pub fn endgame<S>() -> (u128, u128)
     where
-        FpNum<P>: Factor<S>,
-        QuadNum<P>: Factor<S>,
+        FpNum<P>: FactoredSize<S>,
+        QuadNum<P>: FactoredSize<S>,
     {
         let tmp = 8.0 * (P as f64).sqrt();
         let hyper = tmp * ((P - 1) * FpNum::FACTORS.tau()) as f64;
@@ -124,7 +124,7 @@ pub trait FromChi<S, const P: u128>: SylowDecomposable<S>
 
 impl<S, const P: u128> FromChi<S, P> for FpNum<P>
 where
-    FpNum<P>: Factor<S>,
+    FpNum<P>: FactoredSize<S>,
 {
     fn from_chi<const L: usize>(
         chi: &SylowElem<S, L, FpNum<P>>,
@@ -147,7 +147,7 @@ where
 
 impl<S, const P: u128> FromChi<S, P> for QuadNum<P>
 where
-    QuadNum<P>: Factor<S>,
+    QuadNum<P>: FactoredSize<S>,
 {
     fn from_chi<const L: usize>(
         chi: &SylowElem<S, L, QuadNum<P>>,

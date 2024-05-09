@@ -28,7 +28,7 @@ pub struct SylowElem<S, const L: usize, C: SylowDecomposable<S>> {
 
 /// Groups that can be decomposed into a direct sum of cyclic Sylow subgroups.
 /// In particular, these groups must be finite and cyclic.
-pub trait SylowDecomposable<S>: Factor<S> + GroupElem + Eq {
+pub trait SylowDecomposable<S>: FactoredSize<S> + GroupElem + Eq {
     /// Finds a Sylow generator for the Sylow subgroup of prime power index `i`.
     fn find_sylow_generator(i: usize) -> Self;
 
@@ -98,8 +98,8 @@ impl<S, const L: usize, C: SylowDecomposable<S>> SylowDecomp<S, L, C> {
     }
 }
 
-impl<S, const L: usize, C: SylowDecomposable<S>> Factor<S> for SylowElem<S, L, C> {
-    const FACTORS: Factorization = <C as Factor<S>>::FACTORS;
+impl<S, const L: usize, C: SylowDecomposable<S>> FactoredSize<S> for SylowElem<S, L, C> {
+    const FACTORS: Factorization = <C as FactoredSize<S>>::FACTORS;
 }
 
 impl<S, const L: usize, C: SylowDecomposable<S>> SylowDecomposable<S> for SylowElem<S, L, C> {

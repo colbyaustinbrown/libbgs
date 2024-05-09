@@ -4,14 +4,14 @@ use crate::streams::DivisorStream;
 use libbgs_util::intpow;
 
 /// When called with phantom type marker `Ph` and a list of integers, each integer `P` is turned
-/// into an implementation of `Factor<Ph> for FpNum<P>` and `Factor<Ph> for QuadNum<P>`.
+/// into an implementation of `FactoredSize<Ph> for FpNum<P>` and `FactoredSize<Ph> for QuadNum<P>`.
 #[macro_export]
 macro_rules! impl_factors {
     ($mrk:ident, $($n:literal),+ $(,)?) => {$(
-        impl Factor<$mrk> for FpNum<$n> {
+        impl FactoredSize<$mrk> for FpNum<$n> {
             const FACTORS: Factorization = Factorization::new(make_factor!({$n - 1}));
         }
-        impl Factor<$mrk> for QuadNum<$n> {
+        impl FactoredSize<$mrk> for QuadNum<$n> {
             const FACTORS: Factorization = Factorization::new(make_factor!({$n + 1}));
         }
     )+};
@@ -35,7 +35,7 @@ pub struct Factorization(&'static [(u128, usize)]);
 ///
 /// This type can only hold factors up to `2^126`. Behavior may be undefined for factorizations
 /// which contain larger factors.
-pub trait Factor<S> {
+pub trait FactoredSize<S> {
     /// The prime factorization of this object.
     const FACTORS: Factorization;
 }

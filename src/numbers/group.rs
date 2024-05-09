@@ -1,4 +1,4 @@
-use crate::numbers::Factor;
+use crate::numbers::FactoredSize;
 use libbgs_util::*;
 
 /// Types that represent the elements of a group.
@@ -52,7 +52,7 @@ pub trait GroupElem: Clone + Eq {
     /// `a.pow(p).is_one()` returns True.
     fn order<S>(&self) -> u128
     where
-        Self: Factor<S>,
+        Self: FactoredSize<S>,
     {
         let mut res = 1;
         for i in 0..Self::FACTORS.len() {

@@ -70,7 +70,7 @@ impl<const P: u128> GroupElem for QuadNum<P> {
 
 impl<S, const P: u128> SylowDecomposable<S> for QuadNum<P>
 where
-    QuadNum<P>: Factor<S>,
+    QuadNum<P>: FactoredSize<S>,
 {
     fn find_sylow_generator(i: usize) -> QuadNum<P> {
         (1..P * 2)
@@ -141,11 +141,11 @@ mod tests {
 
     impl_factors!(Phantom, 1_000_000_000_000_000_124_399);
 
-    impl Factor<Phantom> for QuadNum<7> {
+    impl FactoredSize<Phantom> for QuadNum<7> {
         const FACTORS: Factorization = Factorization::new(&[(2, 3)]);
     }
 
-    impl Factor<Phantom> for QuadNum<17> {
+    impl FactoredSize<Phantom> for QuadNum<17> {
         const FACTORS: Factorization = Factorization::new(&[(2, 1), (3, 2)]);
     }
 
