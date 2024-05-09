@@ -7,11 +7,6 @@ use crate::numbers::*;
 /// a basis element fixed at compile time.
 /// See Lubeck, Frank. (2003). "Standard generators of finite fields and their cyclic subgroups."
 /// Journal of Symbolic Computation (117) 51-67.
-/// Note that the `SylowDecomposable` implementation for a `QuadNum` returns the decomposition for
-/// the subgroup with $p + 1$ elements, not the full group $\mathbb{F}_{p^2}^\times$.
-/// Also, `<QuadNum<P> as GroupElem>::SIZE == P + 1`, again refering to the subgroup.
-/// For these reasons, this API is likely to change in the future to bring the definitions of `QuadNum<P> as
-/// GroupElem` and the `SylowDecomp` instance in line with describing the full group.
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub struct QuadNum<const P: u128>(
     /// The value $a_0$, when writing this `QuadNum` as $a_0 + a_1\sqrt{r}$.
@@ -50,20 +45,13 @@ impl<const P: u128> GroupElem for QuadNum<P> {
         FpNum::ONE,
         FpNum::ZERO,
     );
-    const SIZE: u128 = P + 1;
+    const SIZE: u128 = P*P - 1;
 
     fn multiply(&self, other: &QuadNum<P>) -> QuadNum<P> {
         let a0 = self.0.multiply(&other.0) + self.1.multiply(&other.1).multiply(&QuadNum::<P>::R);
         let a1 = self.1.multiply(&other.0) + self.0.multiply(&other.1);
 
         QuadNum(a0, a1)
-    }
-
-    fn inverse(&self) -> QuadNum<P> {
-        if *self == QuadNum::ZERO {
-            panic!("Attempted to take the multiplicative inverse of zero."); 
-        }
-        self.pow(P * P - 2)
     }
 }
 

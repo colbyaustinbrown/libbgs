@@ -22,8 +22,6 @@ pub trait GroupElem: Clone + Eq {
     /// `a.multiply(b.multiply(c)) == a.multiply(b).multiply(c)`.
     fn multiply(&self, other: &Self) -> Self;
 
-    // Note: this code is copy + pasted into FpNum::TWO_INV, since that constant can not use this
-    // method, at least not until const trait impls are stabalized.
     /// Raises this element to the power of `n`.
     fn pow(&self, mut n: u128) -> Self {
         if n == 0 {
