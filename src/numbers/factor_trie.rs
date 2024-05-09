@@ -4,7 +4,7 @@ use crate::numbers::FactoredSize;
 
 type Child<S, const L: usize, C, T> = Box<FactorTrie<S, L, C, T>>;
 
-/// A trie of prime factors in increasing order; that is, a none with word $p$ will have
+/// A trie of prime factors in increasing order; that is, a node with word $p$ will have
 /// only children with word $q \geq p$.
 pub struct FactorTrie<S, const L: usize, C, T> {
     i: usize,

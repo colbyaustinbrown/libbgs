@@ -6,6 +6,15 @@ use libbgs_util::*;
 /// * The type has a binary operator (`multiply`).
 /// * The type must have a `const ONE`
 /// * Every element of the type must have element given by `inverse()`.
+///
+/// # Example
+/// ```
+/// use libbgs::numbers::{GroupElem, FpNum};
+/// let x = FpNum::<7>::from(5);
+/// let y = x.inverse();
+/// assert_eq!(x.multiply(&y), FpNum::ONE);
+/// assert_eq!(x.pow(FpNum::<7>::SIZE), FpNum::ONE);
+/// ```
 pub trait GroupElem: Clone + Eq {
     /// The unique identity element of this group.
     const ONE: Self;
