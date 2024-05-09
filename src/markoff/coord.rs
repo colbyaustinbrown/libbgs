@@ -145,13 +145,13 @@ where
     }
 }
 
-impl<S, const P: u128> FromChi<S, P> for QuadNum<P>
+impl<S, const P: u128> FromChi<S, P> for Norm1<P>
 where
-    QuadNum<P>: FactoredSize<S>,
+    Norm1<P>: FactoredSize<S>,
 {
     fn from_chi<const L: usize>(
-        chi: &SylowElem<S, L, QuadNum<P>>,
-        decomp: &SylowDecomp<S, L, QuadNum<P>>,
+        chi: &SylowElem<S, L, Norm1<P>>,
+        decomp: &SylowDecomp<S, L, Norm1<P>>,
     ) -> FpNum<P> {
         let chi_inv = chi.inverse().to_product(decomp);
         let chi = chi.to_product(decomp);
@@ -161,8 +161,8 @@ where
     }
 
     fn from_chi_conj<const L: usize>(
-        chi: &SylowElem<S, L, QuadNum<P>>,
-        decomp: &SylowDecomp<S, L, QuadNum<P>>,
+        chi: &SylowElem<S, L, Norm1<P>>,
+        decomp: &SylowDecomp<S, L, Norm1<P>>,
     ) -> FpNum<P> {
         let chi_inv = chi.inverse().to_product(decomp);
         let chi = chi.to_product(decomp);

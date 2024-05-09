@@ -907,7 +907,7 @@ mod tests {
     #[test]
     pub fn test_more_quotients() {
         // factorization is 2 * 19 * 79
-        let res = SylowStreamBuilder::<Phantom, 3, QuadNum<3001>, ()>::new()
+        let res = SylowStreamBuilder::<Phantom, 3, Norm1<3001>, ()>::new()
             .add_flag(flags::LEQ)
             .add_targets_leq(3002)
             .set_quotient(Some([0, 0, 1]))

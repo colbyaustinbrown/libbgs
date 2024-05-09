@@ -4,14 +4,14 @@ use crate::streams::DivisorStream;
 use libbgs_util::intpow;
 
 /// When called with phantom type marker `Ph` and a list of integers, each integer `P` is turned
-/// into an implementation of `FactoredSize<Ph> for FpNum<P>` and `FactoredSize<Ph> for QuadNum<P>`.
+/// into an implementation of `FactoredSize<Ph> for FpNum<P>` and `FactoredSize<Ph> for Norm1<P>`.
 #[macro_export]
 macro_rules! impl_factors {
     ($mrk:ident, $($n:literal),+ $(,)?) => {$(
         impl FactoredSize<$mrk> for FpNum<$n> {
             const FACTORS: Factorization = Factorization::new(make_factor!({$n - 1}));
         }
-        impl FactoredSize<$mrk> for QuadNum<$n> {
+        impl FactoredSize<$mrk> for Norm1<$n> {
             const FACTORS: Factorization = Factorization::new(make_factor!({$n + 1}));
         }
     )+};
@@ -27,7 +27,7 @@ pub struct Factorization(&'static [(u128, usize)]);
 
 /// Types that have a size or order which can be expressed as a product of prime powers.
 /// The type parameter `S` is a phantom type to allow users of this library to provide their own
-/// factorizations for `FpNum<P>`, `QuadNum<P>`, etc. for arbitrary `P`.
+/// factorizations for `FpNum<P>`, `Norm1<P>`, etc. for arbitrary `P`.
 /// The type `S` must come from the crate implementing the factorization to satisfy Rust's
 /// coherence and orphan rules, but does not affect the memory layout of any instance of an object
 /// implementing `Factor`.

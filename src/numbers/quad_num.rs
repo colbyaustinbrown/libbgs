@@ -1,7 +1,6 @@
 use std::ops::*;
 
 use crate::numbers::*;
-use libbgs_util::*;
 
 /// An element of the finite field $\mathbb{F}\_{p^2}$.
 /// The number $x$ is represented as $x = a_0 + a_1\sqrt{r}$, where $r$ is
@@ -68,23 +67,6 @@ impl<const P: u128> GroupElem for QuadNum<P> {
     }
 }
 
-impl<S, const P: u128> SylowDecomposable<S> for QuadNum<P>
-where
-    QuadNum<P>: FactoredSize<S>,
-{
-    fn find_sylow_generator(i: usize) -> QuadNum<P> {
-        (1..P * 2)
-            .map(|i| {
-                let j = standard_affine_shift(P * 2, i);
-                let p = QuadNum::steinitz(j);
-                p.pow(P - 1)
-            })
-            .filter(|c| *c != QuadNum::ZERO)
-            .find_map(|c| QuadNum::is_sylow_generator(&c, Self::FACTORS[i]))
-            .unwrap()
-    }
-}
-
 impl<const P: u128> PartialEq<u128> for QuadNum<P> {
     fn eq(&self, other: &u128) -> bool {
         self.0 == FpNum::from(*other) && self.1 == FpNum::ZERO 
@@ -132,24 +114,6 @@ impl<const P: u128> Mul<Self> for QuadNum<P> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::numbers::sylow::tests::*;
-
-    const BIG_P: u128 = 1_000_000_000_000_000_124_399;
-
-    #[derive(PartialEq, Eq)]
-    struct Phantom {}
-
-    impl_factors!(Phantom, 1_000_000_000_000_000_124_399);
-
-    impl FactoredSize<Phantom> for QuadNum<7> {
-        const FACTORS: Factorization = Factorization::new(&[(2, 3)]);
-    }
-
-    impl FactoredSize<Phantom> for QuadNum<17> {
-        const FACTORS: Factorization = Factorization::new(&[(2, 1), (3, 2)]);
-    }
-
-    impl_factors!(Phantom, 41);
 
     #[test]
     fn calculates_r_as_nonresidue() {
@@ -163,44 +127,5 @@ mod tests {
         let mut x = QuadNum::<7>(FpNum::from(3), FpNum::from(4));
         x = x.pow(48);
         assert!(x == QuadNum::ONE);
-    }
-
-    #[test]
-    fn powers_up_big() {
-        let mut x = QuadNum::<BIG_P>(FpNum::from(3), FpNum::from(5));
-        x = x.pow(BIG_P - 1);
-        x = x.pow(BIG_P + 1);
-        assert!(x == QuadNum::ONE);
-    }
-
-    #[test]
-    fn sylow_finds_generators() {
-        let g = SylowDecomp::<Phantom, 2, QuadNum<17>>::new();
-        for i in 0..2 {
-            let gen = &g.generator(i);
-            let d = SylowElem::<Phantom, 2, QuadNum<17>>::FACTORS.factor(i);
-            test_is_generator_small::<Phantom, 2, QuadNum<17>>(*gen, d as usize);
-        }
-    }
-
-    #[test]
-    fn sylow_finds_generators_2() {
-        let g = SylowDecomp::<Phantom, 3, QuadNum<41>>::new();
-        for i in 0..3 {
-            let gen = g.generator(i);
-            assert!(*gen != QuadNum(FpNum::from(0), FpNum::from(0)));
-            let d = SylowElem::<Phantom, 3, QuadNum<41>>::FACTORS.factor(i);
-            test_is_generator_small::<Phantom, 2, QuadNum<41>>(gen, d as usize);
-        }
-    }
-
-    #[test]
-    fn sylow_finds_generators_big() {
-        let g = SylowDecomp::<Phantom, 11, QuadNum<BIG_P>>::new();
-        for i in 0..11 {
-            let gen = g.generator(i);
-            let d = SylowElem::<Phantom, 11, QuadNum<BIG_P>>::FACTORS[i];
-            test_is_generator_big::<Phantom, 11, QuadNum<BIG_P>>(gen, d);
-        }
     }
 }

@@ -10,24 +10,24 @@ use rayon::iter::*;
 pub struct CoordStream<'a, S, const L_HYPER: usize, const L_ELLIP: usize, const P: u128>
 where
     FpNum<P>: SylowDecomposable<S>,
-    QuadNum<P>: SylowDecomposable<S>,
+    Norm1<P>: SylowDecomposable<S>,
 {
     hyper_stream: Option<SylowStream<S, L_HYPER, FpNum<P>, ()>>,
-    ellip_stream: Option<SylowStream<S, L_ELLIP, QuadNum<P>, ()>>,
+    ellip_stream: Option<SylowStream<S, L_ELLIP, Norm1<P>, ()>>,
     hyper_decomp: &'a SylowDecomp<S, L_HYPER, FpNum<P>>,
-    ellip_decomp: &'a SylowDecomp<S, L_ELLIP, QuadNum<P>>,
+    ellip_decomp: &'a SylowDecomp<S, L_ELLIP, Norm1<P>>,
 }
 
 impl<'a, S, const L_HYPER: usize, const L_ELLIP: usize, const P: u128>
     CoordStream<'a, S, L_HYPER, L_ELLIP, P>
 where
     FpNum<P>: SylowDecomposable<S>,
-    QuadNum<P>: SylowDecomposable<S>,
+    Norm1<P>: SylowDecomposable<S>,
 {
     /// Creates a new `CoordStream` with orders up to `limit`.
     pub fn new(
         hyper_decomp: &'a SylowDecomp<S, L_HYPER, FpNum<P>>,
-        ellip_decomp: &'a SylowDecomp<S, L_ELLIP, QuadNum<P>>,
+        ellip_decomp: &'a SylowDecomp<S, L_ELLIP, Norm1<P>>,
         hyper_lim: u128,
         ellip_lim: u128,
     ) -> CoordStream<'a, S, L_HYPER, L_ELLIP, P> {
@@ -41,10 +41,10 @@ where
                 |b, x| b.add_target(&x),
             )
             .into_iter();
-        let ellip_stream = DivisorStream::new(QuadNum::FACTORS.factors(), ellip_lim, true)
+        let ellip_stream = DivisorStream::new(Norm1::FACTORS.factors(), ellip_lim, true)
             .map(|v| v.try_into().unwrap())
             .fold(
-                SylowStreamBuilder::<S, L_ELLIP, QuadNum<P>, ()>::new()
+                SylowStreamBuilder::<S, L_ELLIP, Norm1<P>, ()>::new()
                     .add_flag(flags::NO_PARABOLIC)
                     .add_flag(flags::NO_UPPER_HALF)
                     .add_flag(flags::LEQ),
@@ -86,7 +86,7 @@ impl<'a, S, const L_HYPER: usize, const L_ELLIP: usize, const P: u128> Iterator
     for CoordStream<'a, S, L_HYPER, L_ELLIP, P>
 where
     FpNum<P>: SylowDecomposable<S>,
-    QuadNum<P>: SylowDecomposable<S>,
+    Norm1<P>: SylowDecomposable<S>,
 {
     type Item = Coord<P>;
 
@@ -99,7 +99,7 @@ where
         }
         if let Some(stream) = self.ellip_stream.as_mut() {
             if let Some((a, _)) = stream.next() {
-                return Some(Coord(QuadNum::from_chi(&a, self.ellip_decomp)));
+                return Some(Coord(Norm1::from_chi(&a, self.ellip_decomp)));
             }
             self.ellip_stream = None;
         }
@@ -112,7 +112,7 @@ impl<'a, S, const L_HYPER: usize, const L_ELLIP: usize, const P: u128> ParallelI
 where
     S: Send + Sync,
     FpNum<P>: SylowDecomposable<S>,
-    QuadNum<P>: SylowDecomposable<S>,
+    Norm1<P>: SylowDecomposable<S>,
 {
     type Item = Coord<P>;
 
@@ -129,7 +129,7 @@ where
         let right = self.ellip_stream.map(|stream| {
             stream
                 .parallelize()
-                .map(|(x, _)| Coord(QuadNum::from_chi(&x, self.ellip_decomp)))
+                .map(|(x, _)| Coord(Norm1::from_chi(&x, self.ellip_decomp)))
                 .drive_unindexed(consumer.split_off_left())
         });
         match (left, right) {
